@@ -31,9 +31,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
+  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
   const isAuth = request.nextUrl.pathname.startsWith("/auth");
 
-  if (isDashboard && !user) {
+  if ((isDashboard || isAdmin) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     url.searchParams.set("next", request.nextUrl.pathname);

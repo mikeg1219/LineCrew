@@ -130,7 +130,17 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
       </div>
 
       <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <WaiterProgressButtons jobId={job.id} currentStatus={status} />
+        {status === "pending_confirmation" ? (
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Job marked complete</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Waiting for the customer to confirm. You&apos;ll be paid after they
+              confirm or after 15 minutes if they don&apos;t respond.
+            </p>
+          </div>
+        ) : (
+          <WaiterProgressButtons jobId={job.id} currentStatus={status} />
+        )}
       </div>
 
       {showExtraTimeRequest && (

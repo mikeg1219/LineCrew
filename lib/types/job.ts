@@ -4,8 +4,11 @@ export type JobStatus =
   | "at_airport"
   | "in_line"
   | "near_front"
+  | "pending_confirmation"
   | "completed"
-  | "cancelled";
+  | "cancelled"
+  | "disputed"
+  | "refunded";
 
 export type Job = {
   id: string;
@@ -25,4 +28,8 @@ export type Job = {
   created_at: string;
   stripe_payment_intent_id?: string | null;
   payout_transfer_id?: string | null;
+  accepted_at?: string | null;
+  completed_at?: string | null;
+  cancelled_at?: string | null;
+  cancellation_reason?: string | null;
 };

@@ -23,7 +23,7 @@ export default async function BrowseJobsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, serving_airports")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -35,13 +35,23 @@ export default async function BrowseJobsPage() {
     redirect("/dashboard/customer");
   }
 
-  const { data: jobs, error } = await supabase
-    .from("jobs")
-    .select("*")
-    .eq("status", "open")
-    .order("created_at", { ascending: false });
+  const serving =
+    (profile as { serving_airports?: string[] | null }).serving_airports ??
+    [];
 
-  const list = (jobs ?? []) as Job[];
+  let list: Job[] = [];
+  let error: { message: string } | null = null;
+
+  if (serving.length > 0) {
+    const res = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("status", "open")
+      .in("airport", serving)
+      .order("created_at", { ascending: false });
+    list = (res.data ?? []) as Job[];
+    error = res.error;
+  }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-10">
@@ -61,15 +71,31 @@ export default async function BrowseJobsPage() {
         </p>
       </div>
 
-      {error && (
+      {error != null && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error.message}
+          {"message" in error ? error.message : "Could not load jobs."}
         </p>
       )}
 
-      {!error && list.length === 0 && (
+      {!error && serving.length === 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-8 text-center text-amber-950">
+          <p className="font-medium">Select which airports you serve</p>
+          <p className="mt-2 text-sm text-amber-900/90">
+            Go to{" "}
+            <Link
+              href="/dashboard/waiter/airports"
+              className="font-semibold underline"
+            >
+              Edit my airports
+            </Link>{" "}
+            to see open jobs.
+          </p>
+        </div>
+      )}
+
+      {!error && serving.length > 0 && list.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-          No open jobs right now. Check back soon.
+          No open jobs at your airports right now. Check back soon.
         </div>
       )}
 

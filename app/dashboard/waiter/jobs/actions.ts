@@ -2,11 +2,17 @@
 
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
-import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
 export type JobActionState = { error: string } | null;
+
+const ACTIVE_ACCEPT_STATUSES = [
+  "accepted",
+  "at_airport",
+  "in_line",
+  "near_front",
+] as const;
 
 export async function acceptJobAction(
   _prev: JobActionState,
@@ -36,12 +42,31 @@ export async function acceptJobAction(
     return { error: "Only waiters can accept jobs." };
   }
 
+  const { count, error: countErr } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("waiter_id", user.id)
+    .in("status", [...ACTIVE_ACCEPT_STATUSES]);
+
+  if (countErr) {
+    return { error: countErr.message };
+  }
+  if ((count ?? 0) >= 2) {
+    return {
+      error:
+        "You already have 2 active jobs. Complete one before accepting more.",
+    };
+  }
+
+  const acceptedAt = new Date().toISOString();
+
   const { data, error } = await supabase
     .from("jobs")
     .update({
       waiter_id: user.id,
       status: "accepted",
       waiter_email: user.email,
+      accepted_at: acceptedAt,
     })
     .eq("id", jobId)
     .eq("status", "open")
@@ -67,7 +92,7 @@ const PROGRESS_STATUSES: JobStatus[] = [
   "at_airport",
   "in_line",
   "near_front",
-  "completed",
+  "pending_confirmation",
 ];
 
 export async function updateWaiterJobStatusAction(
@@ -113,14 +138,7 @@ export async function updateWaiterJobStatusAction(
     return { error: "That step is not available for the current status." };
   }
 
-  if (nextStatus === "completed") {
-    let stripe;
-    try {
-      stripe = getStripe();
-    } catch {
-      return { error: "Payment system is not configured." };
-    }
-
+  if (nextStatus === "pending_confirmation") {
     const { data: waiterProfile } = await supabase
       .from("profiles")
       .select("stripe_account_id")
@@ -136,48 +154,26 @@ export async function updateWaiterJobStatusAction(
 
     const { data: jobRow, error: jobFetchErr } = await supabase
       .from("jobs")
-      .select("offered_price, payout_transfer_id, stripe_payment_intent_id")
+      .select("stripe_payment_intent_id")
       .eq("id", jobId)
       .maybeSingle();
 
-    if (jobFetchErr || !jobRow) {
-      return { error: "Job not found." };
-    }
-
-    if (!jobRow.stripe_payment_intent_id) {
+    if (jobFetchErr || !jobRow?.stripe_payment_intent_id) {
       return { error: "This job has no payment on file." };
     }
 
-    const offered = Number(jobRow.offered_price);
-    const waiterShareCents = Math.floor(offered * 100 * 0.8);
-    if (waiterShareCents < 1) {
-      return { error: "Invalid payout amount." };
-    }
-
-    const transfer = await stripe.transfers.create(
-      {
-        amount: waiterShareCents,
-        currency: "usd",
-        destination: waiterProfile.stripe_account_id,
-        metadata: { job_id: jobId },
-        transfer_group: jobId,
-      },
-      { idempotencyKey: `linecrew_payout_${jobId}` }
-    );
-
+    const completedAt = new Date().toISOString();
     const { error: updateErr } = await supabase
       .from("jobs")
       .update({
-        status: "completed",
-        payout_transfer_id: transfer.id,
+        status: "pending_confirmation",
+        completed_at: completedAt,
       })
       .eq("id", jobId)
       .eq("waiter_id", user.id);
 
     if (updateErr) {
-      return {
-        error: `Payout was sent but the job could not be updated: ${updateErr.message}. Contact support with job id ${jobId}.`,
-      };
+      return { error: updateErr.message };
     }
 
     redirect(`/dashboard/waiter/jobs/${jobId}`);

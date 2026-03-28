@@ -1,3 +1,5 @@
+import { CancelJobButton } from "@/app/dashboard/customer/jobs/cancel-job-button";
+import { CompletionConfirmationPanel } from "@/app/dashboard/customer/jobs/completion-confirmation-panel";
 import { OverageCustomerAlert } from "@/app/dashboard/customer/jobs/overage-customer-alert";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
@@ -12,6 +14,13 @@ type PageProps = { params: Promise<{ jobId: string }> };
 function airportLabel(code: string) {
   return US_AIRPORTS_TOP_20.find((a) => a.code === code)?.label ?? code;
 }
+
+const TERMINAL = new Set<JobStatus>([
+  "completed",
+  "cancelled",
+  "disputed",
+  "refunded",
+]);
 
 export default async function CustomerJobTrackingPage({ params }: PageProps) {
   const { jobId } = await params;
@@ -50,15 +59,17 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
   const { data: pendingOverage } = await supabase
     .from("overage_requests")
-    .select("id, amount, status")
+    .select("id, amount, status, created_at")
     .eq("job_id", jobId)
     .eq("status", "pending")
     .maybeSingle();
 
-  const pending = pendingOverage as Pick<
-    OverageRequest,
-    "id" | "amount" | "status"
-  > | null;
+  const pending = pendingOverage as
+    | (Pick<OverageRequest, "id" | "amount" | "status"> & {
+        created_at: string;
+      })
+    | null;
+
   const hasWaiter =
     job.waiter_id != null &&
     status !== "open" &&
@@ -69,7 +80,10 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
     status === "accepted" ||
     status === "at_airport" ||
     status === "in_line" ||
-    status === "near_front";
+    status === "near_front" ||
+    status === "pending_confirmation";
+
+  const canCancel = !TERMINAL.has(status);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
@@ -110,12 +124,27 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           )}
         </div>
 
+        {status === "disputed" && (
+          <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+            Your dispute has been received. An admin will review within 24
+            hours.
+          </p>
+        )}
+
+        {status === "pending_confirmation" && job.completed_at && (
+          <CompletionConfirmationPanel
+            jobId={job.id}
+            completedAt={job.completed_at}
+          />
+        )}
+
         {pending && (
           <div className="mt-6">
             <OverageCustomerAlert
               jobId={job.id}
               requestId={pending.id}
               amount={Number(pending.amount)}
+              createdAt={pending.created_at}
             />
           </div>
         )}
@@ -180,6 +209,8 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
             </dd>
           </div>
         </dl>
+
+        {canCancel && <CancelJobButton jobId={job.id} />}
       </div>
     </div>
   );

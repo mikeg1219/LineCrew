@@ -7,8 +7,11 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   at_airport: "Waiter at the airport",
   in_line: "Waiter in line",
   near_front: "Waiter near the front",
+  pending_confirmation: "Awaiting your confirmation",
   completed: "Completed",
   cancelled: "Cancelled",
+  disputed: "Disputed — under review",
+  refunded: "Refunded",
 };
 
 /** Tailwind-friendly badge styles */
@@ -22,10 +25,15 @@ export function statusBadgeClass(status: JobStatus): string {
     case "in_line":
     case "near_front":
       return "bg-indigo-100 text-indigo-900 ring-indigo-200";
+    case "pending_confirmation":
+      return "bg-violet-100 text-violet-900 ring-violet-200";
     case "completed":
       return "bg-emerald-100 text-emerald-900 ring-emerald-200";
     case "cancelled":
+    case "refunded":
       return "bg-slate-200 text-slate-800 ring-slate-300";
+    case "disputed":
+      return "bg-red-100 text-red-900 ring-red-200";
     default:
       return "bg-slate-100 text-slate-800 ring-slate-200";
   }
@@ -41,9 +49,12 @@ export function canTransitionTo(
     accepted: "at_airport",
     at_airport: "in_line",
     in_line: "near_front",
-    near_front: "completed",
+    near_front: "pending_confirmation",
+    pending_confirmation: null,
     completed: null,
     cancelled: null,
+    disputed: null,
+    refunded: null,
   };
   return flow[current] === next;
 }

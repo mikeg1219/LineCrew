@@ -5,18 +5,28 @@ import {
   declineOverageAction,
   type OverageDecisionState,
 } from "@/app/dashboard/customer/jobs/overage-actions";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 const initial: OverageDecisionState = null;
+
+const OVERAGE_WINDOW_MIN = 20;
+
+function msUntilOverageDeadline(createdAtIso: string) {
+  const start = new Date(createdAtIso).getTime();
+  const end = start + OVERAGE_WINDOW_MIN * 60 * 1000;
+  return Math.max(0, end - Date.now());
+}
 
 export function OverageCustomerAlert({
   jobId,
   requestId,
   amount,
+  createdAt,
 }: {
   jobId: string;
   requestId: string;
   amount: number;
+  createdAt: string;
 }) {
   const [approveState, approveAction, approvePending] = useActionState(
     approveOverageAction,
@@ -27,6 +37,20 @@ export function OverageCustomerAlert({
     initial
   );
 
+  const [remainingMs, setRemainingMs] = useState(() =>
+    msUntilOverageDeadline(createdAt)
+  );
+
+  useEffect(() => {
+    const t = setInterval(() => {
+      setRemainingMs(msUntilOverageDeadline(createdAt));
+    }, 1000);
+    return () => clearInterval(t);
+  }, [createdAt]);
+
+  const mins = Math.floor(remainingMs / 60000);
+  const secs = Math.floor((remainingMs % 60000) / 1000);
+
   const err = approveState?.error ?? declineState?.error;
 
   return (
@@ -36,7 +60,12 @@ export function OverageCustomerAlert({
         {amount.toFixed(2)}?
       </p>
       <p className="mt-2 text-sm text-amber-900/90">
-        This matches the extra time rate you agreed to when posting the job.
+        Approve or decline within{" "}
+        <span className="font-semibold tabular-nums">
+          {mins}:{secs.toString().padStart(2, "0")}
+        </span>{" "}
+        or it will be auto-approved. This matches the extra time rate you
+        agreed to when posting the job.
       </p>
       {err && (
         <p className="mt-3 text-sm text-red-700">{err}</p>

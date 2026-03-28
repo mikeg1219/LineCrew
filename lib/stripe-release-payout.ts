@@ -1,0 +1,92 @@
+import { getStripe } from "@/lib/stripe";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+const PLATFORM_FEE = 0.2;
+
+/**
+ * Transfer 80% to waiter and mark job completed. Idempotent via payout_transfer_id.
+ * `fromStatus` is the status the job must currently have.
+ */
+export async function finalizeJobPayout(
+  supabase: SupabaseClient,
+  jobId: string,
+  fromStatus: "pending_confirmation" | "disputed"
+): Promise<
+  { ok: true; transferId: string } | { ok: false; error: string }
+> {
+  const stripe = getStripe();
+
+  const { data: job, error: jErr } = await supabase
+    .from("jobs")
+    .select(
+      "offered_price, payout_transfer_id, stripe_payment_intent_id, waiter_id, status"
+    )
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (jErr || !job) {
+    return { ok: false, error: "Job not found." };
+  }
+
+  if (job.status !== fromStatus) {
+    return { ok: false, error: "Job is not in the expected status." };
+  }
+
+  if (job.payout_transfer_id) {
+    return { ok: true, transferId: job.payout_transfer_id as string };
+  }
+
+  if (!job.stripe_payment_intent_id || !job.waiter_id) {
+    return { ok: false, error: "Job missing payment or waiter." };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("stripe_account_id")
+    .eq("id", job.waiter_id)
+    .maybeSingle();
+
+  if (!profile?.stripe_account_id) {
+    return { ok: false, error: "Waiter has no Stripe Connect account." };
+  }
+
+  const offered = Number(job.offered_price);
+  const waiterShareCents = Math.floor(offered * 100 * (1 - PLATFORM_FEE));
+  if (waiterShareCents < 1) {
+    return { ok: false, error: "Invalid payout amount." };
+  }
+
+  try {
+    const transfer = await stripe.transfers.create(
+      {
+        amount: waiterShareCents,
+        currency: "usd",
+        destination: profile.stripe_account_id,
+        metadata: { job_id: jobId },
+        transfer_group: jobId,
+      },
+      { idempotencyKey: `linecrew_payout_${jobId}` }
+    );
+
+    const { error: upErr } = await supabase
+      .from("jobs")
+      .update({
+        status: "completed",
+        payout_transfer_id: transfer.id,
+      })
+      .eq("id", jobId)
+      .eq("status", fromStatus);
+
+    if (upErr) {
+      return {
+        ok: false,
+        error: `Transfer created but job update failed: ${upErr.message}`,
+      };
+    }
+
+    return { ok: true, transferId: transfer.id };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Stripe transfer failed";
+    return { ok: false, error: msg };
+  }
+}

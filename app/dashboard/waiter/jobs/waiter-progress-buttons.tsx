@@ -13,7 +13,7 @@ const BUTTONS: { label: string; nextStatus: JobStatus }[] = [
   { label: "I'm at the airport", nextStatus: "at_airport" },
   { label: "I'm in line", nextStatus: "in_line" },
   { label: "I'm near the front", nextStatus: "near_front" },
-  { label: "Job complete", nextStatus: "completed" },
+  { label: "Job complete", nextStatus: "pending_confirmation" },
 ];
 
 function isEnabled(current: JobStatus, next: JobStatus): boolean {
@@ -21,7 +21,7 @@ function isEnabled(current: JobStatus, next: JobStatus): boolean {
     accepted: "at_airport",
     at_airport: "in_line",
     in_line: "near_front",
-    near_front: "completed",
+    near_front: "pending_confirmation",
   };
   return map[current] === next;
 }
@@ -38,7 +38,13 @@ export function WaiterProgressButtons({
     initial
   );
 
-  if (currentStatus === "completed" || currentStatus === "cancelled") {
+  if (
+    currentStatus === "pending_confirmation" ||
+    currentStatus === "completed" ||
+    currentStatus === "cancelled" ||
+    currentStatus === "disputed" ||
+    currentStatus === "refunded"
+  ) {
     return null;
   }
 

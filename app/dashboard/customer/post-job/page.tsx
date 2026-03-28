@@ -50,6 +50,12 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           when you post; LineCrew holds the payment until the job is completed,
           then pays your Waiter (minus a 20% platform fee).
         </p>
+        <p className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <span className="font-semibold text-slate-900">Cancellation:</span> free
+          cancellation before a waiter accepts. After a waiter accepts, a{" "}
+          <span className="font-semibold">$5</span> cancellation fee applies (paid
+          to the waiter); the rest is refunded to you.
+        </p>
       </div>
 
       {cancelled && (

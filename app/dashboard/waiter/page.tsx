@@ -10,6 +10,14 @@ const ACTIVE_WAITER_STATUSES = [
   "at_airport",
   "in_line",
   "near_front",
+  "pending_confirmation",
+] as const;
+
+const COUNT_ACTIVE_STATUSES = [
+  "accepted",
+  "at_airport",
+  "in_line",
+  "near_front",
 ] as const;
 
 export default async function WaiterDashboardPage() {
@@ -24,7 +32,7 @@ export default async function WaiterDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, stripe_account_id, serving_airports")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -43,10 +51,20 @@ export default async function WaiterDashboardPage() {
     .in("status", [...ACTIVE_WAITER_STATUSES])
     .order("created_at", { ascending: false });
 
+  const { count: activeJobCount } = await supabase
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("waiter_id", user.id)
+    .in("status", [...COUNT_ACTIVE_STATUSES]);
+
   const activeJobs = (jobRows ?? []) as Pick<
     Job,
     "id" | "status" | "airport" | "line_type" | "offered_price" | "created_at"
   >[];
+
+  const servingCount =
+    (profile as { serving_airports?: string[] | null })?.serving_airports
+      ?.length ?? 0;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
@@ -69,13 +87,28 @@ export default async function WaiterDashboardPage() {
         >
           Browse jobs
         </Link>
+        <Link
+          href="/dashboard/waiter/airports"
+          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+        >
+          Edit my airports
+        </Link>
       </div>
 
+      <p className="mt-4 text-sm text-slate-600">
+        Active jobs (max 2 while in progress):{" "}
+        <span className="font-semibold text-slate-900">
+          {activeJobCount ?? 0} / 2
+        </span>
+        {servingCount === 0 && (
+          <span className="ml-2 text-amber-800">
+            — select airports to see open jobs.
+          </span>
+        )}
+      </p>
+
       <WaiterPayoutSetup
-        stripeAccountId={
-          (profile as { stripe_account_id?: string | null } | null)
-            ?.stripe_account_id ?? null
-        }
+        stripeAccountId={profile?.stripe_account_id ?? null}
       />
 
       <section className="mt-12">
