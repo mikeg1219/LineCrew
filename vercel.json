@@ -5,7 +5,19 @@
   "crons": [
     {
       "path": "/api/cron/process",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
+```
+
+Save it, then run:
+```
+git add vercel.json
+git commit -m "fix cron schedule for hobby plan"
+git push origin main
+```
+
+Then:
+```
+npx vercel --prod
