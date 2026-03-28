@@ -4,6 +4,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
+/** Auth + Supabase admin client — must run on the server for each request. */
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 export default async function AdminPage() {
   const supabase = await createClient();
   const {
