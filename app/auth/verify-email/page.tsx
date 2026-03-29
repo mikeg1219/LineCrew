@@ -10,6 +10,7 @@ type PageProps = {
     token?: string | string[];
     intent?: string | string[];
     error?: string | string[];
+    email?: string | string[];
   }>;
 };
 
@@ -17,6 +18,11 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const tokenRaw = sp.token;
   const token = Array.isArray(tokenRaw) ? tokenRaw[0] : tokenRaw;
+  const emailRaw = sp.email;
+  const emailParam = Array.isArray(emailRaw) ? emailRaw[0] : emailRaw;
+  const emailQ = emailParam
+    ? `&email=${encodeURIComponent(emailParam)}`
+    : "";
 
   if (token) {
     const intent = parseAuthIntent(sp.intent);
@@ -29,7 +35,7 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
       redirect(`/auth${q}`);
     }
     redirect(
-      `/auth/verify-email?error=${encodeURIComponent(result.reason)}${intentQ}&pending=1`
+      `/auth/verify-email?error=${encodeURIComponent(result.reason)}${intentQ}&pending=1${emailQ}`
     );
   }
 
@@ -40,21 +46,14 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
         style={{ backgroundImage: "url('/airport-bg.jpg')" }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/45" />
-      <div className="relative z-10 flex min-h-[100dvh] flex-1 flex-col items-center justify-center px-4 py-8 sm:px-5 sm:py-12 md:py-16">
+      <div className="relative z-10 flex min-h-[100dvh] flex-1 flex-col items-center justify-center px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-5 sm:pt-12 sm:pb-[max(3rem,env(safe-area-inset-bottom))] md:pt-16 md:pb-[max(4rem,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-lg sm:p-8">
-            <div className="space-y-2">
-              <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-                Verify your email
-              </h1>
-              <p className="text-sm leading-relaxed text-slate-600">
-                Use the link in your inbox, or enter the code below. One
-                verification unlocks your account.
-              </p>
-            </div>
+          <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-lg sm:p-8">
             <Suspense
               fallback={
-                <div className="mt-6 text-center text-slate-500">Loading…</div>
+                <div className="min-h-[12rem] py-8 text-center text-sm text-slate-500 sm:min-h-[10rem]">
+                  Loading…
+                </div>
               }
             >
               <VerifyEmailClient />

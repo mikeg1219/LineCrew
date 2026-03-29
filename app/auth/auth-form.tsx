@@ -5,10 +5,6 @@ import {
   requestPasswordResetAction,
   type ResetPasswordState,
 } from "@/app/auth/reset-actions";
-import {
-  resendVerificationEmailAction,
-  type ResendVerificationState,
-} from "@/app/auth/verification-actions";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
@@ -116,16 +112,6 @@ function recoveryContextBadge(intent: UserRole | null): string {
   if (intent === "customer") return "Reset password · Customer";
   if (intent === "waiter") return "Reset password · Waiter";
   return "Reset password";
-}
-
-function signupVerifyBadge(intent: UserRole | null, role: UserRole): string {
-  if (intent === "customer" || (intent === null && role === "customer")) {
-    return "Verify email · Customer";
-  }
-  if (intent === "waiter" || (intent === null && role === "waiter")) {
-    return "Verify email · Waiter";
-  }
-  return "Verify your email";
 }
 
 function cardSubtitle(
@@ -245,70 +231,6 @@ type ForgotPasswordSuccessSectionProps = {
   onBackToSignIn: () => void;
 };
 
-type SignupVerifySectionProps = {
-  email: string;
-  role: UserRole;
-  onBackToSignIn: () => void;
-};
-
-function SignupVerifySection({
-  email,
-  role,
-  onBackToSignIn,
-}: SignupVerifySectionProps) {
-  const [resendState, resendAction, resendPending] = useActionState(
-    resendVerificationEmailAction,
-    null as ResendVerificationState
-  );
-
-  return (
-    <div className="space-y-6">
-      <div className="space-y-2 text-center sm:text-left">
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-          Check your email to verify
-        </h2>
-        <p className="text-sm leading-relaxed text-slate-600">
-          We sent a secure link and a 6-digit code. After you verify, you can
-          sign in and continue.
-        </p>
-        <p className="text-xs leading-relaxed text-slate-500">
-          Didn&apos;t get it? Check spam, then use Resend below.
-        </p>
-      </div>
-
-      <form action={resendAction} className="space-y-3">
-        <input type="hidden" name="email" value={email} />
-        <input type="hidden" name="role" value={role} />
-        {resendState && "error" in resendState && (
-          <p className="text-sm text-red-600" role="alert">
-            {resendState.error}
-          </p>
-        )}
-        {resendState && "success" in resendState && resendState.success && (
-          <p className="text-sm text-slate-600">{resendState.message}</p>
-        )}
-        <button
-          type="submit"
-          disabled={resendPending}
-          className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 disabled:opacity-60 sm:py-2.5"
-        >
-          {resendPending ? "Sending…" : "Resend verification email"}
-        </button>
-      </form>
-
-      <p className="text-center text-sm sm:text-left">
-        <button
-          type="button"
-          onClick={onBackToSignIn}
-          className={linkTextClass}
-        >
-          ← Back to sign in
-        </button>
-      </p>
-    </div>
-  );
-}
-
 function ForgotPasswordSuccessSection({
   email,
   intent,
@@ -397,28 +319,10 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
     setAuthPanel("main");
   }, []);
 
-  const handleBackFromSignupVerify = useCallback(() => {
-    setAuthPanel("main");
-    setMode("signin");
-  }, []);
-
   const [state, formAction, isPending] = useActionState(
     authAction,
     initialAuthState
   );
-
-  const signupVerify =
-    state &&
-    state.mode === "signup" &&
-    "step" in state &&
-    state.step === "verify"
-      ? state
-      : null;
-
-  const showSignupVerifyPanel =
-    Boolean(signupVerify) &&
-    authPanel === "main" &&
-    mode === "signup";
 
   const isCustomerIntent = intent === "customer";
   const isWaiterIntent = intent === "waiter";
@@ -436,9 +340,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
   const displayBadge =
     authPanel === "forgot" || authPanel === "forgot-sent"
       ? recoveryContextBadge(intent)
-      : showSignupVerifyPanel && signupVerify
-        ? signupVerifyBadge(intent, signupVerify.role)
-        : badgeLabel;
+      : badgeLabel;
   const heroH1 = heroHeadline(
     mode,
     intent,
@@ -561,7 +463,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </span>
           </div>
 
-          {authPanel === "main" && !showSignupVerifyPanel && (
+          {authPanel === "main" && (
             <>
           <div className="mb-6 space-y-2 text-center sm:mb-7 sm:text-left">
             <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
@@ -797,14 +699,6 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
               email={recoveryEmail}
               intent={intent}
               onBackToSignIn={handleBackToSignIn}
-            />
-          )}
-
-          {showSignupVerifyPanel && signupVerify && (
-            <SignupVerifySection
-              email={signupVerify.email}
-              role={signupVerify.role}
-              onBackToSignIn={handleBackFromSignupVerify}
             />
           )}
 

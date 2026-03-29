@@ -1,3 +1,5 @@
+import { warnDevIfResendKeyMissing } from "@/lib/resend-dev-warn";
+
 type Payload = {
   to: string;
   verifyUrl: string;
@@ -14,6 +16,7 @@ export async function sendEmailVerificationEmail({
     process.env.RESEND_FROM?.trim() ?? "LineCrew <onboarding@resend.dev>";
 
   if (!key) {
+    warnDevIfResendKeyMissing("verification emails will not be sent");
     return { ok: false as const, skipped: true };
   }
 

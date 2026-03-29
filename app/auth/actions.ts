@@ -31,12 +31,6 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
 
 export type AuthActionState =
   | { error: string; mode: "signin" | "signup" }
-  | {
-      mode: "signup";
-      step: "verify";
-      email: string;
-      role: UserRole;
-    }
   | null;
 
 export async function authAction(
@@ -85,30 +79,31 @@ export async function authAction(
 
     const userId = data.user?.id;
 
+    let verificationSent = false;
     if (userId) {
-      try {
-        await sendEmailVerificationForNewUser(userId, email, role);
-      } catch {
-        // non-fatal; user may retry resend
+      verificationSent = await sendEmailVerificationForNewUser(
+        userId,
+        email,
+        role
+      );
+      if (!verificationSent) {
+        console.warn(
+          "[auth] Verification email was not sent after sign-up. Check RESEND_API_KEY, SUPABASE_SERVICE_ROLE_KEY, and email_verification_tokens / auth_user_id_by_email."
+        );
       }
     }
 
     revalidatePath("/", "layout");
 
-    if (data.session) {
-      const intentQ =
-        role === "customer" || role === "waiter"
-          ? `&intent=${encodeURIComponent(role)}`
-          : "";
-      redirect(`/auth/verify-email?pending=1${intentQ}`);
-    }
-
-    return {
-      mode: "signup",
-      step: "verify",
-      email,
-      role,
-    };
+    const intentQ =
+      role === "customer" || role === "waiter"
+        ? `&intent=${encodeURIComponent(role)}`
+        : "";
+    const sendFailedQ =
+      userId && !verificationSent ? "&send_failed=1" : "";
+    redirect(
+      `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}${intentQ}${sendFailedQ}`
+    );
   }
 
   const { data: signInData, error } = await supabase.auth.signInWithPassword({
@@ -135,7 +130,9 @@ export async function authAction(
       profile &&
       !profile.email_verified_at
     ) {
-      redirect("/auth/verify-email?pending=1");
+      redirect(
+        `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}`
+      );
     }
   }
 

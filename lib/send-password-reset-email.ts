@@ -1,3 +1,5 @@
+import { warnDevIfResendKeyMissing } from "@/lib/resend-dev-warn";
+
 type Payload = {
   to: string;
   resetUrl: string;
@@ -10,6 +12,7 @@ export async function sendPasswordResetEmail({ to, resetUrl, code }: Payload) {
     process.env.RESEND_FROM?.trim() ?? "LineCrew <onboarding@resend.dev>";
 
   if (!key) {
+    warnDevIfResendKeyMissing("password reset emails will not be sent");
     return { ok: false as const, skipped: true };
   }
 

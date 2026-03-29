@@ -46,65 +46,99 @@ export async function sendEmailVerificationForNewUser(
   userId: string,
   email: string,
   role: UserRole
-): Promise<void> {
-  const normalized = normalizeEmail(email);
-  const admin = createAdminClient();
-  const now = new Date();
-  const plainToken = generateResetToken();
-  const plainCode = generateSixDigitCode();
-  const tokenHash = hashEmailVerificationToken(plainToken);
-  const codeHash = hashEmailVerificationCode(plainCode, userId);
-  const expiresAt = new Date(now.getTime() + LINK_MS);
-  const codeExpiresAt = new Date(now.getTime() + CODE_MS);
+): Promise<boolean> {
+  try {
+    const normalized = normalizeEmail(email);
+    const admin = createAdminClient();
+    const now = new Date();
+    const plainToken = generateResetToken();
+    const plainCode = generateSixDigitCode();
+    const tokenHash = hashEmailVerificationToken(plainToken);
+    const codeHash = hashEmailVerificationCode(plainCode, userId);
+    const expiresAt = new Date(now.getTime() + LINK_MS);
+    const codeExpiresAt = new Date(now.getTime() + CODE_MS);
 
-  await admin
-    .from("email_verification_tokens")
-    .delete()
-    .eq("user_id", userId)
-    .is("used_at", null);
-
-  const { error: insErr } = await admin
-    .from("email_verification_tokens")
-    .insert({
-      user_id: userId,
-      token_hash: tokenHash,
-      code_hash: codeHash,
-      expires_at: expiresAt.toISOString(),
-      code_expires_at: codeExpiresAt.toISOString(),
-    });
-
-  if (insErr) {
-    return;
-  }
-
-  const base = appBaseUrl();
-  const verifyUrl = `${base}/auth/verify-email?token=${encodeURIComponent(plainToken)}${intentQuery(role)}`;
-
-  const sendResult = await sendEmailVerificationEmail({
-    to: normalized,
-    verifyUrl,
-    code: plainCode,
-  });
-
-  if (!sendResult.ok) {
     await admin
       .from("email_verification_tokens")
       .delete()
-      .eq("token_hash", tokenHash);
+      .eq("user_id", userId)
+      .is("used_at", null);
+
+    const { error: insErr } = await admin
+      .from("email_verification_tokens")
+      .insert({
+        user_id: userId,
+        token_hash: tokenHash,
+        code_hash: codeHash,
+        expires_at: expiresAt.toISOString(),
+        code_expires_at: codeExpiresAt.toISOString(),
+      });
+
+    if (insErr) {
+      if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[email verification] Token insert failed:",
+          insErr.message
+        );
+      }
+      return false;
+    }
+
+    const base = appBaseUrl();
+    const verifyUrl = `${base}/auth/verify-email?token=${encodeURIComponent(plainToken)}${intentQuery(role)}&email=${encodeURIComponent(normalized)}`;
+
+    const sendResult = await sendEmailVerificationEmail({
+      to: normalized,
+      verifyUrl,
+      code: plainCode,
+    });
+
+    if (!sendResult.ok) {
+      if ("skipped" in sendResult && sendResult.skipped) {
+        console.warn(
+          "[email verification] Email not sent: RESEND_API_KEY is not set."
+        );
+      } else if ("error" in sendResult) {
+        console.warn("[email verification] Resend API error:", sendResult.error);
+      }
+      await admin
+        .from("email_verification_tokens")
+        .delete()
+        .eq("token_hash", tokenHash);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn("[email verification] sendEmailVerificationForNewUser failed:", e);
+    return false;
   }
 }
+
+export type ResendEmailVerificationResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 export async function resendEmailVerificationFlow(
   rawEmail: string,
   role: UserRole
-): Promise<void> {
+): Promise<ResendEmailVerificationResult> {
   const email = normalizeEmail(rawEmail);
   if (!email.includes("@")) {
-    return;
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  let admin;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return {
+      ok: false,
+      error:
+        "We couldn’t send the verification email right now. Please try again.",
+    };
   }
 
   const emailHash = hashEmailVerificationRateLimit(email);
-  const admin = createAdminClient();
   const now = new Date();
   const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
 
@@ -115,11 +149,18 @@ export async function resendEmailVerificationFlow(
     .gte("created_at", hourAgo.toISOString());
 
   if (countErr) {
-    return;
+    return {
+      ok: false,
+      error:
+        "We couldn’t send the verification email right now. Please try again.",
+    };
   }
 
   if ((count ?? 0) >= MAX_RESENDS_PER_EMAIL_PER_HOUR) {
-    return;
+    return {
+      ok: false,
+      error: "Too many resend attempts. Try again in about an hour.",
+    };
   }
 
   await admin.from("email_verification_rate_limits").insert({
@@ -132,7 +173,11 @@ export async function resendEmailVerificationFlow(
   );
 
   if (rpcErr || userId == null || typeof userId !== "string") {
-    return;
+    return {
+      ok: false,
+      error:
+        "We couldn’t find that account. Check the email or sign up again.",
+    };
   }
 
   const { data: profile } = await admin
@@ -142,10 +187,18 @@ export async function resendEmailVerificationFlow(
     .maybeSingle();
 
   if (profile?.email_verified_at) {
-    return;
+    return { ok: true };
   }
 
-  await sendEmailVerificationForNewUser(userId, email, role);
+  const sent = await sendEmailVerificationForNewUser(userId, email, role);
+  if (!sent) {
+    return {
+      ok: false,
+      error:
+        "We couldn’t send the verification email right now. Please try again.",
+    };
+  }
+  return { ok: true };
 }
 
 export type VerifyTokenResult =

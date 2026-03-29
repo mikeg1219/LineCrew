@@ -60,6 +60,9 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
+      if (user.email) {
+        url.searchParams.set("email", user.email);
+      }
       return NextResponse.redirect(url);
     }
   }
@@ -75,6 +78,9 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
+      if (user.email) {
+        url.searchParams.set("email", user.email);
+      }
       return NextResponse.redirect(url);
     }
 

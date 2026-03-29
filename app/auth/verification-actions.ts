@@ -9,7 +9,10 @@ import type { UserRole } from "@/lib/types";
 
 export type ResendVerificationState =
   | { error: string }
-  | { success: true; message: string }
+  | {
+      success: true;
+      message: string;
+    }
   | null;
 
 export async function resendVerificationEmailAction(
@@ -30,10 +33,9 @@ export async function resendVerificationEmailAction(
     if (!fromSession) {
       return { error: "Email is required." };
     }
-    try {
-      await resendEmailVerificationFlow(fromSession, role);
-    } catch {
-      // generic
+    const result = await resendEmailVerificationFlow(fromSession, role);
+    if (!result.ok) {
+      return { error: result.error };
     }
     return {
       success: true,
@@ -42,10 +44,9 @@ export async function resendVerificationEmailAction(
     };
   }
 
-  try {
-    await resendEmailVerificationFlow(email, role);
-  } catch {
-    // generic
+  const result = await resendEmailVerificationFlow(email, role);
+  if (!result.ok) {
+    return { error: result.error };
   }
 
   return {
