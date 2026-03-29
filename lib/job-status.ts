@@ -1,5 +1,19 @@
 import type { JobStatus } from "@/lib/types/job";
 
+/** Customer dashboard list — friendly wording only; underlying `status` unchanged */
+export const CUSTOMER_DASHBOARD_STATUS_LABELS: Record<JobStatus, string> = {
+  open: "Waiting for waiter",
+  accepted: "Waiter on the way",
+  at_airport: "Waiter on the way",
+  in_line: "In line now",
+  near_front: "Ready for handoff",
+  pending_confirmation: "Awaiting your confirmation",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  disputed: "Under review",
+  refunded: "Refunded",
+};
+
 /** Human-readable labels for customers and waiters */
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   open: "Open — looking for a Waiter",

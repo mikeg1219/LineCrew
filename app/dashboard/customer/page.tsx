@@ -1,4 +1,7 @@
-import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
+import {
+  CUSTOMER_DASHBOARD_STATUS_LABELS,
+  statusBadgeClass,
+} from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
@@ -40,61 +43,150 @@ export default async function CustomerDashboardPage() {
   >[];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-        Welcome to your dashboard
-      </h1>
-      <p className="mt-2 text-lg text-slate-600">
-        Hello — you&apos;re signed in as{" "}
-        <span className="font-medium text-slate-900">{user.email}</span>.
-      </p>
-      <p className="mt-6 max-w-2xl leading-relaxed text-slate-600">
-        As a <span className="font-medium text-slate-800">Customer</span>, you can
-        post jobs for airport lines and hire Waiters to hold your place. More
-        tools will appear here as LineCrew grows.
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-10 md:py-12">
+      <header className="max-w-2xl space-y-3">
+        <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          What do you need help with right now?
+        </h1>
+        <p className="text-base leading-relaxed text-slate-600 sm:text-lg">
+          Post a job and get someone in line for you in minutes.
+        </p>
+        <p className="text-sm leading-snug text-slate-500">
+          Signed in as{" "}
+          <span className="font-medium text-slate-700">{user.email}</span>
+        </p>
+      </header>
+
+      <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
+        <div className="w-full rounded-xl border border-blue-200/90 bg-blue-50 px-4 py-3 text-center text-sm font-medium leading-snug text-blue-900 shadow-sm sm:w-auto sm:max-w-md sm:text-left">
+          Most jobs are accepted in 3–10 minutes
+        </div>
+        <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-left">
+          Payment is held until your spot is secured
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mt-9">
         <Link
           href="/dashboard/customer/post-job"
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
+          className="inline-flex w-full min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto sm:min-h-0"
         >
-          Post a job
+          Post a job now
         </Link>
       </div>
 
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold text-slate-900">Your jobs</h2>
+      <section
+        className="mt-10 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:mt-12 sm:p-7"
+        aria-labelledby="how-it-works-customer"
+      >
+        <h2
+          id="how-it-works-customer"
+          className="text-xs font-semibold uppercase tracking-wider text-slate-500"
+        >
+          How it works
+        </h2>
+        <ol className="mt-5 grid list-none grid-cols-1 gap-5 sm:mt-6 sm:grid-cols-3 sm:gap-6">
+          <li className="flex gap-3 rounded-xl sm:flex-col sm:items-center sm:text-center">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
+              1
+            </span>
+            <div className="min-w-0">
+              <p className="font-medium leading-snug text-slate-900">
+                Post your job
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Airport, line, and timing
+              </p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-xl sm:flex-col sm:items-center sm:text-center">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
+              2
+            </span>
+            <div className="min-w-0">
+              <p className="font-medium leading-snug text-slate-900">
+                We match you with a waiter
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Get notified when someone accepts
+              </p>
+            </div>
+          </li>
+          <li className="flex gap-3 rounded-xl sm:flex-col sm:items-center sm:text-center">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
+              3
+            </span>
+            <div className="min-w-0">
+              <p className="font-medium leading-snug text-slate-900">
+                You arrive when it&apos;s your turn
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-slate-600">
+                Swap in at the front of the line
+              </p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-14 sm:pt-12">
+        <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+          Your jobs
+        </h2>
         {jobs.length === 0 ? (
-          <p className="mt-3 text-slate-600">
-            You haven&apos;t posted a job yet. Post one to get matched with a
-            Waiter.
-          </p>
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/90 px-5 py-12 text-center sm:mt-8 sm:px-8 sm:py-14">
+            <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">
+              No active jobs yet
+            </h3>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600 sm:text-base">
+              Post your first job and skip your next airport line.
+            </p>
+            <Link
+              href="/dashboard/customer/post-job"
+              className="mt-8 inline-flex w-full max-w-xs items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:mt-8 sm:w-auto sm:py-3"
+            >
+              Post a job now
+            </Link>
+          </div>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-6 space-y-4 sm:mt-8">
             {jobs.map((job) => {
               const st = job.status as JobStatus;
+              const posted = new Date(job.created_at);
               return (
                 <li
                   key={job.id}
-                  className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+                  className="flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:flex-row sm:items-stretch sm:justify-between sm:gap-6 sm:p-6"
                 >
-                  <div>
-                    <p className="font-medium text-slate-900">
-                      {job.airport} · {job.line_type}
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <p className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                      {job.airport} Airport — {job.line_type}
                     </p>
-                    <p className="text-sm text-slate-600">
-                      ${Number(job.offered_price).toFixed(2)} ·{" "}
-                      {new Date(job.created_at).toLocaleString()}
-                    </p>
+                    <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
+                      <span>
+                        <span className="text-slate-500">Offer</span>{" "}
+                        <span className="font-semibold text-slate-800">
+                          ${Number(job.offered_price).toFixed(2)}
+                        </span>
+                      </span>
+                      <span>
+                        <span className="text-slate-500">Posted</span>{" "}
+                        <time dateTime={job.created_at}>
+                          {posted.toLocaleString(undefined, {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </time>
+                      </span>
+                    </div>
                     <span
-                      className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${statusBadgeClass(st)}`}
+                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${statusBadgeClass(st)}`}
                     >
-                      {JOB_STATUS_LABELS[st]}
+                      {CUSTOMER_DASHBOARD_STATUS_LABELS[st]}
                     </span>
                   </div>
                   <Link
                     href={`/dashboard/customer/jobs/${job.id}`}
-                    className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100"
+                    className="inline-flex w-full shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-center text-sm font-semibold text-blue-800 transition hover:bg-blue-100 sm:w-auto sm:min-w-[7.5rem] sm:self-center"
                   >
                     Track job
                   </Link>
