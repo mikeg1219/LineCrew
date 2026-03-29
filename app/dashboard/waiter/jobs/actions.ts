@@ -2,6 +2,7 @@
 
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
+import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -34,12 +35,21 @@ export async function acceptJobAction(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select(
+      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
   if (profile?.role !== "waiter") {
     return { error: "Only waiters can accept jobs." };
+  }
+
+  if (!isWaiterProfileComplete(profile)) {
+    return {
+      error:
+        "Complete your waiter profile (photo, phone, bio, airports, onboarding, verified email) before accepting jobs. Open Profile to finish.",
+    };
   }
 
   const { count, error: countErr } = await supabase

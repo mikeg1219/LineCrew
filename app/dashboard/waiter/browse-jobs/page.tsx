@@ -1,5 +1,6 @@
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
+import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/job";
 import Link from "next/link";
@@ -23,7 +24,9 @@ export default async function BrowseJobsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, serving_airports")
+    .select(
+      "role, serving_airports, first_name, avatar_url, phone, bio, onboarding_completed, email_verified_at"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -34,6 +37,8 @@ export default async function BrowseJobsPage() {
   if (profile.role === "customer") {
     redirect("/dashboard/customer");
   }
+
+  const canAcceptJobs = isWaiterProfileComplete(profile);
 
   const serving =
     (profile as { serving_airports?: string[] | null }).serving_airports ??
@@ -125,7 +130,7 @@ export default async function BrowseJobsPage() {
                 Terminal {job.terminal}
                 {job.description ? ` · ${job.description}` : ""}
               </p>
-              <AcceptJobForm jobId={job.id} />
+              <AcceptJobForm jobId={job.id} canAccept={canAcceptJobs} />
             </li>
           ))}
         </ul>

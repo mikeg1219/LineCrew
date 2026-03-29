@@ -5,7 +5,13 @@ import { useActionState } from "react";
 
 const initial: JobActionState = null;
 
-export function AcceptJobForm({ jobId }: { jobId: string }) {
+export function AcceptJobForm({
+  jobId,
+  canAccept,
+}: {
+  jobId: string;
+  canAccept: boolean;
+}) {
   const [state, formAction, pending] = useActionState(acceptJobAction, initial);
 
   return (
@@ -16,7 +22,7 @@ export function AcceptJobForm({ jobId }: { jobId: string }) {
       )}
       <button
         type="submit"
-        disabled={pending}
+        disabled={pending || !canAccept}
         className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
       >
         {pending ? "Accepting…" : "Accept job"}
