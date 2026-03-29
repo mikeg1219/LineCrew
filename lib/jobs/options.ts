@@ -1,4 +1,3 @@
-
 export const LINE_TYPES = [
   "General Boarding",
   "Check-In",
@@ -17,8 +16,11 @@ export const ESTIMATED_WAIT_OPTIONS = [
 export type EstimatedWait = (typeof ESTIMATED_WAIT_OPTIONS)[number];
 ```
 
-Save with `Ctrl+S`, then:
+Save with `Ctrl+S`, then run:
 ```
 git add .
-git commit -m "update line types - remove customs, rename security"
+git commit -m "fix options.ts"
 git push origin main
+```
+```
+npx vercel --prod
