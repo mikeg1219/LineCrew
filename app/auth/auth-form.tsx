@@ -14,6 +14,27 @@ const inputClass =
 
 const labelClass = "mb-2 block text-sm font-medium text-slate-800";
 
+const intentGridClass =
+  "mx-auto grid w-full gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start lg:gap-12 xl:gap-16";
+
+const intentHeroClass =
+  "order-1 flex w-full min-w-0 flex-col items-center text-center lg:max-w-xl lg:items-start lg:pt-2 lg:text-left xl:max-w-lg";
+
+const intentCardColClass =
+  "order-2 w-full min-w-0 lg:sticky lg:top-8 lg:justify-self-end lg:max-w-md";
+
+const heroBadgeClass =
+  "mb-4 inline-flex max-w-full rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:text-xs";
+
+const heroHighlightClass =
+  "mt-6 w-full max-w-xl rounded-xl border border-white/20 bg-white/10 px-4 py-3.5 text-center text-sm font-medium leading-snug text-white/95 backdrop-blur-sm sm:px-5 lg:max-w-none lg:text-left";
+
+const cardBadgeClass =
+  "rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-100";
+
+const postAuthBoxClass =
+  "rounded-lg border border-slate-200 bg-slate-50 px-3 py-3.5 text-center text-xs leading-relaxed text-slate-600";
+
 type AuthFormProps = {
   /** From server `searchParams` — keeps first paint aligned with URL for hydration */
   initialIntent: UserRole | null;
@@ -33,11 +54,18 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
   );
 
   const isCustomerIntent = intent === "customer";
+  const isWaiterIntent = intent === "waiter";
+  const hasIntentLayout = isCustomerIntent || isWaiterIntent;
 
   const submitLabel = (() => {
     if (isPending) return "Please wait…";
     if (isCustomerIntent) {
       return mode === "signup" ? "Create account & continue" : "Continue to booking";
+    }
+    if (isWaiterIntent) {
+      return mode === "signup"
+        ? "Create account & continue"
+        : "Continue to waiter dashboard";
     }
     return mode === "signup" ? "Create account" : "Sign in";
   })();
@@ -45,82 +73,125 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
   return (
     <div
       className={
-        isCustomerIntent
-          ? "mx-auto grid w-full gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start lg:gap-12 xl:gap-16"
-          : "mx-auto w-full max-w-md"
+        hasIntentLayout ? intentGridClass : "mx-auto w-full max-w-md"
       }
     >
       {isCustomerIntent && (
-        <div className="order-1 flex flex-col text-center lg:order-1 lg:max-w-xl lg:pt-2 lg:text-left xl:max-w-lg">
-          <div className="mb-4 inline-flex rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:text-xs">
-            Booking as: Customer
-          </div>
+        <div className={intentHeroClass}>
+          <div className={heroBadgeClass}>Booking as: Customer</div>
           <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl sm:leading-tight">
             Continue to book your line holder
           </h1>
-          <p className="mt-4 max-w-xl text-base leading-relaxed text-white/85 lg:max-w-none">
+          <p className="mt-4 w-full max-w-xl text-base leading-relaxed text-white/85 lg:mx-0">
             Sign in or create an account to post your request and get matched with
             a waiter in minutes.
           </p>
 
-          <ul className="mt-8 flex flex-col gap-3 text-left text-sm text-white/90 sm:gap-2.5 lg:items-start">
-            <li className="flex items-start gap-2.5 sm:items-center">
+          <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
               <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
                 ✔
               </span>
-              <span className="leading-snug">Verified waiters</span>
+              <span className="min-w-0 flex-1 leading-snug">Verified waiters</span>
             </li>
-            <li className="flex items-start gap-2.5 sm:items-center">
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
               <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
                 ✔
               </span>
-              <span className="leading-snug">Secure payment held until completion</span>
+              <span className="min-w-0 flex-1 leading-snug">
+                Secure payment held until completion
+              </span>
             </li>
-            <li className="flex items-start gap-2.5 sm:items-center">
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
               <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
                 ✔
               </span>
-              <span className="leading-snug">Free cancellation before acceptance</span>
+              <span className="min-w-0 flex-1 leading-snug">
+                Free cancellation before acceptance
+              </span>
             </li>
           </ul>
 
-          <p className="mt-6 rounded-xl border border-white/20 bg-white/10 px-4 py-3.5 text-center text-sm font-medium leading-snug text-white/95 backdrop-blur-sm sm:px-5 lg:text-left">
+          <p className={heroHighlightClass}>
             Most customer requests are accepted in 3–10 minutes
           </p>
 
-          <p className="mt-6 text-sm leading-relaxed text-white/75">
+          <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 lg:mx-0">
             You&apos;ll create your request after this step — airport, line type,
             and timing. No payment is required yet.
           </p>
         </div>
       )}
 
-      <div
-        className={
-          isCustomerIntent
-            ? "order-2 w-full lg:sticky lg:top-8 lg:justify-self-end lg:max-w-md"
-            : "w-full"
-        }
-      >
+      {isWaiterIntent && (
+        <div className={intentHeroClass}>
+          <div className={heroBadgeClass}>Signing in as: Waiter</div>
+          <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl sm:leading-tight">
+            Continue to become a LineCrew waiter
+          </h1>
+          <p className="mt-4 w-full max-w-xl text-base leading-relaxed text-white/85 lg:mx-0">
+            Sign in or create an account to accept jobs, earn by waiting in line,
+            and get notified when customers need help nearby.
+          </p>
+
+          <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                ✔
+              </span>
+              <span className="min-w-0 flex-1 leading-snug">
+                Flexible earning opportunities
+              </span>
+            </li>
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                ✔
+              </span>
+              <span className="min-w-0 flex-1 leading-snug">Nearby airport job alerts</span>
+            </li>
+            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                ✔
+              </span>
+              <span className="min-w-0 flex-1 leading-snug">
+                Secure payouts through LineCrew
+              </span>
+            </li>
+          </ul>
+
+          <p className={heroHighlightClass}>
+            New jobs can appear throughout the day based on airport demand
+          </p>
+
+          <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 lg:mx-0">
+            After you continue, you&apos;ll complete your waiter setup and be ready
+            to accept jobs when customers need line help.
+          </p>
+        </div>
+      )}
+
+      <div className={hasIntentLayout ? intentCardColClass : "w-full min-w-0"}>
         <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-lg sm:p-8">
-          {isCustomerIntent && (
+          {hasIntentLayout && (
             <div className="mb-6 flex justify-center sm:justify-start">
-              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-100">
-                Customer access
+              <span className={cardBadgeClass}>
+                {isCustomerIntent ? "Customer access" : "Waiter access"}
               </span>
             </div>
           )}
 
           <div className="mb-7 text-center sm:mb-8 sm:text-left">
             <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              {isCustomerIntent
+              {hasIntentLayout
                 ? "Sign in or create account"
                 : "Welcome to LineCrew"}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              {isCustomerIntent
-                ? "Takes less than 30 seconds. Continue to booking when you're ready."
-                : "Sign in or create an account to continue."}
+              {isCustomerIntent &&
+                "Takes less than 30 seconds. Continue to booking when you're ready."}
+              {isWaiterIntent &&
+                "Takes less than 30 seconds. Continue to waiter setup when you're ready."}
+              {!hasIntentLayout && "Sign in or create an account to continue."}
             </p>
           </div>
 
@@ -258,9 +329,15 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </button>
 
             {isCustomerIntent && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-3.5 text-center text-xs leading-relaxed text-slate-600">
+              <div className={postAuthBoxClass}>
                 After you continue, you&apos;ll post your request and review
                 pricing before checkout.
+              </div>
+            )}
+            {isWaiterIntent && (
+              <div className={postAuthBoxClass}>
+                After you continue, you&apos;ll finish setup and review available
+                jobs before accepting work.
               </div>
             )}
           </form>
