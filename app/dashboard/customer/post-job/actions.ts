@@ -40,7 +40,35 @@ export async function postJobAction(
   const airport = String(formData.get("airport") ?? "").trim();
   const terminal = String(formData.get("terminal") ?? "").trim();
   const line_type = String(formData.get("line_type") ?? "");
-  const description = String(formData.get("description") ?? "");
+  const descriptionRaw = String(formData.get("description") ?? "");
+  const urgency_type = String(formData.get("urgency_type") ?? "asap").trim();
+  const urgency_schedule = String(formData.get("urgency_schedule") ?? "").trim();
+  const airline = String(formData.get("airline") ?? "").trim();
+  const flight_number = String(formData.get("flight_number") ?? "").trim();
+  const exact_location = String(formData.get("exact_location") ?? "").trim();
+
+  const urgencyLabels: Record<string, string> = {
+    asap: "ASAP (within 15 minutes)",
+    soon: "Soon (30–60 minutes)",
+    schedule: "Scheduled",
+  };
+  if (!(urgency_type in urgencyLabels)) {
+    return { error: "Please select when you need your waiter." };
+  }
+
+  const lines: string[] = [];
+  lines.push(`When needed: ${urgencyLabels[urgency_type]}`);
+  if (urgency_type === "schedule" && urgency_schedule) {
+    lines.push(`Scheduled for: ${urgency_schedule}`);
+  }
+  if (airline) lines.push(`Airline: ${airline}`);
+  if (flight_number) lines.push(`Flight: ${flight_number}`);
+  if (exact_location) lines.push(`Exact location: ${exact_location}`);
+  if (descriptionRaw.trim()) {
+    lines.push("");
+    lines.push(descriptionRaw.trim());
+  }
+  const description = lines.join("\n");
   const priceRaw = formData.get("offered_price");
   const overageRaw = formData.get("overage_rate");
   const overageAgreed = formData.get("overage_agreed") === "on";
