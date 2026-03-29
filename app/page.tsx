@@ -115,33 +115,70 @@ export default function Home() {
 
       <section
         className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16"
-        aria-labelledby="use-cases-heading"
+        aria-labelledby="why-linecrew-heading"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2
-            id="use-cases-heading"
-            className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
-          >
-            Use cases
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-slate-600 sm:text-base">
-            LineCrew helps when time at the airport is tight.
-          </p>
-          <ul className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              "Missed connection",
-              "Security line",
-              "Traveling with kids",
-              "Business traveler",
-              "Rental car lines",
-            ].map((label) => (
-              <li
-                key={label}
-                className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-center text-sm font-medium text-slate-800 shadow-sm"
-              >
-                {label}
-              </li>
-            ))}
+          <header className="mx-auto max-w-2xl text-center">
+            <h2
+              id="why-linecrew-heading"
+              className="text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
+            >
+              Why LineCrew
+            </h2>
+            <p className="mt-4 text-pretty text-sm leading-relaxed text-slate-600 sm:mt-5 sm:text-base sm:leading-relaxed">
+              Built for travelers who want less waiting and more control at the
+              airport.
+            </p>
+          </header>
+          <ul className="mt-10 grid list-none grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:mt-14 lg:grid-cols-3 lg:gap-8">
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Skip long airport lines
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                Avoid standing in crowded terminals
+              </p>
+            </li>
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Save 30–90 minutes per trip
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                Turn airport downtime into productive time
+              </p>
+            </li>
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Real people holding your spot
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                A waiter stands in line so you don&apos;t have to
+              </p>
+            </li>
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Live updates while you wait
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                Know when to head over
+              </p>
+            </li>
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Pay only after completion
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                Your payment is released after the job is done
+              </p>
+            </li>
+            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
+              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
+                Designed for busy travelers
+              </h3>
+              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
+                Made for tight schedules and high-stress travel days
+              </p>
+            </li>
           </ul>
         </div>
       </section>
