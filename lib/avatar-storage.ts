@@ -5,8 +5,14 @@
  */
 export const AVATAR_STORAGE_BUCKET = "avatars";
 
-/** Max upload size for profile images (5 MiB). */
+/** Max size of processed JPEG sent to Storage (5 MiB). */
 export const AVATAR_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+/** Max original file size before client processing (larger images are resized). */
+export const AVATAR_MAX_INPUT_BYTES = 25 * 1024 * 1024;
+
+/** After processing, avatars are uploaded as JPEG at this MIME. */
+export const AVATAR_PROCESSED_MIME = "image/jpeg" as const;
 
 const MIME_TO_EXT: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -25,7 +31,8 @@ export function userAvatarObjectPath(userId: string, mimeType: string): string {
   return `${userId}/avatar.${ext}`;
 }
 
-export function validateAvatarFile(
+/** Validate type and original size before canvas processing. */
+export function validateAvatarForProcessing(
   file: File
 ): { ok: true } | { ok: false; message: string } {
   if (!AVATAR_ALLOWED_MIME_TYPES.has(file.type)) {
@@ -34,16 +41,36 @@ export function validateAvatarFile(
       message: "Please use a JPG, PNG, WebP, or GIF image.",
     };
   }
-  if (file.size > AVATAR_MAX_FILE_BYTES) {
-    return {
-      ok: false,
-      message: "That file is too large. Use an image under 5 MB.",
-    };
-  }
   if (file.size === 0) {
     return {
       ok: false,
       message: "That file appears empty. Please choose another image.",
+    };
+  }
+  if (file.size > AVATAR_MAX_INPUT_BYTES) {
+    return {
+      ok: false,
+      message: "That file is too large. Use an image under 25 MB.",
+    };
+  }
+  return { ok: true };
+}
+
+/** After resize/compress, ensure blob is acceptable for upload. */
+export function validateProcessedAvatarBlob(
+  blob: Blob
+): { ok: true } | { ok: false; message: string } {
+  if (blob.size === 0) {
+    return {
+      ok: false,
+      message: "We couldn't prepare that image. Try a different file.",
+    };
+  }
+  if (blob.size > AVATAR_MAX_FILE_BYTES) {
+    return {
+      ok: false,
+      message:
+        "We couldn't reduce that photo enough. Try a smaller or simpler image.",
     };
   }
   return { ok: true };

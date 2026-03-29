@@ -10,12 +10,18 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
-  AVATAR_MAX_FILE_BYTES,
+  AVATAR_MAX_INPUT_BYTES,
+  AVATAR_PROCESSED_MIME,
   AVATAR_STORAGE_BUCKET,
   avatarPublicUrlWithBust,
   userAvatarObjectPath,
-  validateAvatarFile,
+  validateAvatarForProcessing,
+  validateProcessedAvatarBlob,
 } from "@/lib/avatar-storage";
+import { AvatarCropModal } from "@/components/avatar-crop-modal";
+import { getCroppedSquareJpegBlob } from "@/lib/crop-image";
+import { AVATAR_MAX_DIMENSION, processAvatarImageToJpeg } from "@/lib/process-avatar-image";
+import type { Area } from "react-easy-crop";
 
 export type ProfileHeroFallback = {
   display: string;
@@ -24,8 +30,6 @@ export type ProfileHeroFallback = {
   initial: string;
   avatarUrl: string | null;
 };
-
-const AVATAR_BUCKET = "avatars";
 
 function logProfileError(context: string, err: unknown) {
   if (process.env.NODE_ENV === "development") {
@@ -130,7 +134,13 @@ export function ProfileSettingsForm({
   const previewBlobRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [avatarPhase, setAvatarPhase] = useState<
+    "idle" | "preparing" | "uploading"
+  >("idle");
+  const [cropModal, setCropModal] = useState<{
+    src: string;
+    file: File;
+  } | null>(null);
   const [message, setMessage] = useState("");
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
@@ -225,89 +235,149 @@ export function ProfileSettingsForm({
     };
   }, []);
 
-  function clearPreviewBlob() {
+  const clearPreviewBlob = useCallback(() => {
     if (previewBlobRef.current) {
       URL.revokeObjectURL(previewBlobRef.current);
       previewBlobRef.current = null;
     }
     setPreviewObjectUrl(null);
-  }
+  }, []);
 
-  async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+  const closeCropModal = useCallback(() => {
+    setCropModal((prev) => {
+      if (prev?.src) URL.revokeObjectURL(prev.src);
+      return null;
+    });
+  }, []);
+
+  const runAvatarUpload = useCallback(
+    async (file: File) => {
+      if (!userId) return;
+      setMessage("");
+      setAvatarPhase("preparing");
+
+      let processed: Blob;
+      try {
+        processed = await processAvatarImageToJpeg(file);
+      } catch (err) {
+        logProfileError("avatar process", err);
+        setAvatarPhase("idle");
+        setMessage(
+          "We couldn't read that image. Try a different JPG, PNG, WebP, or GIF."
+        );
+        if (fileRef.current) fileRef.current.value = "";
+        return;
+      }
+
+      const sizeOk = validateProcessedAvatarBlob(processed);
+      if (!sizeOk.ok) {
+        setAvatarPhase("idle");
+        setMessage(sizeOk.message);
+        if (fileRef.current) fileRef.current.value = "";
+        return;
+      }
+
+      clearPreviewBlob();
+      const localUrl = URL.createObjectURL(processed);
+      previewBlobRef.current = localUrl;
+      setPreviewObjectUrl(localUrl);
+
+      setAvatarPhase("uploading");
+      const path = userAvatarObjectPath(userId, AVATAR_PROCESSED_MIME);
+      const { error: upErr } = await supabase.storage
+        .from(AVATAR_STORAGE_BUCKET)
+        .upload(path, processed, {
+          upsert: true,
+          contentType: AVATAR_PROCESSED_MIME,
+        });
+
+      if (upErr) {
+        setAvatarPhase("idle");
+        clearPreviewBlob();
+        logProfileError("avatar upload", upErr);
+        const raw = upErr.message ?? "";
+        setMessage(
+          raw.includes("Bucket not found") || raw.includes("not found")
+            ? "Photo storage is not set up yet. Ask your admin to create the avatars bucket in Supabase."
+            : AVATAR_UPLOAD_FAILED_MSG
+        );
+        if (fileRef.current) fileRef.current.value = "";
+        return;
+      }
+
+      const { error: dbErr } = await supabase
+        .from("profiles")
+        .update({ avatar_url: path })
+        .eq("id", userId);
+
+      if (dbErr) {
+        setAvatarPhase("idle");
+        clearPreviewBlob();
+        logProfileError("avatar db update", dbErr);
+        setMessage(AVATAR_UPLOAD_FAILED_MSG);
+        if (fileRef.current) fileRef.current.value = "";
+        return;
+      }
+
+      const { data: row } = await supabase
+        .from("profiles")
+        .select("first_name, avatar_url, phone, bio, serving_airports")
+        .eq("id", userId)
+        .maybeSingle();
+      if (row) {
+        await supabase
+          .from("profiles")
+          .update({
+            onboarding_completed: waiterCoreFieldsComplete(row),
+          })
+          .eq("id", userId);
+      }
+
+      clearPreviewBlob();
+      setAvatarStoragePath(path);
+      const { data } = supabase.storage
+        .from(AVATAR_STORAGE_BUCKET)
+        .getPublicUrl(path);
+      setAvatarPublicUrl(avatarPublicUrlWithBust(data.publicUrl, Date.now()));
+      setAvatarPhase("idle");
+      if (fileRef.current) fileRef.current.value = "";
+      setMessage("__avatar_saved__");
+      await load({ silent: true });
+      router.refresh();
+    },
+    [userId, supabase, clearPreviewBlob, load, router]
+  );
+
+  function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
-    const check = validateAvatarFile(file);
+    const check = validateAvatarForProcessing(file);
     if (!check.ok) {
       setMessage(check.message);
       e.target.value = "";
       return;
     }
 
-    clearPreviewBlob();
-    const localUrl = URL.createObjectURL(file);
-    previewBlobRef.current = localUrl;
-    setPreviewObjectUrl(localUrl);
-    setUploading(true);
     setMessage("");
-    const path = userAvatarObjectPath(userId, file.type);
-    const { error: upErr } = await supabase.storage
-      .from(AVATAR_STORAGE_BUCKET)
-      .upload(path, file, { upsert: true, contentType: file.type });
-
-    if (upErr) {
-      setUploading(false);
-      clearPreviewBlob();
-      logProfileError("avatar upload", upErr);
-      const raw = upErr.message ?? "";
-      setMessage(
-        raw.includes("Bucket not found") || raw.includes("not found")
-          ? "Photo storage is not set up yet. Ask your admin to create the avatars bucket in Supabase."
-          : AVATAR_UPLOAD_FAILED_MSG
-      );
-      e.target.value = "";
-      return;
-    }
-
-    const { error: dbErr } = await supabase
-      .from("profiles")
-      .update({ avatar_url: path })
-      .eq("id", userId);
-
-    if (dbErr) {
-      setUploading(false);
-      clearPreviewBlob();
-      logProfileError("avatar db update", dbErr);
-      setMessage(AVATAR_UPLOAD_FAILED_MSG);
-      e.target.value = "";
-      return;
-    }
-
-    const { data: row } = await supabase
-      .from("profiles")
-      .select("first_name, avatar_url, phone, bio, serving_airports")
-      .eq("id", userId)
-      .maybeSingle();
-    if (row) {
-      await supabase
-        .from("profiles")
-        .update({
-          onboarding_completed: waiterCoreFieldsComplete(row),
-        })
-        .eq("id", userId);
-    }
-
-    clearPreviewBlob();
-    setAvatarStoragePath(path);
-    const { data } = supabase.storage
-      .from(AVATAR_STORAGE_BUCKET)
-      .getPublicUrl(path);
-    setAvatarPublicUrl(avatarPublicUrlWithBust(data.publicUrl, Date.now()));
-    setUploading(false);
+    setCropModal({ src: URL.createObjectURL(file), file });
     e.target.value = "";
-    setMessage("__avatar_saved__");
-    await load({ silent: true });
-    router.refresh();
+  }
+
+  async function applyCroppedAvatar(pixels: Area) {
+    const src = cropModal?.src;
+    if (!src) return;
+    try {
+      const blob = await getCroppedSquareJpegBlob(src, pixels);
+      closeCropModal();
+      await runAvatarUpload(
+        new File([blob], "avatar.jpg", { type: "image/jpeg" })
+      );
+    } catch (err) {
+      logProfileError("avatar crop", err);
+      setMessage(AVATAR_UPLOAD_FAILED_MSG);
+      closeCropModal();
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -440,7 +510,10 @@ export function ProfileSettingsForm({
     "?"
   ).toUpperCase();
 
+  const avatarBusy = avatarPhase !== "idle";
+
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-10">
       {compactAvatar ? (
         <ProfileHeroCard
@@ -449,7 +522,7 @@ export function ProfileSettingsForm({
           display={heroHeading}
           email={heroEmailLine}
           roleBadge={heroBadge}
-          busy={uploading}
+          busy={avatarBusy}
         />
       ) : null}
 
@@ -525,32 +598,42 @@ export function ProfileSettingsForm({
                   />
                   <button
                     type="button"
-                    disabled={uploading}
-                    aria-busy={uploading}
+                    disabled={avatarBusy}
+                    aria-busy={avatarBusy}
                     onClick={() => fileRef.current?.click()}
                     className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
                   >
-                    {uploading
-                      ? "Uploading…"
-                      : avatarStoragePath
-                        ? "Change photo"
-                        : "Upload photo"}
+                    {avatarPhase === "preparing"
+                      ? "Preparing…"
+                      : avatarPhase === "uploading"
+                        ? "Uploading…"
+                        : avatarStoragePath
+                          ? "Change photo"
+                          : "Upload photo"}
                   </button>
-                  {uploading ? (
+                  {avatarPhase === "preparing" ? (
                     <p
                       className="text-xs font-medium text-blue-800 sm:text-sm"
                       role="status"
                       aria-live="polite"
                     >
-                      Finishing upload—preview updates when this completes.
+                      Preparing photo…
+                    </p>
+                  ) : avatarPhase === "uploading" ? (
+                    <p
+                      className="text-xs font-medium text-blue-800 sm:text-sm"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Uploading photo…
                     </p>
                   ) : (
                     <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
-                      JPG, PNG, WebP, or GIF, max{" "}
-                      {Math.round(AVATAR_MAX_FILE_BYTES / (1024 * 1024))} MB.
-                      You&apos;ll see your selection right away; when upload
-                      finishes, your photo is saved. Use Save changes for your
-                      name and other profile fields.
+                      JPG, PNG, WebP, or GIF (originals up to{" "}
+                      {Math.round(AVATAR_MAX_INPUT_BYTES / (1024 * 1024))} MB).
+                      We resize to max {AVATAR_MAX_DIMENSION}px and compress before
+                      upload. Use Save changes for your name and other profile
+                      fields.
                     </p>
                   )}
                 </div>
@@ -583,31 +666,41 @@ export function ProfileSettingsForm({
                   />
                   <button
                     type="button"
-                    disabled={uploading}
-                    aria-busy={uploading}
+                    disabled={avatarBusy}
+                    aria-busy={avatarBusy}
                     onClick={() => fileRef.current?.click()}
                     className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
                   >
-                    {uploading
-                      ? "Uploading…"
-                      : avatarStoragePath
-                        ? "Change photo"
-                        : "Upload photo"}
+                    {avatarPhase === "preparing"
+                      ? "Preparing…"
+                      : avatarPhase === "uploading"
+                        ? "Uploading…"
+                        : avatarStoragePath
+                          ? "Change photo"
+                          : "Upload photo"}
                   </button>
-                  {uploading ? (
+                  {avatarPhase === "preparing" ? (
                     <p
                       className="text-xs font-medium text-blue-800 sm:text-sm"
                       role="status"
                       aria-live="polite"
                     >
-                      Finishing upload—preview updates when this completes.
+                      Preparing photo…
+                    </p>
+                  ) : avatarPhase === "uploading" ? (
+                    <p
+                      className="text-xs font-medium text-blue-800 sm:text-sm"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Uploading photo…
                     </p>
                   ) : (
                     <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
-                      JPG, PNG, WebP, or GIF, max{" "}
-                      {Math.round(AVATAR_MAX_FILE_BYTES / (1024 * 1024))} MB.
-                      Instant preview while uploading; when upload finishes, your
-                      photo is saved. Use Save changes for name and other fields.
+                      JPG, PNG, WebP, or GIF (originals up to{" "}
+                      {Math.round(AVATAR_MAX_INPUT_BYTES / (1024 * 1024))} MB).
+                      We resize to max {AVATAR_MAX_DIMENSION}px and compress before
+                      upload. Use Save changes for name and other fields.
                     </p>
                   )}
                 </div>
@@ -802,7 +895,7 @@ export function ProfileSettingsForm({
               {message === "__saved__"
                 ? "Profile saved."
                 : message === "__avatar_saved__"
-                  ? "Photo updated."
+                  ? "Photo updated"
                   : message}
             </p>
           )}
@@ -817,5 +910,20 @@ export function ProfileSettingsForm({
         </div>
       </section>
     </form>
+    {cropModal ? (
+      <AvatarCropModal
+        imageSrc={cropModal.src}
+        onCancel={closeCropModal}
+        onSkipCrop={() => {
+          const f = cropModal.file;
+          closeCropModal();
+          void runAvatarUpload(f);
+        }}
+        onApplyCrop={(pixels) => {
+          void applyCroppedAvatar(pixels);
+        }}
+      />
+    ) : null}
+    </>
   );
 }
