@@ -33,15 +33,51 @@ export async function updateSession(request: NextRequest) {
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
   const isAdmin = request.nextUrl.pathname.startsWith("/admin");
   const isAuth = request.nextUrl.pathname.startsWith("/auth");
+  const isResetPassword = request.nextUrl.pathname.startsWith(
+    "/auth/reset-password"
+  );
+  const isVerifyEmail = request.nextUrl.pathname.startsWith(
+    "/auth/verify-email"
+  );
 
-  if ((isDashboard || isAdmin) && !user) {
+  const isProfile = request.nextUrl.pathname === "/profile";
+
+  if ((isDashboard || isAdmin || isProfile) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     url.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(url);
   }
 
-  if (isAuth && user) {
+  if ((isDashboard || isAdmin || isProfile) && user) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email_verified_at")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!profileError && profile && !profile.email_verified_at) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/verify-email";
+      url.searchParams.set("pending", "1");
+      return NextResponse.redirect(url);
+    }
+  }
+
+  if (isAuth && user && !isResetPassword && !isVerifyEmail) {
+    const { data: authProfile, error: authProfileError } = await supabase
+      .from("profiles")
+      .select("email_verified_at")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!authProfileError && authProfile && !authProfile.email_verified_at) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth/verify-email";
+      url.searchParams.set("pending", "1");
+      return NextResponse.redirect(url);
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.searchParams.delete("next");

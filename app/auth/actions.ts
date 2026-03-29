@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendEmailVerificationForNewUser } from "@/lib/email-verification-service";
 import type { UserRole } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -30,7 +31,12 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
 
 export type AuthActionState =
   | { error: string; mode: "signin" | "signup" }
-  | { message: string; mode: "signup" }
+  | {
+      mode: "signup";
+      step: "verify";
+      email: string;
+      role: UserRole;
+    }
   | null;
 
 export async function authAction(
@@ -53,6 +59,14 @@ export async function authAction(
   const supabase = await createClient();
 
   if (mode === "signup") {
+    const confirm = String(formData.get("confirm_password") ?? "");
+    if (password !== confirm) {
+      return {
+        error: "Passwords do not match.",
+        mode: authMode,
+      };
+    }
+
     const roleRaw = formData.get("role");
     const role: UserRole =
       roleRaw === "waiter" || roleRaw === "customer" ? roleRaw : "customer";
@@ -69,21 +83,35 @@ export async function authAction(
       return { error: error.message, mode: authMode };
     }
 
+    const userId = data.user?.id;
+
+    if (userId) {
+      try {
+        await sendEmailVerificationForNewUser(userId, email, role);
+      } catch {
+        // non-fatal; user may retry resend
+      }
+    }
+
     revalidatePath("/", "layout");
 
     if (data.session) {
-      await redirectToRoleDashboard(supabase);
-      return null;
+      const intentQ =
+        role === "customer" || role === "waiter"
+          ? `&intent=${encodeURIComponent(role)}`
+          : "";
+      redirect(`/auth/verify-email?pending=1${intentQ}`);
     }
 
     return {
-      message:
-        "Check your email to confirm your account before signing in.",
       mode: "signup",
+      step: "verify",
+      email,
+      role,
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
@@ -93,6 +121,24 @@ export async function authAction(
   }
 
   revalidatePath("/", "layout");
+
+  const uid = signInData.user?.id;
+  if (uid) {
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("email_verified_at")
+      .eq("id", uid)
+      .maybeSingle();
+
+    if (
+      !profileError &&
+      profile &&
+      !profile.email_verified_at
+    ) {
+      redirect("/auth/verify-email?pending=1");
+    }
+  }
+
   await redirectToRoleDashboard(supabase);
   return null;
 }

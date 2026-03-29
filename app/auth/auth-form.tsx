@@ -1,11 +1,19 @@
 "use client";
 
 import { authAction, type AuthActionState } from "@/app/auth/actions";
+import {
+  requestPasswordResetAction,
+  type ResetPasswordState,
+} from "@/app/auth/reset-actions";
+import {
+  resendVerificationEmailAction,
+  type ResendVerificationState,
+} from "@/app/auth/verification-actions";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useCallback, useEffect, useState } from "react";
 
 const initialAuthState: AuthActionState = null;
 
@@ -15,7 +23,7 @@ const inputClass =
 const labelClass = "mb-2 block text-sm font-medium text-slate-800";
 
 const intentGridClass =
-  "mx-auto grid w-full gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start lg:gap-12 xl:gap-16";
+  "mx-auto grid w-full gap-6 sm:gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-start lg:gap-12 xl:gap-16";
 
 const intentHeroClass =
   "order-1 flex w-full min-w-0 flex-col items-center text-center lg:max-w-xl lg:items-start lg:pt-2 lg:text-left xl:max-w-lg";
@@ -33,12 +41,332 @@ const cardBadgeClass =
   "rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800 ring-1 ring-blue-100";
 
 const postAuthBoxClass =
-  "rounded-lg border border-slate-200 bg-slate-50 px-3 py-3.5 text-center text-xs leading-relaxed text-slate-600";
+  "rounded-lg border border-slate-200 bg-slate-50 px-3 py-3.5 text-center text-xs leading-relaxed text-slate-600 sm:px-4";
+
+const linkTextClass =
+  "font-medium text-blue-700 transition hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2 rounded-sm";
+
+function accessBadgeText(
+  mode: "signin" | "signup",
+  intent: UserRole | null,
+  role: UserRole,
+  roleExplicit: boolean
+): string {
+  if (mode === "signin") {
+    if (intent === "customer") return "Sign in · Customer";
+    if (intent === "waiter") return "Sign in · Waiter";
+    return "Sign in";
+  }
+  if (!intent && !roleExplicit) return "Create your LineCrew account";
+  return role === "customer" ? "New account · Customer" : "New account · Waiter";
+}
+
+function heroHeadline(
+  mode: "signin" | "signup",
+  intent: UserRole | null,
+  role: UserRole,
+  hasIntentLayout: boolean,
+  roleExplicit: boolean
+): string {
+  if (mode === "signup") {
+    if (!hasIntentLayout && !roleExplicit) return "Create your LineCrew account";
+    return role === "customer"
+      ? "Create your customer account"
+      : "Create your waiter account";
+  }
+  if (intent === "customer") return "Book your line holder";
+  if (intent === "waiter") return "Become a LineCrew waiter";
+  return "Welcome to LineCrew";
+}
+
+function heroSubtext(
+  mode: "signin" | "signup",
+  intent: UserRole | null,
+  role: UserRole,
+  hasIntentLayout: boolean,
+  roleExplicit: boolean
+): string {
+  if (mode === "signup") {
+    if (!hasIntentLayout && !roleExplicit) {
+      return "Choose Customer or Waiter, then set a password. We will email you a link to verify before you continue.";
+    }
+    return role === "customer"
+      ? "Post airport line requests and get matched with a verified waiter."
+      : "Accept nearby jobs, wait in line for travelers, and get paid through LineCrew.";
+  }
+  if (intent === "customer") {
+    return "Sign in or create an account to post a request and get matched with a waiter—often within minutes.";
+  }
+  if (intent === "waiter") {
+    return "Sign in or create an account to see jobs, accept work, and get notified when travelers need line help.";
+  }
+  return "";
+}
+
+function cardTitle(
+  mode: "signin" | "signup",
+  hasIntentLayout: boolean
+): string {
+  if (!hasIntentLayout && mode === "signin") return "Welcome back";
+  if (!hasIntentLayout && mode === "signup") return "Create your account";
+  return "Sign in or sign up";
+}
+
+function recoveryContextBadge(intent: UserRole | null): string {
+  if (intent === "customer") return "Reset password · Customer";
+  if (intent === "waiter") return "Reset password · Waiter";
+  return "Reset password";
+}
+
+function signupVerifyBadge(intent: UserRole | null, role: UserRole): string {
+  if (intent === "customer" || (intent === null && role === "customer")) {
+    return "Verify email · Customer";
+  }
+  if (intent === "waiter" || (intent === null && role === "waiter")) {
+    return "Verify email · Waiter";
+  }
+  return "Verify your email";
+}
+
+function cardSubtitle(
+  mode: "signin" | "signup",
+  isCustomerIntent: boolean,
+  isWaiterIntent: boolean,
+  hasIntentLayout: boolean
+): string {
+  if (!hasIntentLayout && mode === "signin") {
+    return "Use the email and password for your LineCrew account.";
+  }
+  if (!hasIntentLayout && mode === "signup") {
+    return "Pick Customer or Waiter, then choose a password. We will send a short verification email.";
+  }
+  if (isCustomerIntent) {
+    return "Most people finish in under a minute. Continue to booking when you are ready.";
+  }
+  if (isWaiterIntent) {
+    return "Most people finish in under a minute. Continue to waiter setup next.";
+  }
+  return "Use the same email for sign in and sign up.";
+}
+
+function modeHint(mode: "signin" | "signup"): string {
+  if (mode === "signin") {
+    return "Use the email you registered with. New here? Switch to Sign up.";
+  }
+  return "Already registered? Switch to Sign in.";
+}
 
 type AuthFormProps = {
-  /** From server `searchParams` — keeps first paint aligned with URL for hydration */
   initialIntent: UserRole | null;
 };
+
+type ForgotPasswordFormSectionProps = {
+  intent: UserRole | null;
+  initialEmail: string;
+  onBack: () => void;
+  onSent: (email: string) => void;
+};
+
+function ForgotPasswordFormSection({
+  intent,
+  initialEmail,
+  onBack,
+  onSent,
+}: ForgotPasswordFormSectionProps) {
+  const [state, formAction, isPending] = useActionState(
+    requestPasswordResetAction,
+    null as ResetPasswordState
+  );
+  const [email, setEmail] = useState(initialEmail);
+
+  useEffect(() => {
+    if (state && "success" in state && state.success) {
+      onSent(email);
+    }
+  }, [state, email, onSent]);
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2 text-center sm:text-left">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          Reset your password
+        </h2>
+        <p className="text-sm leading-relaxed text-slate-600">
+          Enter your email. We&apos;ll send a secure link and a one-time code you
+          can use if the link doesn&apos;t open.
+        </p>
+      </div>
+
+      <form action={formAction} className="space-y-5">
+        <input type="hidden" name="intent" value={intent ?? ""} />
+        <div>
+          <label htmlFor="recovery-email" className={labelClass}>
+            Email
+          </label>
+          <input
+            id="recovery-email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+
+        {state && "error" in state && (
+          <p className="text-sm text-red-600" role="alert">
+            {state.error}
+          </p>
+        )}
+
+        <button
+          type="submit"
+          disabled={isPending}
+          className="min-h-[44px] w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:py-2.5"
+        >
+          {isPending ? "Please wait…" : "Send reset email"}
+        </button>
+      </form>
+
+      <p className="text-center text-sm sm:text-left">
+        <button type="button" onClick={onBack} className={linkTextClass}>
+          ← Back to sign in
+        </button>
+      </p>
+    </div>
+  );
+}
+
+type ForgotPasswordSuccessSectionProps = {
+  email: string;
+  intent: UserRole | null;
+  onBackToSignIn: () => void;
+};
+
+type SignupVerifySectionProps = {
+  email: string;
+  role: UserRole;
+  onBackToSignIn: () => void;
+};
+
+function SignupVerifySection({
+  email,
+  role,
+  onBackToSignIn,
+}: SignupVerifySectionProps) {
+  const [resendState, resendAction, resendPending] = useActionState(
+    resendVerificationEmailAction,
+    null as ResendVerificationState
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2 text-center sm:text-left">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          Check your email to verify
+        </h2>
+        <p className="text-sm leading-relaxed text-slate-600">
+          We sent a secure link and a 6-digit code. After you verify, you can
+          sign in and continue.
+        </p>
+        <p className="text-xs leading-relaxed text-slate-500">
+          Didn&apos;t get it? Check spam, then use Resend below.
+        </p>
+      </div>
+
+      <form action={resendAction} className="space-y-3">
+        <input type="hidden" name="email" value={email} />
+        <input type="hidden" name="role" value={role} />
+        {resendState && "error" in resendState && (
+          <p className="text-sm text-red-600" role="alert">
+            {resendState.error}
+          </p>
+        )}
+        {resendState && "success" in resendState && resendState.success && (
+          <p className="text-sm text-slate-600">{resendState.message}</p>
+        )}
+        <button
+          type="submit"
+          disabled={resendPending}
+          className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 disabled:opacity-60 sm:py-2.5"
+        >
+          {resendPending ? "Sending…" : "Resend verification email"}
+        </button>
+      </form>
+
+      <p className="text-center text-sm sm:text-left">
+        <button
+          type="button"
+          onClick={onBackToSignIn}
+          className={linkTextClass}
+        >
+          ← Back to sign in
+        </button>
+      </p>
+    </div>
+  );
+}
+
+function ForgotPasswordSuccessSection({
+  email,
+  intent,
+  onBackToSignIn,
+}: ForgotPasswordSuccessSectionProps) {
+  const [state, resendAction, resendPending] = useActionState(
+    requestPasswordResetAction,
+    null as ResetPasswordState
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="space-y-2 text-center sm:text-left">
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+          Check your email
+        </h2>
+        <p className="text-sm leading-relaxed text-slate-600">
+          If an account exists for that address, we&apos;ve sent reset
+          instructions. Use the link or the 6-digit code from the email.
+        </p>
+        <p className="text-xs leading-relaxed text-slate-500">
+          No email yet? Check spam or promotions, then try Resend in a few
+          minutes.
+        </p>
+      </div>
+
+      <form action={resendAction} className="space-y-3">
+        <input type="hidden" name="email" defaultValue={email} />
+        <input type="hidden" name="intent" defaultValue={intent ?? ""} />
+        {state && "error" in state && (
+          <p className="text-sm text-red-600" role="alert">
+            {state.error}
+          </p>
+        )}
+        {state && "success" in state && state.success && (
+          <p className="text-sm text-slate-600">{state.message}</p>
+        )}
+        <button
+          type="submit"
+          disabled={resendPending}
+          className="w-full rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 disabled:opacity-60 sm:py-2.5"
+        >
+          {resendPending ? "Sending…" : "Resend reset email"}
+        </button>
+      </form>
+
+      <p className="text-center text-sm sm:text-left">
+        <button
+          type="button"
+          onClick={onBackToSignIn}
+          className={linkTextClass}
+        >
+          ← Back to sign in
+        </button>
+      </p>
+    </div>
+  );
+}
 
 export function AuthForm({ initialIntent }: AuthFormProps) {
   const searchParams = useSearchParams();
@@ -47,25 +375,92 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
 
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [role, setRole] = useState<UserRole>(() => initialIntent ?? "customer");
+  const [roleExplicit, setRoleExplicit] = useState(
+    () => initialIntent === "customer" || initialIntent === "waiter"
+  );
+
+  const urlLocksRole = intent === "customer" || intent === "waiter";
+  const roleForUi = urlLocksRole ? intent : role;
+  const roleExplicitCombined = urlLocksRole || roleExplicit;
+
+  const [authPanel, setAuthPanel] = useState<
+    "main" | "forgot" | "forgot-sent"
+  >("main");
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+
+  const handleRecoverySent = useCallback((email: string) => {
+    setRecoveryEmail(email);
+    setAuthPanel("forgot-sent");
+  }, []);
+
+  const handleBackToSignIn = useCallback(() => {
+    setAuthPanel("main");
+  }, []);
+
+  const handleBackFromSignupVerify = useCallback(() => {
+    setAuthPanel("main");
+    setMode("signin");
+  }, []);
 
   const [state, formAction, isPending] = useActionState(
     authAction,
     initialAuthState
   );
 
+  const signupVerify =
+    state &&
+    state.mode === "signup" &&
+    "step" in state &&
+    state.step === "verify"
+      ? state
+      : null;
+
+  const showSignupVerifyPanel =
+    Boolean(signupVerify) &&
+    authPanel === "main" &&
+    mode === "signup";
+
   const isCustomerIntent = intent === "customer";
   const isWaiterIntent = intent === "waiter";
   const hasIntentLayout = isCustomerIntent || isWaiterIntent;
 
+  const heroAudience: "customer" | "waiter" =
+    mode === "signup" ? roleForUi : isCustomerIntent ? "customer" : "waiter";
+
+  const badgeLabel = accessBadgeText(
+    mode,
+    intent,
+    roleForUi,
+    roleExplicitCombined
+  );
+  const displayBadge =
+    authPanel === "forgot" || authPanel === "forgot-sent"
+      ? recoveryContextBadge(intent)
+      : showSignupVerifyPanel && signupVerify
+        ? signupVerifyBadge(intent, signupVerify.role)
+        : badgeLabel;
+  const heroH1 = heroHeadline(
+    mode,
+    intent,
+    roleForUi,
+    hasIntentLayout,
+    roleExplicitCombined
+  );
+  const heroP = heroSubtext(
+    mode,
+    intent,
+    roleForUi,
+    hasIntentLayout,
+    roleExplicitCombined
+  );
+
   const submitLabel = (() => {
     if (isPending) return "Please wait…";
     if (isCustomerIntent) {
-      return mode === "signup" ? "Create account & continue" : "Continue to booking";
+      return mode === "signup" ? "Create account" : "Continue to booking";
     }
     if (isWaiterIntent) {
-      return mode === "signup"
-        ? "Create account & continue"
-        : "Continue to waiter dashboard";
+      return mode === "signup" ? "Create account" : "Continue to dashboard";
     }
     return mode === "signup" ? "Create account" : "Sign in";
   })();
@@ -76,132 +471,125 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
         hasIntentLayout ? intentGridClass : "mx-auto w-full max-w-md"
       }
     >
-      {isCustomerIntent && (
+      {hasIntentLayout && (
         <div className={intentHeroClass}>
-          <div className={heroBadgeClass}>Booking as: Customer</div>
+          <div className={heroBadgeClass}>{displayBadge}</div>
           <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl sm:leading-tight">
-            Continue to book your line holder
+            {heroH1}
           </h1>
           <p className="mt-4 w-full max-w-xl text-base leading-relaxed text-white/85 lg:mx-0">
-            Sign in or create an account to post your request and get matched with
-            a waiter in minutes.
+            {heroP}
           </p>
 
-          <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">Verified waiters</span>
-            </li>
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">
-                Secure payment held until completion
-              </span>
-            </li>
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">
-                Free cancellation before acceptance
-              </span>
-            </li>
-          </ul>
+          {heroAudience === "customer" ? (
+            <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">Verified waiters</span>
+              </li>
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">
+                  Secure payment held until completion
+                </span>
+              </li>
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">
+                  Free cancellation before acceptance
+                </span>
+              </li>
+            </ul>
+          ) : (
+            <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">
+                  Flexible earning opportunities
+                </span>
+              </li>
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">
+                  Nearby airport job alerts
+                </span>
+              </li>
+              <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
+                <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
+                  ✔
+                </span>
+                <span className="min-w-0 flex-1 leading-snug">
+                  Secure payouts through LineCrew
+                </span>
+              </li>
+            </ul>
+          )}
 
-          <p className={heroHighlightClass}>
-            Most customer requests are accepted in 3–10 minutes
-          </p>
+          {heroAudience === "customer" ? (
+            <p className={heroHighlightClass}>
+              Many requests get a match in 3–10 minutes
+            </p>
+          ) : (
+            <p className={heroHighlightClass}>
+              Job volume follows airport demand through the day
+            </p>
+          )}
 
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 lg:mx-0">
-            You&apos;ll create your request after this step — airport, line type,
-            and timing. No payment is required yet.
-          </p>
-        </div>
-      )}
-
-      {isWaiterIntent && (
-        <div className={intentHeroClass}>
-          <div className={heroBadgeClass}>Signing in as: Waiter</div>
-          <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-white sm:text-4xl sm:leading-tight">
-            Continue to become a LineCrew waiter
-          </h1>
-          <p className="mt-4 w-full max-w-xl text-base leading-relaxed text-white/85 lg:mx-0">
-            Sign in or create an account to accept jobs, earn by waiting in line,
-            and get notified when customers need help nearby.
-          </p>
-
-          <ul className="mt-8 flex w-full max-w-xl flex-col gap-3 text-left text-sm text-white/90 lg:mx-0 lg:items-start">
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">
-                Flexible earning opportunities
-              </span>
-            </li>
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">Nearby airport job alerts</span>
-            </li>
-            <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
-              <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
-                ✔
-              </span>
-              <span className="min-w-0 flex-1 leading-snug">
-                Secure payouts through LineCrew
-              </span>
-            </li>
-          </ul>
-
-          <p className={heroHighlightClass}>
-            New jobs can appear throughout the day based on airport demand
-          </p>
-
-          <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 lg:mx-0">
-            After you continue, you&apos;ll complete your waiter setup and be ready
-            to accept jobs when customers need line help.
+            {heroAudience === "customer"
+              ? "Next you\u2019ll add airport, line type, and timing. You won\u2019t pay until you review pricing."
+              : "Next you\u2019ll finish waiter setup so you can accept jobs when travelers need help."}
           </p>
         </div>
       )}
 
       <div className={hasIntentLayout ? intentCardColClass : "w-full min-w-0"}>
         <div className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-lg sm:p-8">
-          {hasIntentLayout && (
-            <div className="mb-6 flex justify-center sm:justify-start">
-              <span className={cardBadgeClass}>
-                {isCustomerIntent ? "Customer access" : "Waiter access"}
-              </span>
-            </div>
-          )}
-
-          <div className="mb-7 text-center sm:mb-8 sm:text-left">
-            <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              {hasIntentLayout
-                ? "Sign in or create account"
-                : "Welcome to LineCrew"}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              {isCustomerIntent &&
-                "Takes less than 30 seconds. Continue to booking when you're ready."}
-              {isWaiterIntent &&
-                "Takes less than 30 seconds. Continue to waiter setup when you're ready."}
-              {!hasIntentLayout && "Sign in or create an account to continue."}
-            </p>
+          <div className="mb-5 flex justify-center sm:mb-6 sm:justify-start">
+            <span className={`${cardBadgeClass} max-w-[min(100%,20rem)] text-center leading-snug`}>
+              {displayBadge}
+            </span>
           </div>
 
-          <div className="mb-6 flex rounded-lg bg-slate-100 p-1">
+          {authPanel === "main" && !showSignupVerifyPanel && (
+            <>
+          <div className="mb-6 space-y-2 text-center sm:mb-7 sm:text-left">
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+              {cardTitle(mode, hasIntentLayout)}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              {cardSubtitle(mode, isCustomerIntent, isWaiterIntent, hasIntentLayout)}
+            </p>
+            {mode === "signin" && (
+              <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                Encrypted sign-in. Same account works for customers and waiters.
+              </p>
+            )}
+          </div>
+
+          <div
+            className="mb-2 flex rounded-xl bg-slate-100/90 p-1 ring-1 ring-slate-200/80"
+            role="tablist"
+            aria-label="Sign in or sign up"
+          >
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === "signin"}
               onClick={() => setMode("signin")}
-              className={`flex-1 rounded-md py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-transparent px-2 py-2.5 text-sm font-semibold transition-colors sm:py-2 ${
                 mode === "signin"
-                  ? "bg-white text-slate-900 shadow-sm"
+                  ? "border-slate-200/80 bg-white text-slate-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -209,16 +597,22 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </button>
             <button
               type="button"
+              role="tab"
+              aria-selected={mode === "signup"}
               onClick={() => setMode("signup")}
-              className={`flex-1 rounded-md py-2.5 text-sm font-medium transition-colors sm:py-2 ${
+              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-transparent px-2 py-2.5 text-sm font-semibold transition-colors sm:py-2 ${
                 mode === "signup"
-                  ? "bg-white text-slate-900 shadow-sm"
+                  ? "border-slate-200/80 bg-white text-slate-900 shadow-sm"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Sign up
             </button>
           </div>
+
+          <p className="mb-6 text-center text-xs leading-relaxed text-slate-500 sm:text-left">
+            {modeHint(mode)}
+          </p>
 
           <form action={formAction} className="space-y-5">
             <input
@@ -228,14 +622,19 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             />
 
             {mode === "signup" && (
-              <fieldset className="space-y-3">
+              <fieldset
+                className={`space-y-3 ${urlLocksRole ? "opacity-90" : ""}`}
+                aria-disabled={urlLocksRole}
+              >
                 <legend className="text-sm font-medium text-slate-800">
-                  I am a
+                  Account type
                 </legend>
-                <div className="grid grid-cols-2 gap-3">
+                <div
+                  className={`grid grid-cols-2 gap-3 ${urlLocksRole ? "pointer-events-none" : ""}`}
+                >
                   <label
                     className={`flex min-h-[3rem] cursor-pointer items-center justify-center rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                      role === "customer"
+                      roleForUi === "customer"
                         ? "border-blue-600 bg-blue-50 text-blue-900"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
@@ -244,15 +643,20 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                       type="radio"
                       name="role"
                       value="customer"
-                      checked={role === "customer"}
-                      onChange={() => setRole("customer")}
+                      checked={roleForUi === "customer"}
+                      onChange={() => {
+                        if (!urlLocksRole) {
+                          setRole("customer");
+                          setRoleExplicit(true);
+                        }
+                      }}
                       className="sr-only"
                     />
                     Customer
                   </label>
                   <label
                     className={`flex min-h-[3rem] cursor-pointer items-center justify-center rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                      role === "waiter"
+                      roleForUi === "waiter"
                         ? "border-blue-600 bg-blue-50 text-blue-900"
                         : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
                     }`}
@@ -261,15 +665,21 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                       type="radio"
                       name="role"
                       value="waiter"
-                      checked={role === "waiter"}
-                      onChange={() => setRole("waiter")}
+                      checked={roleForUi === "waiter"}
+                      onChange={() => {
+                        if (!urlLocksRole) {
+                          setRole("waiter");
+                          setRoleExplicit(true);
+                        }
+                      }}
                       className="sr-only"
                     />
                     Waiter
                   </label>
                 </div>
                 <p className="text-xs leading-relaxed text-slate-500">
-                  Customers post airport line jobs. Waiters hold spots for them.
+                  Customers request line holds; waiters fulfill them at the
+                  airport.
                 </p>
               </fieldset>
             )}
@@ -289,9 +699,23 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </div>
 
             <div>
-              <label htmlFor="password" className={labelClass}>
-                Password
-              </label>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-slate-800"
+                >
+                  Password
+                </label>
+                {mode === "signin" && (
+                  <button
+                    type="button"
+                    onClick={() => setAuthPanel("forgot")}
+                    className={`${linkTextClass} text-sm`}
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <input
                 id="password"
                 name="password"
@@ -305,10 +729,29 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
               />
             </div>
 
-            <p className="text-xs leading-relaxed text-slate-500">
-              Already have an account? Sign in to continue. New to LineCrew?
-              Switch to Sign up to create your account.
-            </p>
+            {mode === "signup" && (
+              <div>
+                <label htmlFor="confirm_password" className={labelClass}>
+                  Confirm password
+                </label>
+                <input
+                  id="confirm_password"
+                  name="confirm_password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={6}
+                  className={inputClass}
+                />
+              </div>
+            )}
+
+            {mode === "signup" && (
+              <p className="text-xs leading-relaxed text-slate-600">
+                We&apos;ll email you a verification link and code before you can
+                access your dashboard.
+              </p>
+            )}
 
             {state && "error" in state && state.mode === mode && (
               <p className="text-sm text-red-600" role="alert">
@@ -316,40 +759,62 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
               </p>
             )}
 
-            {state && "message" in state && state.mode === mode && (
-              <p className="text-sm text-slate-600">{state.message}</p>
-            )}
-
             <button
               type="submit"
               disabled={isPending}
-              className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:py-2.5"
+              className="min-h-[44px] w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:py-2.5"
             >
               {submitLabel}
             </button>
 
             {isCustomerIntent && (
               <div className={postAuthBoxClass}>
-                After you continue, you&apos;ll post your request and review
-                pricing before checkout.
+                After sign-in: post your request, then review price before you
+                pay.
               </div>
             )}
             {isWaiterIntent && (
               <div className={postAuthBoxClass}>
-                After you continue, you&apos;ll finish setup and review available
-                jobs before accepting work.
+                After sign-in: finish setup, then browse and accept jobs you
+                want.
               </div>
             )}
           </form>
+            </>
+          )}
 
-          <p className="mt-7 text-center text-sm text-slate-600 sm:mt-8">
-            <Link
-              href="/"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
-            >
-              ← Back to home
-            </Link>
-          </p>
+          {authPanel === "forgot" && (
+            <ForgotPasswordFormSection
+              intent={intent}
+              initialEmail={recoveryEmail}
+              onBack={handleBackToSignIn}
+              onSent={handleRecoverySent}
+            />
+          )}
+
+          {authPanel === "forgot-sent" && recoveryEmail && (
+            <ForgotPasswordSuccessSection
+              email={recoveryEmail}
+              intent={intent}
+              onBackToSignIn={handleBackToSignIn}
+            />
+          )}
+
+          {showSignupVerifyPanel && signupVerify && (
+            <SignupVerifySection
+              email={signupVerify.email}
+              role={signupVerify.role}
+              onBackToSignIn={handleBackFromSignupVerify}
+            />
+          )}
+
+          <div className="mt-8 border-t border-slate-100 pt-6 sm:mt-9">
+            <p className="text-center text-sm text-slate-600">
+              <Link href="/" className={linkTextClass}>
+                ← Back to home
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
