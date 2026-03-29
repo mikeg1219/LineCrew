@@ -65,7 +65,7 @@ export default async function WaiterDashboardPage() {
           <Link href="/dashboard/waiter/airports" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
             Edit my airports
           </Link>
-          <Link href="/profile" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
+          <Link href="/dashboard/profile" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
             Edit profile
           </Link>
         </div>

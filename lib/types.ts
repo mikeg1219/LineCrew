@@ -5,7 +5,6 @@ export type Profile = {
   role: UserRole;
   created_at: string;
   updated_at?: string | null;
-  email_verified_at?: string | null;
   first_name?: string | null;
   last_name?: string | null;
   last_initial?: string | null;
@@ -23,7 +22,8 @@ export type Profile = {
   home_airport?: string | null;
   airports_served?: string[] | null;
   is_available?: boolean;
-  onboarding_completed?: boolean;
+  onboarding_completed?: boolean | null;
+  email_verified_at?: string | null;
   jobs_completed?: number;
   average_rating?: number | null;
 };

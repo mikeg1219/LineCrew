@@ -45,7 +45,7 @@ export function NavBar({ role, avatarUrl, fullName }: Props) {
           SaveMySpot
         </Link>
 
-        <Link href="/profile" style={{ textDecoration: "none" }}>
+        <Link href="/dashboard/profile" style={{ textDecoration: "none" }}>
           {avatarUrl ? (
             <img src={avatarUrl} alt="Profile" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #f5b400" }} />
           ) : (
@@ -60,7 +60,7 @@ export function NavBar({ role, avatarUrl, fullName }: Props) {
         <div style={{ position: "fixed", top: "60px", left: 0, bottom: 0, width: "280px", background: "#0a0d14", borderRight: "1px solid rgba(255,255,255,0.08)", zIndex: 49, padding: "24px 0", display: "flex", flexDirection: "column" }} onClick={() => setMenuOpen(false)}>
           <MenuItem href="/" icon="🏠" label="Home" />
           <MenuItem href={dashboardHref} icon="📊" label="Dashboard" />
-          <MenuItem href="/profile" icon="👤" label="My Profile" />
+          <MenuItem href="/dashboard/profile" icon="👤" label="My Profile" />
           <div style={{ marginTop: "auto", borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "16px" }}>
             <button onClick={handleSignOut} style={{ width: "100%", textAlign: "left", background: "none", border: "none", cursor: "pointer", padding: "14px 24px", display: "flex", alignItems: "center", gap: "12px", color: "#f87171", fontSize: "15px" }}>
               <span>🚪</span> Sign out
@@ -74,7 +74,7 @@ export function NavBar({ role, avatarUrl, fullName }: Props) {
       <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, background: "rgba(10,13,20,0.95)", backdropFilter: "blur(12px)", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-around", padding: "8px 0" }}>
         <BottomNavItem href="/" icon="🏠" label="Home" />
         <BottomNavItem href={dashboardHref} icon="📋" label="Dashboard" />
-        <BottomNavItem href="/profile" icon="👤" label="Profile" />
+        <BottomNavItem href="/dashboard/profile" icon="👤" label="Profile" />
       </div>
     </>
   );

@@ -54,7 +54,7 @@ export default async function CustomerDashboardPage() {
             Book Now
           </Link>
           <Link
-            href="/profile"
+            href="/dashboard/profile"
             className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
           >
             Edit profile
