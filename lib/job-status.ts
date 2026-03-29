@@ -1,5 +1,19 @@
 import type { JobStatus } from "@/lib/types/job";
 
+/** Customer booking tracking page — badge copy only; underlying `status` unchanged */
+export const CUSTOMER_TRACKING_PAGE_LABELS: Record<JobStatus, string> = {
+  open: "Waiting for a Line Holder",
+  accepted: "Line Holder on the way",
+  at_airport: "Line Holder on the way",
+  in_line: "In line now",
+  near_front: "Near the front",
+  pending_confirmation: "Ready for handoff",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  disputed: "Issue reported",
+  refunded: "Refunded",
+};
+
 /** Customer dashboard list — friendly wording only; underlying `status` unchanged */
 export const CUSTOMER_DASHBOARD_STATUS_LABELS: Record<JobStatus, string> = {
   open: "Waiting for a Line Holder",
@@ -25,6 +39,20 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
   completed: "Completed",
   cancelled: "Cancelled",
   disputed: "Disputed — under review",
+  refunded: "Refunded",
+};
+
+/** Provider booking detail — current status badge (underlying `status` unchanged) */
+export const PROVIDER_LINE_STATUS_LABELS: Record<JobStatus, string> = {
+  open: "Open",
+  accepted: "Accepted",
+  at_airport: "Arrived",
+  in_line: "In line now",
+  near_front: "Near the front",
+  pending_confirmation: "Awaiting customer",
+  completed: "Completed",
+  cancelled: "Cancelled",
+  disputed: "Under review",
   refunded: "Refunded",
 };
 

@@ -1,8 +1,19 @@
-import { CancelJobButton } from "@/app/dashboard/customer/jobs/cancel-job-button";
+import { BookingActivityTimeline } from "@/app/dashboard/customer/jobs/booking-activity-timeline";
+import { BookingTrackingLive } from "@/app/dashboard/customer/jobs/booking-tracking-live";
+import {
+  BookingLineHolderCard,
+  BookingLineHolderPendingCard,
+} from "@/app/dashboard/customer/jobs/booking-line-holder-card";
+import { BookingProgressTracker } from "@/app/dashboard/customer/jobs/booking-progress-tracker";
+import { CustomerBookingExtraActions } from "@/app/dashboard/customer/jobs/customer-booking-extra-actions";
 import { CompletionConfirmationPanel } from "@/app/dashboard/customer/jobs/completion-confirmation-panel";
 import { OverageCustomerAlert } from "@/app/dashboard/customer/jobs/overage-customer-alert";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
-import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
+import {
+  buildBookingTimelineEvents,
+  parseBookingDescription,
+} from "@/lib/customer-tracking";
+import { CUSTOMER_TRACKING_PAGE_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import type { OverageRequest } from "@/lib/types/overage";
@@ -21,6 +32,31 @@ const TERMINAL = new Set<JobStatus>([
   "disputed",
   "refunded",
 ]);
+
+const LIVE_TRACKING = new Set<JobStatus>([
+  "open",
+  "accepted",
+  "at_airport",
+  "in_line",
+  "near_front",
+  "pending_confirmation",
+]);
+
+function formatDateTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function truncate(s: string, max: number) {
+  if (s.length <= max) return s;
+  return `${s.slice(0, max - 1)}…`;
+}
 
 export default async function CustomerJobTrackingPage({ params }: PageProps) {
   const { jobId } = await params;
@@ -75,7 +111,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
     status !== "open" &&
     status !== "cancelled";
 
-  const showPaymentHeldBadge =
+  const showPaymentTrustLine =
     status === "open" ||
     status === "accepted" ||
     status === "at_airport" ||
@@ -85,8 +121,44 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
   const canCancel = !TERMINAL.has(status);
 
+  const { exactLocation, customerNotes } = parseBookingDescription(
+    job.description ?? ""
+  );
+
+  const bookingTitle = `${airportLabel(job.airport)} — ${job.line_type}`;
+  const badgeLabel = CUSTOMER_TRACKING_PAGE_LABELS[status];
+
+  let waiterAvatarPublic: string | null = null;
+  let waiterDisplayName = "Line Holder";
+  let waiterBio: string | null = null;
+
+  if (job.waiter_id) {
+    const { data: wp } = await supabase
+      .from("profiles")
+      .select("first_name, full_name, avatar_url, bio")
+      .eq("id", job.waiter_id)
+      .maybeSingle();
+
+    if (wp?.avatar_url) {
+      const { data: pub } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(wp.avatar_url);
+      waiterAvatarPublic = pub.publicUrl;
+    }
+    waiterDisplayName =
+      wp?.first_name?.trim() ||
+      wp?.full_name?.trim() ||
+      (job.waiter_email ? job.waiter_email.split("@")[0] : "Line Holder");
+    waiterBio = wp?.bio?.trim() ? truncate(wp.bio.trim(), 220) : null;
+  }
+
+  const timelineEvents = buildBookingTimelineEvents(job);
+
+  const showLiveStrip = LIVE_TRACKING.has(status);
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+      <BookingTrackingLive jobId={job.id} />
       <Link
         href="/dashboard/customer"
         className="text-sm font-medium text-blue-700 hover:text-blue-800"
@@ -94,123 +166,209 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         ← Back to dashboard
       </Link>
 
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Track your booking</h1>
-
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span
-            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold ring-1 ${statusBadgeClass(status)}`}
-          >
-            {JOB_STATUS_LABELS[status]}
-          </span>
-          {showPaymentHeldBadge && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200/80">
-              <svg
-                className="size-3.5 shrink-0 text-emerald-700"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                aria-hidden
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-                />
-              </svg>
-              Payment held securely
+      <header className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-900/5">
+        <div
+          className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-blue-500/10 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-16 -left-16 size-56 rounded-full bg-emerald-500/10 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Track booking
+            </p>
+            {showLiveStrip && (
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                Live updates
+              </span>
+            )}
+          </div>
+          <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            {bookingTitle}
+          </h1>
+          <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-4 py-2 text-sm font-semibold shadow-sm ring-1 ${statusBadgeClass(status)}`}
+            >
+              {badgeLabel}
             </span>
-          )}
+            {showPaymentTrustLine && (
+              <div className="flex flex-col gap-0.5 sm:items-end">
+                <span className="text-sm font-medium text-slate-700">
+                  Payment is held until completion
+                </span>
+                <span className="text-xs text-slate-500">
+                  You&apos;re charged upfront; funds release when the booking
+                  finishes.
+                </span>
+              </div>
+            )}
+          </div>
+          <dl className="mt-6 grid gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 sm:grid-cols-3">
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Airport
+              </dt>
+              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+                {airportLabel(job.airport)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Offer
+              </dt>
+              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+                ${Number(job.offered_price).toFixed(2)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                Posted
+              </dt>
+              <dd className="mt-0.5 text-sm font-semibold text-slate-900">
+                {formatDateTime(job.created_at)}
+              </dd>
+            </div>
+          </dl>
         </div>
+      </header>
+
+      {status === "pending_confirmation" && job.completed_at && (
+        <div className="mt-6">
+          <CompletionConfirmationPanel
+            jobId={job.id}
+            completedAt={job.completed_at}
+          />
+        </div>
+      )}
+
+      <div className="mt-6 space-y-6">
+        <BookingProgressTracker status={status} />
+
+        {status === "open" ? (
+          <BookingLineHolderPendingCard />
+        ) : hasWaiter ? (
+          <BookingLineHolderCard
+            displayName={waiterDisplayName}
+            avatarUrl={waiterAvatarPublic}
+            status={status}
+            bioSnippet={waiterBio}
+            email={job.waiter_email}
+          />
+        ) : null}
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Booking details
+          </h2>
+          <dl className="mt-6 divide-y divide-slate-100">
+            <div className="grid gap-4 py-4 first:pt-0 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Airport
+                </dt>
+                <dd className="mt-1.5 text-slate-900">
+                  {airportLabel(job.airport)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Terminal
+                </dt>
+                <dd className="mt-1.5 text-slate-900">{job.terminal}</dd>
+              </div>
+            </div>
+            <div className="grid gap-4 py-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Line type
+                </dt>
+                <dd className="mt-1.5 text-slate-900">{job.line_type}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Estimated wait
+                </dt>
+                <dd className="mt-1.5 text-slate-900">{job.estimated_wait}</dd>
+              </div>
+            </div>
+            {exactLocation && (
+              <div className="py-4">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Exact location
+                </dt>
+                <dd className="mt-1.5 text-slate-900">{exactLocation}</dd>
+              </div>
+            )}
+            <div className="grid gap-4 py-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Offered price
+                </dt>
+                <dd className="mt-1.5 text-2xl font-bold tabular-nums text-blue-700">
+                  ${Number(job.offered_price).toFixed(2)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Posted
+                </dt>
+                <dd className="mt-1.5 text-slate-900">
+                  {formatDateTime(job.created_at)}
+                </dd>
+              </div>
+            </div>
+            <div className="py-4">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Extra time rate (per 30 min)
+              </dt>
+              <dd className="mt-1.5 text-slate-900">
+                ${Number(job.overage_rate ?? 10).toFixed(2)}
+              </dd>
+            </div>
+            {(customerNotes?.trim() || job.description?.trim()) && (
+              <div className="py-4 last:pb-0">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Notes
+                </dt>
+                <dd className="mt-1.5 whitespace-pre-wrap text-slate-900">
+                  {customerNotes?.trim() || job.description}
+                </dd>
+              </div>
+            )}
+          </dl>
+        </section>
 
         {status === "disputed" && (
-          <p className="mt-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
             Your dispute has been received. An admin will review within 24
             hours.
           </p>
         )}
 
-        {status === "pending_confirmation" && job.completed_at && (
-          <CompletionConfirmationPanel
+        {pending && (
+          <OverageCustomerAlert
             jobId={job.id}
-            completedAt={job.completed_at}
+            requestId={pending.id}
+            amount={Number(pending.amount)}
+            createdAt={pending.created_at}
           />
         )}
 
-        {pending && (
-          <div className="mt-6">
-            <OverageCustomerAlert
-              jobId={job.id}
-              requestId={pending.id}
-              amount={Number(pending.amount)}
-              createdAt={pending.created_at}
-            />
-          </div>
-        )}
+        <BookingActivityTimeline events={timelineEvents} />
 
-        <dl className="mt-8 space-y-4 border-t border-slate-100 pt-8">
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Airport
-            </dt>
-            <dd className="mt-1 text-slate-900">{airportLabel(job.airport)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Terminal
-            </dt>
-            <dd className="mt-1 text-slate-900">{job.terminal}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Line type
-            </dt>
-            <dd className="mt-1 text-slate-900">{job.line_type}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Description
-            </dt>
-            <dd className="mt-1 whitespace-pre-wrap text-slate-900">
-              {job.description || "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Offered price
-            </dt>
-            <dd className="mt-1 text-xl font-bold text-blue-700">
-              ${Number(job.offered_price).toFixed(2)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Est. wait
-            </dt>
-            <dd className="mt-1 text-slate-900">{job.estimated_wait}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Extra time rate (per 30 min)
-            </dt>
-            <dd className="mt-1 text-slate-900">
-              ${Number(job.overage_rate ?? 10).toFixed(2)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase text-slate-500">
-              Line Holder contact
-            </dt>
-            <dd className="mt-1 font-medium text-slate-900">
-              {hasWaiter && job.waiter_email
-                ? job.waiter_email
-                : "We’ll show your Line Holder’s email here once someone accepts."}
-            </dd>
-          </div>
-        </dl>
-
-        {canCancel && <CancelJobButton jobId={job.id} />}
+        <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
       </div>
     </div>
   );
