@@ -1,8 +1,16 @@
 export const LINE_TYPES = [
-  "General Boarding",
-  "Check-In",
-  "Bag Drop",
-  "TSA PreCheck",
+  "Check-In (Ticket Counter)",
+  "Bag Drop (Checked Bags)",
+  "Flight Changes / Customer Service",
+  "Security Line (Standard)",
+  "Security Line (PreCheck / CLEAR)",
+  "Gate Agent (Seat / Upgrade / Standby)",
+  "Gate Agent (Delay / Cancellation Help)",
+  "Rental Car Pickup",
+  "Taxi / Rideshare Line",
+  "Food / Coffee Line",
+  "Lounge Entry Waitlist",
+  "Other (Describe your line)",
 ] as const;
 export type LineType = (typeof LINE_TYPES)[number];
 export const ESTIMATED_WAIT_OPTIONS = [
