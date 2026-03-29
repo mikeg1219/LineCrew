@@ -15,7 +15,7 @@ export function AcceptJobForm({
   const [state, formAction, pending] = useActionState(acceptJobAction, initial);
 
   return (
-    <form action={formAction} className="mt-4 space-y-2">
+    <form action={formAction} className="space-y-2">
       <input type="hidden" name="jobId" value={jobId} />
       {state?.error && (
         <p className="text-sm text-red-600">{state.error}</p>

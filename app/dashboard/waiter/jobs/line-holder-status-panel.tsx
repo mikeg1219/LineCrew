@@ -12,22 +12,37 @@ import { useActionState } from "react";
 const initial: JobActionState = null;
 
 const STEPS: { nextStatus: JobStatus; label: string; hint?: string }[] = [
-  { nextStatus: "at_airport", label: "Arrived", hint: "You’re at the airport" },
-  { nextStatus: "in_line", label: "In line now", hint: "You’re in the queue" },
-  { nextStatus: "near_front", label: "Near the front", hint: "Approaching handoff" },
+  {
+    nextStatus: "at_airport",
+    label: "Arrived at location",
+    hint: "You’ve reached the airport / meeting point",
+  },
+  {
+    nextStatus: "in_line",
+    label: "In line now",
+    hint: "You’re in the queue holding their place",
+  },
+  {
+    nextStatus: "near_front",
+    label: "Near the front",
+    hint: "Almost time for the customer to step in",
+  },
   {
     nextStatus: "pending_confirmation",
-    label: "Complete",
-    hint: "Ready for handoff — customer confirms next",
+    label: "Ready for handoff",
+    hint: "Customer confirms next — completes your line hold",
   },
 ];
 
 export function LineHolderStatusPanel({
   jobId,
   currentStatus,
+  profileComplete = true,
 }: {
   jobId: string;
   currentStatus: JobStatus;
+  /** When false, Accept booking is disabled (profile incomplete). */
+  profileComplete?: boolean;
 }) {
   const [acceptState, acceptAction, acceptPending] = useActionState(
     acceptJobAction,
@@ -55,22 +70,25 @@ export function LineHolderStatusPanel({
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-semibold text-slate-900">Status control</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Advance one step at a time. The customer sees updates on their tracking
-          page.
-        </p>
-      </div>
+    <div className="space-y-8">
+      <span className="sr-only">
+        Status update actions for this booking. Only the next step is active.
+      </span>
 
       {currentStatus === "open" && (
-        <form action={acceptAction} className="max-w-md">
+        <form action={acceptAction} className="w-full">
           <input type="hidden" name="jobId" value={jobId} />
+          {!profileComplete && (
+            <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2.5 text-sm leading-snug text-amber-950">
+              Complete your Line Holder profile (photo, phone, bio, airports,
+              onboarding, verified email) before accepting. Open{" "}
+              <span className="font-semibold">Profile</span> to finish.
+            </p>
+          )}
           <button
             type="submit"
-            disabled={pending}
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
+            disabled={pending || !profileComplete}
+            className="w-full min-h-[52px] rounded-2xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation"
           >
             {acceptPending ? "Accepting…" : "Accept booking"}
           </button>
@@ -78,39 +96,66 @@ export function LineHolderStatusPanel({
       )}
 
       {currentStatus !== "open" && (
-        <div className="flex flex-col gap-3">
-          {STEPS.map(({ nextStatus, label, hint }) => {
+        <ol className="flex list-none flex-col gap-2 sm:gap-2.5" aria-label="Progress steps">
+          {STEPS.map(({ nextStatus, label, hint }, idx) => {
+            const stepNum = idx + 1;
             const enabled = canTransitionTo(currentStatus, nextStatus);
             return (
-              <form key={nextStatus} action={updateAction} className="max-w-md">
-                <input type="hidden" name="jobId" value={jobId} />
-                <input type="hidden" name="nextStatus" value={nextStatus} />
-                <button
-                  type="submit"
-                  disabled={!enabled || pending}
-                  className="flex w-full flex-col items-start rounded-xl border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition hover:border-blue-300 hover:bg-blue-50/80 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white"
+              <li key={nextStatus} className="flex gap-3 sm:gap-4">
+                <span
+                  className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums sm:size-11 sm:text-sm ${
+                    enabled
+                      ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
+                      : "border border-slate-200 bg-slate-50 text-slate-400"
+                  }`}
+                  aria-hidden
                 >
-                  <span className="text-sm font-semibold text-slate-900">
-                    {label}
-                  </span>
-                  {hint && (
-                    <span className="mt-0.5 text-xs text-slate-500">{hint}</span>
-                  )}
-                </button>
-              </form>
+                  {stepNum}
+                </span>
+                <form action={updateAction} className="min-w-0 flex-1">
+                  <input type="hidden" name="jobId" value={jobId} />
+                  <input type="hidden" name="nextStatus" value={nextStatus} />
+                  <button
+                    type="submit"
+                    disabled={!enabled || pending}
+                    className={`flex w-full min-h-[52px] flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 touch-manipulation sm:min-h-0 sm:py-3.5 ${
+                      enabled
+                        ? "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/20 hover:bg-blue-50"
+                        : "border-slate-200 bg-white ring-1 ring-slate-900/5 hover:border-slate-300 disabled:hover:border-slate-200"
+                    }`}
+                  >
+                    <span className="text-sm font-semibold text-slate-900">
+                      {label}
+                      {enabled && (
+                        <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                          Next
+                        </span>
+                      )}
+                    </span>
+                    {hint && (
+                      <span className="mt-1 text-xs leading-snug text-slate-500">
+                        {hint}
+                      </span>
+                    )}
+                  </button>
+                </form>
+              </li>
             );
           })}
-        </div>
+        </ol>
       )}
 
-      <div className="border-t border-slate-100 pt-5">
+      <div className="border-t border-slate-100 pt-6">
         <button
           type="button"
           disabled
           title="Reporting will be available in a future update"
-          className="w-full max-w-md cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-400"
+          className="w-full min-h-[48px] max-w-full cursor-not-allowed rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-400 sm:max-w-lg touch-manipulation"
         >
           Report issue
+          <span className="mt-0.5 block text-xs font-normal text-slate-400">
+            Coming soon
+          </span>
         </button>
       </div>
 

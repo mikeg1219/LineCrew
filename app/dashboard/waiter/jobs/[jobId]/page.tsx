@@ -1,12 +1,15 @@
 import { LineHolderStatusPanel } from "@/app/dashboard/waiter/jobs/line-holder-status-panel";
+import { ProviderBookingDetailsCard } from "@/app/dashboard/waiter/jobs/provider-booking-details-card";
 import { ProviderBookingTimeline } from "@/app/dashboard/waiter/jobs/provider-booking-timeline";
 import { ProviderCustomerCard } from "@/app/dashboard/waiter/jobs/provider-customer-card";
+import { ProviderExecutionNote } from "@/app/dashboard/waiter/jobs/provider-execution-note";
 import { RequestExtraTimeForm } from "@/app/dashboard/waiter/jobs/request-extra-time-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { buildProviderTimelineEvents } from "@/lib/provider-booking";
 import { PROVIDER_LINE_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
+import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -15,6 +18,13 @@ type PageProps = { params: Promise<{ jobId: string }> };
 function airportLabel(code: string) {
   return US_AIRPORTS_TOP_20.find((a) => a.code === code)?.label ?? code;
 }
+
+const TERMINAL = new Set<JobStatus>([
+  "completed",
+  "cancelled",
+  "disputed",
+  "refunded",
+]);
 
 export default async function WaiterJobDetailPage({ params }: PageProps) {
   const { jobId } = await params;
@@ -29,11 +39,17 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select(
+      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role !== "waiter") {
+  if (!profile) {
+    redirect("/dashboard");
+  }
+
+  if (profile.role !== "waiter") {
     redirect("/dashboard/customer");
   }
 
@@ -48,105 +64,232 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   }
 
   const job = row as Job;
+  const serving = (profile?.serving_airports as string[] | null) ?? [];
+  const isAssigned = job.waiter_id === user.id;
+  const isOpenPreview =
+    job.status === "open" &&
+    job.waiter_id == null &&
+    serving.includes(job.airport);
 
-  if (job.waiter_id !== user.id) {
+  if (!isAssigned && !isOpenPreview) {
     redirect("/dashboard/waiter/browse-jobs");
   }
 
   const status = job.status as JobStatus;
   const showExtraTimeRequest =
-    status === "in_line" || status === "near_front";
+    isAssigned && (status === "in_line" || status === "near_front");
   const overageRate = Number(job.overage_rate ?? 10);
-
-  const { data: cust } = await supabase
-    .from("profiles")
-    .select("first_name, full_name, avatar_url")
-    .eq("id", job.customer_id)
-    .maybeSingle();
+  const canAcceptJobs = isWaiterProfileComplete(profile);
 
   let customerAvatarPublic: string | null = null;
-  if (cust?.avatar_url) {
-    const { data: pub } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(cust.avatar_url);
-    customerAvatarPublic = pub.publicUrl;
-  }
+  let customerDisplayName = "Customer";
 
-  const customerDisplayName =
-    cust?.first_name?.trim() ||
-    cust?.full_name?.trim() ||
-    (job.customer_email ? job.customer_email.split("@")[0] : "Customer");
+  if (isAssigned) {
+    const { data: cust } = await supabase
+      .from("profiles")
+      .select("first_name, full_name, avatar_url")
+      .eq("id", job.customer_id)
+      .maybeSingle();
+
+    if (cust?.avatar_url) {
+      const { data: pub } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(cust.avatar_url);
+      customerAvatarPublic = pub.publicUrl;
+    }
+    customerDisplayName =
+      cust?.first_name?.trim() ||
+      cust?.full_name?.trim() ||
+      (job.customer_email ? job.customer_email.split("@")[0] : "Customer");
+  }
 
   const timelineEvents = buildProviderTimelineEvents(job);
   const badgeLabel = PROVIDER_LINE_STATUS_LABELS[status];
+  const bookingTitle = `${airportLabel(job.airport)} — ${job.line_type}`;
+  const showLiveStrip =
+    isAssigned &&
+    !TERMINAL.has(status) &&
+    status !== "pending_confirmation";
+
+  const showActionSubcopy =
+    !TERMINAL.has(status) && status !== "pending_confirmation";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:py-10">
+    <div className="mx-auto max-w-3xl space-y-7 px-4 pb-12 pt-6 sm:space-y-8 sm:px-5 sm:pb-14 sm:pt-10">
       <Link
         href="/dashboard/waiter"
-        className="text-sm font-medium text-blue-700 hover:text-blue-800"
+        className="inline-flex min-h-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"
       >
         ← Back to dashboard
       </Link>
 
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Booking
-        </p>
-        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900">
-          {airportLabel(job.airport)} — {job.line_type}
-        </h1>
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <span
-            className={`inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold ring-1 ${statusBadgeClass(status)}`}
-          >
-            {badgeLabel}
-          </span>
-          <span className="text-sm text-slate-600">
-            Offer ${Number(job.offered_price).toFixed(2)} · Est. wait{" "}
-            {job.estimated_wait}
-          </span>
+      <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-900/5">
+        <div
+          className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-24 -top-24 size-72 rounded-full bg-blue-500/10 blur-3xl"
+          aria-hidden
+        />
+        <div className="relative p-6 sm:p-8">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              {isOpenPreview ? "Open booking" : "Your booking"}
+            </p>
+            {showLiveStrip && (
+              <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex size-2 rounded-full bg-emerald-500" />
+                </span>
+                In progress
+              </span>
+            )}
+          </div>
+          <h1 className="mt-3 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            {bookingTitle}
+          </h1>
+          <div className="mt-4 flex flex-col gap-3 sm:mt-5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-3.5 py-1.5 text-sm font-semibold shadow-sm ring-1 sm:px-4 sm:py-2 ${statusBadgeClass(status)}`}
+            >
+              {badgeLabel}
+            </span>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
+              <span className="font-medium tabular-nums text-slate-800">
+                ${Number(job.offered_price).toFixed(2)} offer
+              </span>
+              <span className="text-slate-400 sm:hidden" aria-hidden>
+                ·
+              </span>
+              <span>Est. wait {job.estimated_wait}</span>
+            </div>
+          </div>
+          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-600 sm:mt-5">
+            {isOpenPreview ? (
+              <>
+                Review the details, then accept to lock this booking. The
+                customer is notified when you update progress.
+              </>
+            ) : (
+              <>
+                Keep your customer updated as the booking progresses—they see
+                each status change on their tracking page.
+              </>
+            )}
+          </p>
+          <p className="mt-3 text-xs leading-relaxed text-slate-500 sm:text-sm">
+            Payment is released after the customer confirms completion (or per
+            LineCrew policy).
+          </p>
         </div>
-        <p className="mt-3 text-sm text-slate-600">
-          Payment is released after the customer confirms completion (or per
-          LineCrew policy).
-        </p>
       </header>
 
       <ProviderCustomerCard
         job={job}
         customerDisplayName={customerDisplayName}
         customerAvatarUrl={customerAvatarPublic}
+        redacted={isOpenPreview}
       />
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-        {status === "pending_confirmation" ? (
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Booking marked complete
-            </h2>
+      <ProviderBookingDetailsCard job={job} />
+
+      <section
+        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
+        aria-labelledby="booking-actions-heading"
+      >
+        <div className="border-b border-slate-100 pb-5">
+          <h2
+            id="booking-actions-heading"
+            className="text-base font-semibold tracking-tight text-slate-900"
+          >
+            Booking actions
+          </h2>
+          {status === "pending_confirmation" && (
             <p className="mt-2 text-sm text-slate-600">
-              Waiting for the customer to confirm. You&apos;ll be paid after they
-              confirm or after 15 minutes if they don&apos;t respond.
+              Waiting on the customer — no status buttons right now.
             </p>
-          </div>
-        ) : (
-          <LineHolderStatusPanel jobId={job.id} currentStatus={status} />
-        )}
-      </div>
+          )}
+          {TERMINAL.has(status) && (
+            <p className="mt-2 text-sm text-slate-600">
+              This booking is closed — no further updates.
+            </p>
+          )}
+          {showActionSubcopy && status !== "open" && (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Tap the next step when it applies. Only one action is available at
+              a time; the customer sees updates on their tracking page.
+            </p>
+          )}
+          {showActionSubcopy && status === "open" && (
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Accept to lock this booking and unlock full customer details.
+            </p>
+          )}
+        </div>
+        <div className="pt-6">
+          {status === "pending_confirmation" ? (
+            <div>
+              <p className="text-base font-semibold text-slate-900">
+                Awaiting customer confirmation
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                You marked this booking ready for handoff. The customer will
+                confirm or dispute. You&apos;ll be paid after they confirm or
+                after the window in LineCrew policy if they don&apos;t respond.
+              </p>
+            </div>
+          ) : TERMINAL.has(status) ? (
+            <div className="space-y-5">
+              <p className="text-sm leading-relaxed text-slate-700">
+                {status === "completed" &&
+                  "This booking is complete. No further status updates are needed."}
+                {status === "cancelled" &&
+                  "This booking was cancelled. No further actions are available."}
+                {status === "disputed" &&
+                  "This booking is under review. Support will follow up if needed."}
+                {status === "refunded" &&
+                  "This booking was refunded. No further actions are available."}
+              </p>
+              <button
+                type="button"
+                disabled
+                title="Reporting will be available in a future update"
+                className="w-full min-h-[48px] max-w-lg cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-400 touch-manipulation"
+              >
+                Report issue
+                <span className="mt-0.5 block text-xs font-normal text-slate-400">
+                  Coming soon
+                </span>
+              </button>
+            </div>
+          ) : (
+            <LineHolderStatusPanel
+              jobId={job.id}
+              currentStatus={status}
+              profileComplete={canAcceptJobs}
+            />
+          )}
+        </div>
+      </section>
 
       {showExtraTimeRequest && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-semibold text-slate-900">Extra time</h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <div className="rounded-3xl border border-amber-200/90 bg-amber-50/60 p-5 shadow-sm ring-1 ring-amber-100/80 sm:p-7">
+          <h2 className="text-base font-semibold tracking-tight text-slate-900">
+            Extra time
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
             If the line is slower than expected, request an extra 30 minutes at
             the customer&apos;s agreed rate (${overageRate.toFixed(2)}).
           </p>
-          <div className="mt-4 max-w-md">
+          <div className="mt-5 max-w-md">
             <RequestExtraTimeForm jobId={job.id} />
           </div>
         </div>
       )}
+
+      <ProviderExecutionNote />
 
       <ProviderBookingTimeline events={timelineEvents} />
     </div>

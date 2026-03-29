@@ -35,8 +35,8 @@ export function buildProviderTimelineEvents(job: Job): ProviderTimelineEvent[] {
     accepted: "Next: mark when you arrive.",
     at_airport: "Next: join the line when ready.",
     in_line: "Next: move up as the line progresses.",
-    near_front: "Next: complete when the customer should swap in (ready for handoff).",
-    pending_confirmation: "Waiting for the customer to confirm.",
+    near_front: "Next: mark ready for handoff when the customer should swap in.",
+    pending_confirmation: "Waiting for the customer to confirm completion.",
     completed: "This booking is finished.",
     cancelled: "This booking was cancelled.",
     disputed: "This booking is under review.",
@@ -72,15 +72,6 @@ export function buildProviderTimelineEvents(job: Job): ProviderTimelineEvent[] {
       tone: "default",
     });
   }
-
-  out.push({
-    id: "future",
-    title: "Activity log",
-    detail:
-      "Per-step timestamps will appear here when activity history is enabled.",
-    timestamp: null,
-    tone: "muted",
-  });
 
   return out;
 }

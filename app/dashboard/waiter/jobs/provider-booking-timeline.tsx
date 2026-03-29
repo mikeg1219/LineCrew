@@ -12,16 +12,22 @@ function formatWhen(iso: string | null) {
   }
 }
 
-export function ProviderBookingTimeline({ events }: { events: ProviderTimelineEvent[] }) {
+export function ProviderBookingTimeline({
+  events,
+}: {
+  events: ProviderTimelineEvent[];
+}) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7">
+      <h2 className="text-base font-semibold tracking-tight text-slate-900">
         Updates
       </h2>
-      <ol className="relative mt-5 space-y-0 border-l border-slate-200 pl-6">
+      <p className="mt-1 text-sm text-slate-500">
+        Recent milestones for this booking.
+      </p>
+      <ol className="relative mt-6 space-y-0 border-l border-slate-200 pl-5 sm:pl-6">
         {events.map((ev) => {
           const when = formatWhen(ev.timestamp);
-          const isFuture = ev.id === "future";
           return (
             <li key={ev.id} className="relative pb-8 last:pb-0">
               <span
@@ -34,29 +40,15 @@ export function ProviderBookingTimeline({ events }: { events: ProviderTimelineEv
                 }`}
                 aria-hidden
               />
-              <div
-                className={
-                  isFuture
-                    ? "rounded-lg border border-dashed border-slate-200 bg-slate-50/80 p-3"
-                    : ""
-                }
-              >
-                <p
-                  className={`text-sm font-semibold ${
-                    isFuture ? "text-slate-500" : "text-slate-900"
-                  }`}
-                >
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
                   {ev.title}
                 </p>
                 {when && (
                   <p className="mt-0.5 text-xs text-slate-500">{when}</p>
                 )}
                 {ev.detail && (
-                  <p
-                    className={`mt-1.5 text-sm leading-relaxed ${
-                      isFuture ? "text-slate-500" : "text-slate-600"
-                    }`}
-                  >
+                  <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
                     {ev.detail}
                   </p>
                 )}

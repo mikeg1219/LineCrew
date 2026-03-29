@@ -44,15 +44,15 @@ export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
 
 /** Provider booking detail — current status badge (underlying `status` unchanged) */
 export const PROVIDER_LINE_STATUS_LABELS: Record<JobStatus, string> = {
-  open: "Open",
+  open: "Waiting for Line Holder",
   accepted: "Accepted",
-  at_airport: "Arrived",
+  at_airport: "Arrived at location",
   in_line: "In line now",
   near_front: "Near the front",
-  pending_confirmation: "Awaiting customer",
+  pending_confirmation: "Ready for handoff",
   completed: "Completed",
   cancelled: "Cancelled",
-  disputed: "Under review",
+  disputed: "Issue reported",
   refunded: "Refunded",
 };
 

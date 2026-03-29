@@ -130,7 +130,17 @@ export default async function BrowseJobsPage() {
                 Terminal {job.terminal}
                 {job.description ? ` · ${job.description}` : ""}
               </p>
-              <AcceptJobForm jobId={job.id} canAccept={canAcceptJobs} />
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link
+                  href={`/dashboard/waiter/jobs/${job.id}`}
+                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:flex-none sm:min-w-[10rem]"
+                >
+                  View booking
+                </Link>
+                <div className="min-w-0 flex-1 sm:max-w-xs">
+                  <AcceptJobForm jobId={job.id} canAccept={canAcceptJobs} />
+                </div>
+              </div>
             </li>
           ))}
         </ul>
