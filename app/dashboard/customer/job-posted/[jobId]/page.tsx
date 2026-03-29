@@ -52,13 +52,13 @@ export default async function JobPostedPage({ params }: PageProps) {
     <div className="mx-auto max-w-2xl px-4 py-12">
       <div className="rounded-2xl border border-blue-100 bg-gradient-to-b from-blue-50/80 to-white p-8 shadow-sm">
         <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
-          Job posted
+          Booking posted
         </p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
-          We&apos;re finding you a Waiter
+          We&apos;re finding you a Line Holder
         </h1>
         <p className="mt-3 text-slate-600">
-          Your listing is live. Waiters can browse open jobs and will connect with
+          Your listing is live. Line Holders can browse open bookings and will connect with
           you here as we add matching.
         </p>
 
@@ -111,7 +111,7 @@ export default async function JobPostedPage({ params }: PageProps) {
           href="/dashboard/customer/post-job"
           className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
         >
-          Post another job
+          Book another request
         </Link>
         <Link
           href="/dashboard/customer"

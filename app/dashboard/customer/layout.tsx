@@ -41,7 +41,7 @@ export default async function CustomerLayout({
               <span className="font-medium text-slate-800">
                 Complete your profile
               </span>{" "}
-              so waiters can recognize you and reach you reliably. Add your
+              so Line Holders can recognize you and reach you reliably. Add your
               name and phone in{" "}
               <Link
                 href="/profile"

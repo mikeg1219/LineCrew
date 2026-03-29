@@ -25,7 +25,7 @@ export function AcceptJobForm({
         disabled={pending || !canAccept}
         className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
       >
-        {pending ? "Accepting…" : "Accept job"}
+        {pending ? "Accepting…" : "Accept booking"}
       </button>
     </form>
   );

@@ -49,7 +49,7 @@ export function CompletionConfirmationPanel({
   return (
     <div className="mt-6 rounded-xl border border-violet-200 bg-violet-50/80 p-6 shadow-sm ring-1 ring-violet-200/60">
       <p className="font-semibold text-violet-950">
-        Your waiter marked this job complete. Please confirm or dispute within{" "}
+        Your Line Holder marked this booking complete. Please confirm or dispute within{" "}
         <span className="tabular-nums">
           {mins}:{secs.toString().padStart(2, "0")}
         </span>{" "}
@@ -74,7 +74,7 @@ export function CompletionConfirmationPanel({
             disabled={confirmPending || disputePending}
             className="rounded-lg border border-violet-300 bg-white px-4 py-2 text-sm font-semibold text-violet-950 hover:bg-violet-100 disabled:opacity-60"
           >
-            {disputePending ? "…" : "Dispute this job"}
+            {disputePending ? "…" : "Dispute this booking"}
           </button>
         </form>
       </div>

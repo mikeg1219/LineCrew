@@ -25,7 +25,7 @@ export async function adminRefundCustomerAction(
   formData: FormData
 ): Promise<AdminActionState> {
   const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing job." };
+  if (!jobId) return { error: "Missing booking." };
 
   const auth = await requireAdmin();
   if (auth.error) return { error: auth.error };
@@ -45,7 +45,7 @@ export async function adminRefundCustomerAction(
     .maybeSingle();
 
   if (!job || job.status !== "disputed") {
-    return { error: "Job not found or not disputed." };
+    return { error: "Booking not found or not disputed." };
   }
 
   if (job.payout_transfer_id) {
@@ -81,7 +81,7 @@ export async function adminPayWaiterAction(
   formData: FormData
 ): Promise<AdminActionState> {
   const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing job." };
+  if (!jobId) return { error: "Missing booking." };
 
   const auth = await requireAdmin();
   if (auth.error) return { error: auth.error };

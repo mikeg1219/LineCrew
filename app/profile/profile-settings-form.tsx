@@ -395,9 +395,9 @@ export function ProfileSettingsForm() {
 
       {role === "waiter" && (
         <section className="rounded-2xl border border-slate-200/90 bg-white p-6 shadow-lg sm:p-8">
-          <h2 className="text-lg font-semibold text-slate-900">Waiter</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Line Holder</h2>
           <p className="mt-1 text-sm text-slate-600">
-            Airport coverage and availability for jobs.
+            Airport coverage and availability for bookings.
           </p>
           <div className="mt-6 space-y-5">
             <div>
@@ -444,7 +444,7 @@ export function ProfileSettingsForm() {
                 onChange={(e) => setIsAvailable(e.target.checked)}
                 className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
               />
-              Available for job notifications
+              Available for booking notifications
             </label>
           </div>
         </section>

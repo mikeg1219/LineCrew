@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LineCrew — Airport line marketplace",
   description:
-    "Hire a Waiter to hold your place in airport lines, or earn by waiting for Customers.",
+    "Hire a Line Holder to hold your place in airport lines, or earn by waiting for Customers.",
 };
 
 export default function RootLayout({

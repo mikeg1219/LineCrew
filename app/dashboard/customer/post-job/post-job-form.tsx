@@ -55,7 +55,7 @@ export function PostJobForm() {
           When
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          When do you need your waiter?
+          When do you need your Line Holder?
         </p>
         <div className={`${sectionInner} mt-5`}>
           <fieldset className="min-w-0 border-0 p-0">
@@ -219,7 +219,7 @@ export function PostJobForm() {
           Notes
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Anything else your waiter should know.
+          Anything else your Line Holder should know.
         </p>
         <div className="mt-5">
           <label htmlFor="description" className={labelClass}>
@@ -229,7 +229,7 @@ export function PostJobForm() {
             id="description"
             name="description"
             rows={4}
-            placeholder="Describe what you need: line type, gate/area, what the waiter should do, and when you will arrive."
+            placeholder="Describe what you need: line type, gate/area, what the Line Holder should do, and when you will arrive."
             className={`${inputClass} min-h-[108px] resize-y`}
           />
         </div>
@@ -277,7 +277,7 @@ export function PostJobForm() {
             />
             <p className={hintClass}>
               Minimum $10.00. Your card is charged this amount at checkout; the
-              platform keeps 20% and the rest goes to your waiter after the job
+              platform keeps 20% and the rest goes to your Line Holder after the booking
               is completed.
             </p>
           </div>
@@ -297,7 +297,7 @@ export function PostJobForm() {
               className={inputClass}
             />
             <p className={hintClass}>
-              If the wait runs longer than expected, your waiter can request
+              If the wait runs longer than expected, your Line Holder can request
               extra time at this rate.
             </p>
           </div>
@@ -312,7 +312,7 @@ export function PostJobForm() {
                 className="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
               />
               <span>
-                Allow waiter to continue if line takes longer at $
+                Allow Line Holder to continue if line takes longer at $
                 {Number.isNaN(parseFloat(overageRate))
                   ? "…"
                   : parseFloat(overageRate).toFixed(2)}{" "}
@@ -376,7 +376,7 @@ export function PostJobForm() {
               </div>
             </dl>
             <p className="mt-4 text-xs leading-relaxed text-slate-500">
-              The fee is deducted from your payment before payout to your waiter.
+              The fee is deducted from your payment before payout to your Line Holder.
             </p>
           </div>
 

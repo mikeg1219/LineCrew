@@ -32,7 +32,7 @@ export default async function ProfileLayout({
 
   const roleLabel =
     profile?.role === "waiter"
-      ? "Waiter"
+      ? "Line Holder"
       : profile?.role === "customer"
         ? "Customer"
         : null;

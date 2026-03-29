@@ -60,7 +60,7 @@ export default async function WaiterDashboardPage() {
 
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/dashboard/waiter/browse-jobs" className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700">
-            Browse jobs
+            Browse bookings
           </Link>
           <Link href="/dashboard/waiter/airports" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
             Edit my airports
@@ -71,16 +71,16 @@ export default async function WaiterDashboardPage() {
         </div>
 
         <p className="mt-4 text-sm text-slate-600">
-          Active jobs (max 2): <span className="font-semibold text-slate-900">{activeJobCount ?? 0} / 2</span>
-          {servingCount === 0 && <span className="ml-2 text-amber-800">— select airports to see open jobs.</span>}
+          Active bookings (max 2): <span className="font-semibold text-slate-900">{activeJobCount ?? 0} / 2</span>
+          {servingCount === 0 && <span className="ml-2 text-amber-800">— select airports to see open bookings.</span>}
         </p>
 
         <WaiterPayoutSetup stripeAccountId={profile?.stripe_account_id ?? null} />
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-slate-900">Your active jobs</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Your active bookings</h2>
           {activeJobs.length === 0 ? (
-            <p className="mt-3 text-slate-600">No active jobs yet. Browse open listings to get started.</p>
+            <p className="mt-3 text-slate-600">No active bookings yet. Browse open listings to get started.</p>
           ) : (
             <ul className="mt-4 space-y-3">
               {activeJobs.map((job) => {
@@ -95,7 +95,7 @@ export default async function WaiterDashboardPage() {
                       </span>
                     </div>
                     <Link href={`/dashboard/waiter/jobs/${job.id}`} className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
-                      Open job
+                      Open booking
                     </Link>
                   </li>
                 );

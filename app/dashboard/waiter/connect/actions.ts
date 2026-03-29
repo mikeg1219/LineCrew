@@ -27,7 +27,7 @@ export async function startStripeConnectOnboardingAction(
     .maybeSingle();
 
   if (profile?.role !== "waiter") {
-    return { error: "Only waiters can set up payouts." };
+    return { error: "Only Line Holders can set up payouts." };
   }
 
   let stripe;

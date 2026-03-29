@@ -56,7 +56,7 @@ export function OverageCustomerAlert({
   return (
     <div className="rounded-xl border border-amber-300 bg-amber-50 p-5 shadow-sm ring-1 ring-amber-200/80">
       <p className="font-semibold text-amber-950">
-        Your waiter needs more time — approve an extra 30 minutes for $
+        Your Line Holder needs more time — approve an extra 30 minutes for $
         {amount.toFixed(2)}?
       </p>
       <p className="mt-2 text-sm text-amber-900/90">
@@ -65,7 +65,7 @@ export function OverageCustomerAlert({
           {mins}:{secs.toString().padStart(2, "0")}
         </span>{" "}
         or it will be auto-approved. This matches the extra time rate you
-        agreed to when posting the job.
+        agreed to when posting your request.
       </p>
       {err && (
         <p className="mt-3 text-sm text-red-700">{err}</p>

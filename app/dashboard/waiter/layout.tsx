@@ -43,7 +43,7 @@ export default async function WaiterLayout({
           <div className="mx-auto max-w-5xl border-l-4 border-amber-500 px-4 py-3 sm:py-3.5">
             <p className="text-sm leading-relaxed text-amber-950">
               <span className="font-semibold text-amber-900">
-                Complete onboarding to accept jobs
+                Complete onboarding to accept bookings
               </span>
               <span className="text-amber-950/95">
                 {" "}

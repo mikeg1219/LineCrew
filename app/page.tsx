@@ -35,13 +35,13 @@ export default function Home() {
               href="/auth?intent=customer"
               className="rounded-xl bg-amber-400 px-8 py-4 text-center text-sm font-bold text-black shadow-sm transition hover:bg-amber-300 sm:text-base"
             >
-              Book a line holder
+              Book a Line Holder
             </Link>
             <Link
               href="/auth?intent=waiter"
               className="rounded-xl border-2 border-white/30 bg-white/10 px-8 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15 sm:text-base"
             >
-              Earn by waiting
+              Become a Line Holder
             </Link>
           </div>
           <div className="mt-10 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
@@ -49,7 +49,7 @@ export default function Home() {
               <span className="text-emerald-400" aria-hidden>
                 ✔
               </span>
-              Verified waiters
+              Verified Line Holders
             </span>
             <span className="inline-flex items-center gap-1.5">
               <span className="text-emerald-400" aria-hidden>
@@ -65,7 +65,7 @@ export default function Home() {
             </span>
           </div>
           <p className="mt-6 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-sm">
-            Most jobs accepted in 3–10 minutes
+            Most bookings accepted in 3–10 minutes
           </p>
         </main>
       </div>
@@ -86,7 +86,7 @@ export default function Home() {
               <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
                 1
               </div>
-              <h3 className="font-semibold text-slate-900">Post your job</h3>
+              <h3 className="font-semibold text-slate-900">Book your request</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
                 Airport, line type, and what you need—takes a minute.
               </p>
@@ -97,7 +97,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-slate-900">We hold your place</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                A Waiter stands in line and keeps you updated.
+                A Line Holder stands in line and keeps you updated.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
@@ -152,7 +152,7 @@ export default function Home() {
                 Real people holding your spot
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                A waiter stands in line so you don&apos;t have to
+                A Line Holder stands in line so you don&apos;t have to
               </p>
             </li>
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
@@ -168,7 +168,7 @@ export default function Home() {
                 Pay only after completion
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Your payment is released after the job is done
+                Your payment is released after the booking is done
               </p>
             </li>
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">

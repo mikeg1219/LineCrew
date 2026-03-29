@@ -24,7 +24,7 @@ export async function confirmJobCompletionAction(
   formData: FormData
 ): Promise<CustomerJobActionState> {
   const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing job." };
+  if (!jobId) return { error: "Missing booking." };
 
   const supabase = await createClient();
   const {
@@ -39,10 +39,10 @@ export async function confirmJobCompletionAction(
     .maybeSingle();
 
   if (!job || job.customer_id !== user.id) {
-    return { error: "Not your job." };
+    return { error: "Not your booking." };
   }
   if (job.status !== "pending_confirmation") {
-    return { error: "This job is not waiting for confirmation." };
+    return { error: "This booking is not waiting for confirmation." };
   }
 
   const result = await finalizeJobPayout(supabase, jobId, "pending_confirmation");
@@ -60,7 +60,7 @@ export async function disputeJobAction(
   formData: FormData
 ): Promise<CustomerJobActionState> {
   const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing job." };
+  if (!jobId) return { error: "Missing booking." };
 
   const supabase = await createClient();
   const {
@@ -75,10 +75,13 @@ export async function disputeJobAction(
     .maybeSingle();
 
   if (!job || job.customer_id !== user.id) {
-    return { error: "Not your job." };
+    return { error: "Not your booking." };
   }
   if (job.status !== "pending_confirmation") {
-    return { error: "You can only dispute after the waiter marks the job complete." };
+    return {
+      error:
+        "You can only dispute after the Line Holder marks the booking complete.",
+    };
   }
 
   const { error } = await supabase
@@ -90,8 +93,8 @@ export async function disputeJobAction(
   if (error) return { error: error.message };
 
   await sendAdminEmail(
-    `LineCrew dispute — job ${jobId}`,
-    `<p>A customer disputed job <strong>${jobId}</strong>.</p>
+    `LineCrew dispute — booking ${jobId}`,
+    `<p>A customer disputed booking <strong>${jobId}</strong>.</p>
      <p>Airport: ${job.airport}, amount: $${Number(job.offered_price).toFixed(2)}</p>
      <p>Review in admin panel.</p>`
   );
@@ -107,7 +110,7 @@ export async function cancelJobAction(
 ): Promise<CustomerJobActionState> {
   const jobId = String(formData.get("jobId") ?? "");
   const reason = String(formData.get("reason") ?? "").trim();
-  if (!jobId) return { error: "Missing job." };
+  if (!jobId) return { error: "Missing booking." };
 
   const supabase = await createClient();
   const {
@@ -131,16 +134,16 @@ export async function cancelJobAction(
     .maybeSingle();
 
   if (!job || job.customer_id !== user.id) {
-    return { error: "Not your job." };
+    return { error: "Not your booking." };
   }
 
   const st = job.status as JobStatus;
   if (NON_CANCEL.includes(st)) {
-    return { error: "This job cannot be cancelled." };
+    return { error: "This booking cannot be cancelled." };
   }
 
   if (!job.stripe_payment_intent_id) {
-    return { error: "No payment on file for this job." };
+    return { error: "No payment on file for this booking." };
   }
 
   const pi = job.stripe_payment_intent_id;
@@ -164,7 +167,7 @@ export async function cancelJobAction(
 
       const refundCents = offeredCents - KILL_FEE_CENTS;
       if (refundCents < 0) {
-        return { error: "Invalid job amount for cancellation." };
+        return { error: "Invalid booking amount for cancellation." };
       }
 
       await stripe.refunds.create({

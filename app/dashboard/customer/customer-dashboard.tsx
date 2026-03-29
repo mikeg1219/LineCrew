@@ -51,7 +51,7 @@ export default async function CustomerDashboardPage() {
             href="/dashboard/customer/post-job"
             className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
           >
-            Post a job
+            Book Now
           </Link>
           <Link
             href="/profile"
@@ -62,9 +62,9 @@ export default async function CustomerDashboardPage() {
         </div>
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-slate-900">Your jobs</h2>
+          <h2 className="text-lg font-semibold text-slate-900">Your bookings</h2>
           {jobs.length === 0 ? (
-            <p className="mt-3 text-slate-600">You haven&apos;t posted a job yet. Post one to get matched with a Waiter.</p>
+            <p className="mt-3 text-slate-600">You haven&apos;t created a booking yet. Book one to get matched with a Line Holder.</p>
           ) : (
             <ul className="mt-4 space-y-3">
               {jobs.map((job) => {
@@ -79,7 +79,7 @@ export default async function CustomerDashboardPage() {
                       </span>
                     </div>
                     <Link href={`/dashboard/customer/jobs/${job.id}`} className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
-                      Track job
+                      Track booking
                     </Link>
                   </li>
                 );

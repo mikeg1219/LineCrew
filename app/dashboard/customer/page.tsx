@@ -46,10 +46,10 @@ export default async function CustomerDashboardPage() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-10 md:py-12">
       <header className="max-w-2xl space-y-3">
         <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-          What do you need help with right now?
+          Book a Line Holder
         </h1>
         <p className="text-base leading-relaxed text-slate-600 sm:text-lg">
-          Post a job and get someone in line for you in minutes.
+          Reserve someone to hold your place in line at the airport.
         </p>
         <p className="text-sm leading-snug text-slate-500">
           Signed in as{" "}
@@ -59,7 +59,7 @@ export default async function CustomerDashboardPage() {
 
       <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
         <div className="w-full rounded-xl border border-blue-200/90 bg-blue-50 px-4 py-3 text-center text-sm font-medium leading-snug text-blue-900 shadow-sm sm:w-auto sm:max-w-md sm:text-left">
-          Most jobs are accepted in 3–10 minutes
+          Most bookings are accepted in 3–10 minutes
         </div>
         <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-left">
           Payment is held until your spot is secured
@@ -71,7 +71,7 @@ export default async function CustomerDashboardPage() {
           href="/dashboard/customer/post-job"
           className="inline-flex w-full min-h-[48px] items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto sm:min-h-0"
         >
-          Post a job now
+          Book Now
         </Link>
       </div>
 
@@ -92,7 +92,7 @@ export default async function CustomerDashboardPage() {
             </span>
             <div className="min-w-0">
               <p className="font-medium leading-snug text-slate-900">
-                Post your job
+                Book your request
               </p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Airport, line, and timing
@@ -105,7 +105,7 @@ export default async function CustomerDashboardPage() {
             </span>
             <div className="min-w-0">
               <p className="font-medium leading-snug text-slate-900">
-                We match you with a waiter
+                We match you with a Line Holder
               </p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Get notified when someone accepts
@@ -118,7 +118,7 @@ export default async function CustomerDashboardPage() {
             </span>
             <div className="min-w-0">
               <p className="font-medium leading-snug text-slate-900">
-                You arrive when it&apos;s your turn
+                Arrive when it&apos;s your turn
               </p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
                 Swap in at the front of the line
@@ -130,28 +130,28 @@ export default async function CustomerDashboardPage() {
 
       <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-14 sm:pt-12">
         <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
-          Your jobs
+          Your bookings
         </h2>
         {jobs.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50/90 px-5 py-12 text-center sm:mt-8 sm:px-8 sm:py-14">
             <h3 className="text-lg font-semibold text-slate-900 sm:text-xl">
-              No active jobs yet
+              No active bookings yet
             </h3>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600 sm:text-base">
-              Post your first job and skip your next airport line.
+              Book your first request and skip your next airport line.
             </p>
             <Link
               href="/dashboard/customer/post-job"
               className="mt-8 inline-flex w-full max-w-xs items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:mt-8 sm:w-auto sm:py-3"
             >
-              Post a job now
+              Book Now
             </Link>
           </div>
         ) : (
           <ul className="mt-6 space-y-4 sm:mt-8">
             {jobs.map((job) => {
               const st = job.status as JobStatus;
-              const posted = new Date(job.created_at);
+              const requestedAt = new Date(job.created_at);
               return (
                 <li
                   key={job.id}
@@ -169,9 +169,9 @@ export default async function CustomerDashboardPage() {
                         </span>
                       </span>
                       <span>
-                        <span className="text-slate-500">Posted</span>{" "}
+                        <span className="text-slate-500">Requested</span>{" "}
                         <time dateTime={job.created_at}>
-                          {posted.toLocaleString(undefined, {
+                          {requestedAt.toLocaleString(undefined, {
                             dateStyle: "medium",
                             timeStyle: "short",
                           })}
@@ -188,7 +188,7 @@ export default async function CustomerDashboardPage() {
                     href={`/dashboard/customer/jobs/${job.id}`}
                     className="inline-flex w-full shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-center text-sm font-semibold text-blue-800 transition hover:bg-blue-100 sm:w-auto sm:min-w-[7.5rem] sm:self-center"
                   >
-                    Track job
+                    Track booking
                   </Link>
                 </li>
               );

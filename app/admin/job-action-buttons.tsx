@@ -40,7 +40,7 @@ export function JobActionButtons({ jobId }: { jobId: string }) {
           disabled={refundPending || payPending}
           className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {payPending ? "…" : "Pay waiter"}
+          {payPending ? "…" : "Pay Line Holder"}
         </button>
       </form>
       {err && <p className="text-xs text-red-600">{err}</p>}

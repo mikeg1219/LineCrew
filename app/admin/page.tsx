@@ -65,29 +65,29 @@ export default async function AdminPage() {
     <div className="mx-auto max-w-6xl px-4 py-10">
       <h1 className="text-2xl font-semibold text-slate-900">Admin</h1>
       <p className="mt-2 text-sm text-slate-600">
-        Signed in as {user.email}. Disputed jobs and platform stats.
+        Signed in as {user.email}. Disputed bookings and platform stats.
       </p>
 
       <section className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Platform revenue (est.)" value={`$${platformRevenue.toFixed(2)}`} />
-        <StatCard label="Jobs completed" value={String(completedJobs ?? 0)} />
-        <StatCard label="Active jobs" value={String(activeJobs ?? 0)} />
+        <StatCard label="Bookings completed" value={String(completedJobs ?? 0)} />
+        <StatCard label="Active bookings" value={String(activeJobs ?? 0)} />
         <StatCard label="Total users" value={String(totalUsers ?? 0)} />
       </section>
 
       <section className="mt-12">
-        <h2 className="text-lg font-semibold text-slate-900">Disputed jobs</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Disputed bookings</h2>
         {(!disputed || disputed.length === 0) && (
-          <p className="mt-3 text-slate-600">No disputed jobs.</p>
+          <p className="mt-3 text-slate-600">No disputed bookings.</p>
         )}
         {disputed && disputed.length > 0 && (
           <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
             <table className="min-w-full text-left text-sm">
               <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
                 <tr>
-                  <th className="px-4 py-3">Job</th>
+                  <th className="px-4 py-3">Booking</th>
                   <th className="px-4 py-3">Customer</th>
-                  <th className="px-4 py-3">Waiter</th>
+                  <th className="px-4 py-3">Line Holder</th>
                   <th className="px-4 py-3">Amount</th>
                   <th className="px-4 py-3">Date</th>
                   <th className="px-4 py-3">Actions</th>

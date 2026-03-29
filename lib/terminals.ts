@@ -1,6 +1,6 @@
 /**
  * Security LINE locations for the top 10 busiest US airports.
- * The Waiter holds the customer's spot IN LINE before the security checkpoint.
+ * The Line Holder holds the customer's spot IN LINE before the security checkpoint.
  * No ID or boarding pass required to stand in line — only to pass through.
  */
 

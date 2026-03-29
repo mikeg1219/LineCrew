@@ -17,7 +17,7 @@ export async function requestOverageAction(
 ): Promise<RequestOverageState> {
   const jobId = String(formData.get("jobId") ?? "");
   if (!jobId) {
-    return { error: "Missing job." };
+    return { error: "Missing booking." };
   }
 
   const supabase = await createClient();
@@ -36,11 +36,11 @@ export async function requestOverageAction(
     .maybeSingle();
 
   if (jobErr || !job) {
-    return { error: "Job not found." };
+    return { error: "Booking not found." };
   }
 
   if (job.waiter_id !== user.id) {
-    return { error: "You are not assigned to this job." };
+    return { error: "You are not assigned to this booking." };
   }
 
   const st = job.status as JobStatus;
@@ -52,7 +52,7 @@ export async function requestOverageAction(
 
   const rate = Number(job.overage_rate ?? 10);
   if (Number.isNaN(rate) || rate < 5) {
-    return { error: "This job does not have a valid extra time rate." };
+    return { error: "This booking does not have a valid extra time rate." };
   }
 
   const { count, error: countErr } = await supabase
@@ -66,7 +66,7 @@ export async function requestOverageAction(
   }
   if ((count ?? 0) > 0) {
     return {
-      error: "There is already a pending extra time request for this job.",
+      error: "There is already a pending extra time request for this booking.",
     };
   }
 

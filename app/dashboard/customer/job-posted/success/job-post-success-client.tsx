@@ -47,7 +47,7 @@ export function JobPostSuccessClient() {
       }
       if (!cancelled) {
         setError(
-          "Your payment is processing. Check your customer dashboard in a moment — the job will appear once Stripe confirms."
+          "Your payment is processing. Check your customer dashboard in a moment — the booking will appear once Stripe confirms."
         );
       }
     }
@@ -76,7 +76,7 @@ export function JobPostSuccessClient() {
       <div className="mx-auto mb-6 size-10 animate-pulse rounded-full bg-blue-100" />
       <p className="text-lg font-medium text-slate-900">Confirming payment…</p>
       <p className="mt-2 text-sm text-slate-600">
-        We&apos;re posting your job to the marketplace. This usually takes a few
+        We&apos;re posting your booking to the marketplace. This usually takes a few
         seconds.
       </p>
     </div>

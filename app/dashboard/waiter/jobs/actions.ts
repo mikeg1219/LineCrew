@@ -21,7 +21,7 @@ export async function acceptJobAction(
 ): Promise<JobActionState> {
   const jobId = String(formData.get("jobId") ?? "");
   if (!jobId) {
-    return { error: "Missing job." };
+    return { error: "Missing booking." };
   }
 
   const supabase = await createClient();
@@ -42,13 +42,13 @@ export async function acceptJobAction(
     .maybeSingle();
 
   if (profile?.role !== "waiter") {
-    return { error: "Only waiters can accept jobs." };
+    return { error: "Only Line Holders can accept bookings." };
   }
 
   if (!isWaiterProfileComplete(profile)) {
     return {
       error:
-        "Complete your waiter profile (photo, phone, bio, airports, onboarding, verified email) before accepting jobs. Open Profile to finish.",
+        "Complete your Line Holder profile (photo, phone, bio, airports, onboarding, verified email) before accepting bookings. Open Profile to finish.",
     };
   }
 
@@ -90,7 +90,8 @@ export async function acceptJobAction(
 
   if (!data?.id) {
     return {
-      error: "This job is no longer available — it may have been taken already.",
+      error:
+        "This booking is no longer available — it may have been taken already.",
     };
   }
 
@@ -136,11 +137,11 @@ export async function updateWaiterJobStatusAction(
     .maybeSingle();
 
   if (fetchErr || !job) {
-    return { error: "Job not found." };
+    return { error: "Booking not found." };
   }
 
   if (job.waiter_id !== user.id) {
-    return { error: "You are not assigned to this job." };
+    return { error: "You are not assigned to this booking." };
   }
 
   const current = job.status as JobStatus;
@@ -158,7 +159,7 @@ export async function updateWaiterJobStatusAction(
     if (!waiterProfile?.stripe_account_id) {
       return {
         error:
-          "Set up payouts on your dashboard (Stripe) before you can complete a job.",
+          "Set up payouts on your dashboard (Stripe) before you can complete a booking.",
       };
     }
 
@@ -169,7 +170,7 @@ export async function updateWaiterJobStatusAction(
       .maybeSingle();
 
     if (jobFetchErr || !jobRow?.stripe_payment_intent_id) {
-      return { error: "This job has no payment on file." };
+      return { error: "This booking has no payment on file." };
     }
 
     const completedAt = new Date().toISOString();

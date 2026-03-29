@@ -23,7 +23,7 @@ export async function saveServingAirportsAction(
     .maybeSingle();
 
   if (profile?.role !== "waiter") {
-    return { error: "Only waiters can edit airports." };
+    return { error: "Only Line Holders can edit airports." };
   }
 
   const raw = formData.getAll("airport");

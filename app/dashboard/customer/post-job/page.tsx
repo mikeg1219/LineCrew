@@ -20,7 +20,7 @@ function HowItWorksPanel() {
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="font-medium leading-snug text-slate-900">
-              Waiter goes to your line
+              Line Holder goes to your line
             </p>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
               They head to the airport and your spot in the queue.
@@ -94,24 +94,24 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           ← Back to dashboard
         </Link>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
-          Post a job
+          Book a request
         </h1>
         <p className="text-[15px] leading-relaxed text-slate-600 sm:text-base">
-          Tell Waiters where you need someone in line. You&apos;ll pay upfront
-          when you post; LineCrew holds the payment until the job is completed,
-          then pays your Waiter (minus a 20% platform fee).
+          Tell Line Holders where you need someone in line. You&apos;ll pay upfront
+          when you post; LineCrew holds the payment until the booking is completed,
+          then pays your Line Holder (minus a 20% platform fee).
         </p>
         <p className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3.5 text-sm leading-relaxed text-slate-700 sm:px-5">
           <span className="font-semibold text-slate-900">Cancellation:</span>{" "}
-          free cancellation before a waiter accepts. After a waiter accepts, a{" "}
+          free cancellation before a Line Holder accepts. After a Line Holder accepts, a{" "}
           <span className="font-semibold">$5</span> cancellation fee applies (paid
-          to the waiter); the rest is refunded to you.
+          to the Line Holder); the rest is refunded to you.
         </p>
       </header>
 
       <div className="mb-8 rounded-xl border border-blue-200/90 bg-blue-50/90 px-4 py-3.5 text-center shadow-sm sm:mb-10 sm:px-5 sm:py-4">
         <p className="text-sm font-medium leading-snug text-blue-900">
-          Most jobs are accepted in 3–10 minutes
+          Most bookings are accepted in 3–10 minutes
         </p>
       </div>
 

@@ -13,7 +13,7 @@ const BUTTONS: { label: string; nextStatus: JobStatus }[] = [
   { label: "I'm at the airport", nextStatus: "at_airport" },
   { label: "I'm in line", nextStatus: "in_line" },
   { label: "I'm near the front", nextStatus: "near_front" },
-  { label: "Job complete", nextStatus: "pending_confirmation" },
+  { label: "Booking complete", nextStatus: "pending_confirmation" },
 ];
 
 function isEnabled(current: JobStatus, next: JobStatus): boolean {

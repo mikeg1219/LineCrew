@@ -68,17 +68,17 @@ export default async function BrowseJobsPage() {
           ← Back to dashboard
         </Link>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-          Browse open jobs
+          Browse open bookings
         </h1>
         <p className="mt-2 text-slate-600">
-          Open listings from Customers who need someone in line. Accept a job to
+          Open listings from Customers who need someone in line. Accept a booking to
           see full details and contact the Customer.
         </p>
       </div>
 
       {error != null && (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {"message" in error ? error.message : "Could not load jobs."}
+          {"message" in error ? error.message : "Could not load bookings."}
         </p>
       )}
 
@@ -93,14 +93,14 @@ export default async function BrowseJobsPage() {
             >
               Edit my airports
             </Link>{" "}
-            to see open jobs.
+            to see open bookings.
           </p>
         </div>
       )}
 
       {!error && serving.length > 0 && list.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-          No open jobs at your airports right now. Check back soon.
+          No open bookings at your airports right now. Check back soon.
         </div>
       )}
 

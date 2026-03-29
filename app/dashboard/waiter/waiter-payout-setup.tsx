@@ -23,7 +23,7 @@ export function WaiterPayoutSetup({
       <h2 className="text-lg font-semibold text-slate-900">Payouts</h2>
       <p className="mt-2 text-sm text-slate-600">
         Connect your bank account through Stripe to receive your share when you
-        complete jobs (80% of the listed price; LineCrew keeps a 20% platform
+        complete bookings (80% of the listed price; LineCrew keeps a 20% platform
         fee).
       </p>
       {stripeAccountId ? (
@@ -34,7 +34,7 @@ export function WaiterPayoutSetup({
       ) : (
         <p className="mt-3 text-sm text-amber-800">
           You haven&apos;t connected payouts yet — complete this before marking
-          a job complete.
+          a booking complete.
         </p>
       )}
       <form action={formAction} className="mt-4">

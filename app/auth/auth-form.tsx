@@ -50,11 +50,11 @@ function accessBadgeText(
 ): string {
   if (mode === "signin") {
     if (intent === "customer") return "Sign in · Customer";
-    if (intent === "waiter") return "Sign in · Waiter";
+    if (intent === "waiter") return "Sign in · Line Holder";
     return "Sign in";
   }
   if (!intent && !roleExplicit) return "Create your LineCrew account";
-  return role === "customer" ? "New account · Customer" : "New account · Waiter";
+  return role === "customer" ? "New account · Customer" : "New account · Line Holder";
 }
 
 function heroHeadline(
@@ -68,10 +68,10 @@ function heroHeadline(
     if (!hasIntentLayout && !roleExplicit) return "Create your LineCrew account";
     return role === "customer"
       ? "Create your customer account"
-      : "Create your waiter account";
+      : "Create your Line Holder account";
   }
-  if (intent === "customer") return "Book your line holder";
-  if (intent === "waiter") return "Become a LineCrew waiter";
+  if (intent === "customer") return "Book a Line Holder";
+  if (intent === "waiter") return "Become a Line Holder";
   return "Welcome to LineCrew";
 }
 
@@ -84,17 +84,17 @@ function heroSubtext(
 ): string {
   if (mode === "signup") {
     if (!hasIntentLayout && !roleExplicit) {
-      return "Choose Customer or Waiter, then set a password. We will email you a link to verify before you continue.";
+      return "Choose Customer or Line Holder, then set a password. We will email you a link to verify before you continue.";
     }
     return role === "customer"
-      ? "Post airport line requests and get matched with a verified waiter."
-      : "Accept nearby jobs, wait in line for travelers, and get paid through LineCrew.";
+      ? "Post airport line requests and get matched with a verified Line Holder."
+      : "Accept nearby bookings, wait in line for travelers, and get paid through LineCrew.";
   }
   if (intent === "customer") {
-    return "Sign in or create an account to post a request and get matched with a waiter—often within minutes.";
+    return "Sign in or create an account to post a request and get matched with a Line Holder—often within minutes.";
   }
   if (intent === "waiter") {
-    return "Sign in or create an account to see jobs, accept work, and get notified when travelers need line help.";
+    return "Sign in or create an account to see open bookings, accept work, and get notified when travelers need line help.";
   }
   return "";
 }
@@ -110,7 +110,7 @@ function cardTitle(
 
 function recoveryContextBadge(intent: UserRole | null): string {
   if (intent === "customer") return "Reset password · Customer";
-  if (intent === "waiter") return "Reset password · Waiter";
+  if (intent === "waiter") return "Reset password · Line Holder";
   return "Reset password";
 }
 
@@ -124,13 +124,13 @@ function cardSubtitle(
     return "Use the email and password for your LineCrew account.";
   }
   if (!hasIntentLayout && mode === "signup") {
-    return "Pick Customer or Waiter, then choose a password. We will send a short verification email.";
+    return "Pick Customer or Line Holder, then choose a password. We will send a short verification email.";
   }
   if (isCustomerIntent) {
     return "Most people finish in under a minute. Continue to booking when you are ready.";
   }
   if (isWaiterIntent) {
-    return "Most people finish in under a minute. Continue to waiter setup next.";
+    return "Most people finish in under a minute. Continue to Line Holder setup next.";
   }
   return "Use the same email for sign in and sign up.";
 }
@@ -362,7 +362,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
       return mode === "signup" ? "Create account" : "Continue to booking";
     }
     if (isWaiterIntent) {
-      return mode === "signup" ? "Create account" : "Continue to dashboard";
+      return mode === "signup" ? "Create account" : "Continue to Line Holder dashboard";
     }
     return mode === "signup" ? "Create account" : "Sign in";
   })();
@@ -389,7 +389,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                 <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
                   ✔
                 </span>
-                <span className="min-w-0 flex-1 leading-snug">Verified waiters</span>
+                <span className="min-w-0 flex-1 leading-snug">Verified Line Holders</span>
               </li>
               <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
                 <span className="mt-0.5 shrink-0 text-emerald-400 sm:mt-0" aria-hidden>
@@ -423,7 +423,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   ✔
                 </span>
                 <span className="min-w-0 flex-1 leading-snug">
-                  Nearby airport job alerts
+                  Nearby airport booking alerts
                 </span>
               </li>
               <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
@@ -443,14 +443,14 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </p>
           ) : (
             <p className={heroHighlightClass}>
-              Job volume follows airport demand through the day
+              Booking volume follows airport demand through the day
             </p>
           )}
 
           <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/75 lg:mx-0">
             {heroAudience === "customer"
               ? "Next you\u2019ll add airport, line type, and timing. You won\u2019t pay until you review pricing."
-              : "Next you\u2019ll finish waiter setup so you can accept jobs when travelers need help."}
+              : "Next you\u2019ll finish Line Holder setup so you can accept bookings when travelers need help."}
           </p>
         </div>
       )}
@@ -474,7 +474,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             </p>
             {mode === "signin" && (
               <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                Encrypted sign-in. Same account works for customers and waiters.
+                Encrypted sign-in. Same account works for customers and Line Holders.
               </p>
             )}
           </div>
@@ -576,11 +576,11 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                       }}
                       className="sr-only"
                     />
-                    Waiter
+                    Line Holder
                   </label>
                 </div>
                 <p className="text-xs leading-relaxed text-slate-500">
-                  Customers request line holds; waiters fulfill them at the
+                  Customers request line holds; Line Holders fulfill them at the
                   airport.
                 </p>
               </fieldset>
@@ -677,7 +677,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             )}
             {isWaiterIntent && (
               <div className={postAuthBoxClass}>
-                After sign-in: finish setup, then browse and accept jobs you
+                After sign-in: finish setup, then browse and accept bookings you
                 want.
               </div>
             )}

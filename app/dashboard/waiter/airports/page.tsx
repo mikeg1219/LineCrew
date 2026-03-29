@@ -34,7 +34,7 @@ export default async function WaiterAirportsPage() {
         Airports you serve
       </h1>
       <p className="mt-2 text-slate-600">
-        You&apos;ll only see open jobs at these airports. You can change this
+        You&apos;ll only see open bookings at these airports. You can change this
         anytime.
       </p>
 

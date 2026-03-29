@@ -20,7 +20,7 @@ export function CancelJobButton({ jobId }: { jobId: string }) {
           onClick={() => setOpen(true)}
           className="text-sm font-medium text-red-700 underline-offset-2 hover:underline"
         >
-          Cancel job
+          Cancel booking
         </button>
       ) : (
         <form action={formAction} className="space-y-3 rounded-lg border border-red-200 bg-red-50/50 p-4">

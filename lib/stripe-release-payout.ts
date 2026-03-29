@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 const PLATFORM_FEE = 0.2;
 
 /**
- * Transfer 80% to waiter and mark job completed. Idempotent via payout_transfer_id.
+ * Transfer 80% to Line Holder and mark booking completed. Idempotent via payout_transfer_id.
  * `fromStatus` is the status the job must currently have.
  */
 export async function finalizeJobPayout(
@@ -25,11 +25,11 @@ export async function finalizeJobPayout(
     .maybeSingle();
 
   if (jErr || !job) {
-    return { ok: false, error: "Job not found." };
+    return { ok: false, error: "Booking not found." };
   }
 
   if (job.status !== fromStatus) {
-    return { ok: false, error: "Job is not in the expected status." };
+    return { ok: false, error: "Booking is not in the expected status." };
   }
 
   if (job.payout_transfer_id) {
@@ -37,7 +37,7 @@ export async function finalizeJobPayout(
   }
 
   if (!job.stripe_payment_intent_id || !job.waiter_id) {
-    return { ok: false, error: "Job missing payment or waiter." };
+    return { ok: false, error: "Booking missing payment or Line Holder." };
   }
 
   const { data: profile } = await supabase
@@ -47,7 +47,7 @@ export async function finalizeJobPayout(
     .maybeSingle();
 
   if (!profile?.stripe_account_id) {
-    return { ok: false, error: "Waiter has no Stripe Connect account." };
+    return { ok: false, error: "Line Holder has no Stripe Connect account." };
   }
 
   const offered = Number(job.offered_price);
@@ -80,7 +80,7 @@ export async function finalizeJobPayout(
     if (upErr) {
       return {
         ok: false,
-        error: `Transfer created but job update failed: ${upErr.message}`,
+        error: `Transfer created but booking update failed: ${upErr.message}`,
       };
     }
 

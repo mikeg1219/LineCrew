@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 
       await sendSms(
         profile?.phone ?? null,
-        "Your waiter didn't show up. We're finding you a new one."
+        "Your Line Holder didn't show up. We're finding you a new one."
       );
     }
 

@@ -24,7 +24,7 @@ export async function postJobAction(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be signed in to post a job." };
+    return { error: "You must be signed in to post a booking." };
   }
 
   const { data: profile } = await supabase
@@ -34,7 +34,7 @@ export async function postJobAction(
     .maybeSingle();
 
   if (profile?.role !== "customer") {
-    return { error: "Only customers can post jobs." };
+    return { error: "Only customers can post bookings." };
   }
 
   const airport = String(formData.get("airport") ?? "").trim();
@@ -53,7 +53,7 @@ export async function postJobAction(
     schedule: "Scheduled",
   };
   if (!(urgency_type in urgencyLabels)) {
-    return { error: "Please select when you need your waiter." };
+    return { error: "Please select when you need your Line Holder." };
   }
 
   const lines: string[] = [];
@@ -77,7 +77,7 @@ export async function postJobAction(
   if (!overageAgreed) {
     return {
       error:
-        "You must agree to the extra time rate to post a job.",
+        "You must agree to the extra time rate to post a booking.",
     };
   }
 
@@ -150,7 +150,7 @@ export async function postJobAction(
         price_data: {
           currency: "usd",
           product_data: {
-            name: "LineCrew line service",
+            name: "LineCrew booking",
             description: `${airport} · ${line_type}`,
           },
           unit_amount: Math.round(offered_price * 100),

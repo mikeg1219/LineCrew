@@ -2,9 +2,9 @@ import type { JobStatus } from "@/lib/types/job";
 
 /** Customer dashboard list — friendly wording only; underlying `status` unchanged */
 export const CUSTOMER_DASHBOARD_STATUS_LABELS: Record<JobStatus, string> = {
-  open: "Waiting for waiter",
-  accepted: "Waiter on the way",
-  at_airport: "Waiter on the way",
+  open: "Waiting for a Line Holder",
+  accepted: "Line Holder on the way",
+  at_airport: "Line Holder on the way",
   in_line: "In line now",
   near_front: "Ready for handoff",
   pending_confirmation: "Awaiting your confirmation",
@@ -14,13 +14,13 @@ export const CUSTOMER_DASHBOARD_STATUS_LABELS: Record<JobStatus, string> = {
   refunded: "Refunded",
 };
 
-/** Human-readable labels for customers and waiters */
+/** Human-readable labels for customers and Line Holders */
 export const JOB_STATUS_LABELS: Record<JobStatus, string> = {
-  open: "Open — looking for a Waiter",
-  accepted: "Waiter accepted",
-  at_airport: "Waiter at the airport",
-  in_line: "Waiter in line",
-  near_front: "Waiter near the front",
+  open: "Open — looking for a Line Holder",
+  accepted: "Line Holder accepted",
+  at_airport: "Line Holder at the airport",
+  in_line: "Line Holder in line",
+  near_front: "Line Holder near the front",
   pending_confirmation: "Awaiting your confirmation",
   completed: "Completed",
   cancelled: "Cancelled",

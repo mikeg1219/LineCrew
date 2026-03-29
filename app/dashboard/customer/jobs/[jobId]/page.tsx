@@ -95,7 +95,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
       </Link>
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Track your job</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Track your booking</h1>
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <span
@@ -200,12 +200,12 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           </div>
           <div>
             <dt className="text-xs font-medium uppercase text-slate-500">
-              Waiter contact
+              Line Holder contact
             </dt>
             <dd className="mt-1 font-medium text-slate-900">
               {hasWaiter && job.waiter_email
                 ? job.waiter_email
-                : "We’ll show your Waiter’s email here once someone accepts."}
+                : "We’ll show your Line Holder’s email here once someone accepts."}
             </dd>
           </div>
         </dl>
