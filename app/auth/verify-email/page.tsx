@@ -1,6 +1,8 @@
 import { VerifyEmailClient } from "@/app/auth/verify-email/verify-email-client";
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import { verifyEmailTokenFromLink } from "@/lib/email-verification-service";
+import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -37,6 +39,21 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
     redirect(
       `/auth/verify-email?error=${encodeURIComponent(result.reason)}${intentQ}&pending=1${emailQ}`
     );
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("email_verified_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (isEmailVerifiedForApp(profile, user)) {
+      redirect("/dashboard");
+    }
   }
 
   return (

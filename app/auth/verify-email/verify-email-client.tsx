@@ -13,6 +13,15 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useActionState, useEffect, useState } from "react";
 
+function decodeEmailParamFromSearch(q: string | null): string {
+  if (!q) return "";
+  try {
+    return decodeURIComponent(q);
+  } catch {
+    return q;
+  }
+}
+
 const inputClass =
   "w-full min-h-[44px] rounded-lg border border-slate-200 px-3 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-600/20 transition focus:border-blue-600 focus:ring-4 sm:min-h-0 sm:text-sm touch-manipulation";
 
@@ -38,11 +47,16 @@ export function VerifyEmailClient() {
   const supabase = createClient();
 
   const initialError = searchParams.get("error") ?? undefined;
+  const pending = searchParams.get("pending") === "1";
   const sendFailed = searchParams.get("send_failed") === "1";
   const intent = parseAuthIntent(searchParams.get("intent"));
   const role: UserRole = intent ?? "customer";
 
-  const [email, setEmail] = useState("");
+  const emailFromQuery = decodeEmailParamFromSearch(
+    searchParams.get("email")
+  );
+
+  const [emailOverride, setEmailOverride] = useState("");
   const [editEmail, setEditEmail] = useState(false);
 
   const [resendState, resendAction, resendPending] = useActionState(
@@ -55,23 +69,19 @@ export function VerifyEmailClient() {
   );
 
   useEffect(() => {
-    const q = searchParams.get("email");
-    if (q) {
-      try {
-        setEmail(decodeURIComponent(q));
-      } catch {
-        setEmail(q);
-      }
-      setEditEmail(false);
-      return;
-    }
+    if (emailFromQuery) return;
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) {
-        setEmail(user.email);
+        setEmailOverride(user.email);
         setEditEmail(false);
       }
     });
-  }, [searchParams, supabase]);
+  }, [emailFromQuery, supabase]);
+
+  const email =
+    emailFromQuery && !editEmail ? emailFromQuery : emailOverride;
+
+  const setEmail = setEmailOverride;
 
   useEffect(() => {
     if (codeState && "success" in codeState && codeState.success) {
@@ -89,9 +99,10 @@ export function VerifyEmailClient() {
         ? "We could not complete verification. Try resend or enter your code below."
         : null;
 
-  const sendFailedMessage = sendFailed
-    ? "We couldn't send the verification email just now. Use Resend below to try again."
-    : null;
+  const sendFailedMessage =
+    sendFailed && pending
+      ? "We couldn't send the verification email just now. Use Resend below to try again."
+      : null;
 
   const trimmed = email.trim();
   const lockedEmail = Boolean(trimmed) && !editEmail;
@@ -145,7 +156,12 @@ export function VerifyEmailClient() {
           </span>
           <button
             type="button"
-            onClick={() => setEditEmail(true)}
+            onClick={() => {
+              setEditEmail(true);
+              if (emailFromQuery) {
+                setEmailOverride(emailFromQuery);
+              }
+            }}
             className="-m-2 inline-flex min-h-[44px] shrink-0 items-center self-start rounded-md px-2 py-2 text-left text-sm font-medium text-blue-700 underline decoration-blue-700/30 underline-offset-2 hover:text-blue-800 sm:m-0 sm:self-auto"
           >
             Use a different email

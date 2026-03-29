@@ -1,5 +1,6 @@
 "use server";
 
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmailVerificationForNewUser } from "@/lib/email-verification-service";
 import type { UserRole } from "@/lib/types";
@@ -118,7 +119,8 @@ export async function authAction(
   revalidatePath("/", "layout");
 
   const uid = signInData.user?.id;
-  if (uid) {
+  const sessionUser = signInData.user;
+  if (uid && sessionUser) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("email_verified_at")
@@ -128,7 +130,7 @@ export async function authAction(
     if (
       !profileError &&
       profile &&
-      !profile.email_verified_at
+      !isEmailVerifiedForApp(profile, sessionUser)
     ) {
       redirect(
         `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}`

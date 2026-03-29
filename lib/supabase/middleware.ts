@@ -1,3 +1,4 @@
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/constants";
 import { NextResponse, type NextRequest } from "next/server";
@@ -56,7 +57,11 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!profileError && profile && !profile.email_verified_at) {
+    if (
+      !profileError &&
+      profile &&
+      !isEmailVerifiedForApp(profile, user)
+    ) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
@@ -74,7 +79,16 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!authProfileError && authProfile && !authProfile.email_verified_at) {
+    const needsVerify =
+      !authProfileError &&
+      authProfile &&
+      !isEmailVerifiedForApp(authProfile, user);
+
+    if (needsVerify) {
+      const pathname = request.nextUrl.pathname;
+      if (pathname === "/auth" || pathname === "/auth/") {
+        return supabaseResponse;
+      }
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
