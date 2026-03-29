@@ -27,8 +27,8 @@ export function TerminalSelect({ airportCode }: Props) {
         {disabled ? "Select airport first" : "Select terminal"}
       </option>
       {terminals.map((t) => (
-        <option key={t} value={t}>
-          {t}
+        <option key={t.value} value={t.value}>
+         {t.label}
         </option>
       ))}
     </select>
