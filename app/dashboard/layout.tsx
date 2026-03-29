@@ -1,4 +1,5 @@
 import { AuthenticatedAppHeader } from "@/components/authenticated-app-header";
+import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfileForUser } from "@/lib/ensure-profile";
 import { redirect } from "next/navigation";
@@ -25,16 +26,19 @@ export default async function DashboardLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, first_name, full_name, avatar_url")
+    .select("role, first_name, full_name, avatar_url, updated_at")
     .eq("id", user.id)
     .maybeSingle();
 
   let avatarPublic: string | null = null;
   if (profile?.avatar_url) {
     const { data: pub } = supabase.storage
-      .from("avatars")
+      .from(AVATAR_STORAGE_BUCKET)
       .getPublicUrl(profile.avatar_url);
-    avatarPublic = pub.publicUrl;
+    avatarPublic = avatarPublicUrlWithBust(
+      pub.publicUrl,
+      profile.updated_at ?? null
+    );
   }
 
   const displayName =

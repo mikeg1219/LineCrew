@@ -9,7 +9,34 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+  AVATAR_MAX_FILE_BYTES,
+  AVATAR_STORAGE_BUCKET,
+  avatarPublicUrlWithBust,
+  userAvatarObjectPath,
+  validateAvatarFile,
+} from "@/lib/avatar-storage";
+
+export type ProfileHeroFallback = {
+  display: string;
+  email: string | null;
+  roleLabel: string;
+  initial: string;
+  avatarUrl: string | null;
+};
+
 const AVATAR_BUCKET = "avatars";
+
+function logProfileError(context: string, err: unknown) {
+  if (process.env.NODE_ENV === "development") {
+    console.error(`[profile] ${context}`, err);
+  }
+}
+
+const SAVE_FAILED_MSG =
+  "We couldn't save your profile changes. Please try again.";
+const AVATAR_UPLOAD_FAILED_MSG =
+  "We couldn't upload your photo. Please try again.";
 
 const inputClass =
   "min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:min-h-0 sm:text-sm";
@@ -24,15 +51,83 @@ const sectionTitle = "text-base font-semibold tracking-tight text-slate-900";
 
 const sectionDesc = "mt-1.5 text-sm leading-relaxed text-slate-600";
 
+function ProfileHeroCard({
+  photoSrc,
+  initial,
+  display,
+  email,
+  roleBadge,
+  busy,
+}: {
+  photoSrc: string | null;
+  initial: string;
+  display: string;
+  email: string | null;
+  roleBadge: string;
+  busy?: boolean;
+}) {
+  return (
+    <section
+      className="relative mb-10 overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/90 to-blue-50/40 p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-10"
+      aria-busy={busy}
+    >
+      <div
+        className="pointer-events-none absolute -right-16 -top-20 size-56 rounded-full bg-blue-400/15 blur-3xl"
+        aria-hidden
+      />
+      <div
+        className="pointer-events-none absolute -bottom-12 -left-12 size-48 rounded-full bg-indigo-400/10 blur-3xl"
+        aria-hidden
+      />
+      <div className="relative flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:text-left">
+        <div className="relative shrink-0">
+          <span
+            className="absolute -inset-1 rounded-full bg-gradient-to-br from-blue-500/25 via-transparent to-indigo-500/20 blur-md"
+            aria-hidden
+          />
+          {photoSrc ? (
+            <img
+              src={photoSrc}
+              alt=""
+              className="relative size-28 rounded-full object-cover shadow-xl ring-4 ring-white sm:size-32"
+            />
+          ) : (
+            <div className="relative flex size-28 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 text-3xl font-bold text-white shadow-xl ring-4 ring-white sm:size-32 sm:text-4xl">
+              {initial}
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+            {display}
+          </p>
+          {email ? (
+            <p className="mt-2 truncate text-sm text-slate-600">{email}</p>
+          ) : null}
+          <p className="mt-4 flex justify-center sm:justify-start">
+            <span className="inline-flex rounded-full bg-white/90 px-3.5 py-1.5 text-xs font-semibold text-blue-900 shadow-sm ring-1 ring-blue-200/80">
+              {roleBadge}
+            </span>
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function ProfileSettingsForm({
   compactAvatar = false,
+  heroFallback,
 }: {
   /** When true, avatar upload is a compact row (use when a hero shows the photo). */
   compactAvatar?: boolean;
+  /** Server snapshot for hero before client profile load (dashboard profile page). */
+  heroFallback?: ProfileHeroFallback;
 } = {}) {
   const supabase = createClient();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewBlobRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -42,6 +137,7 @@ export function ProfileSettingsForm({
   const [role, setRole] = useState<UserRole | null>(null);
   const [avatarPublicUrl, setAvatarPublicUrl] = useState<string | null>(null);
   const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(null);
+  const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
 
   const [firstName, setFirstName] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -49,7 +145,6 @@ export function ProfileSettingsForm({
 
   const [preferredAirport, setPreferredAirport] = useState("");
   const [travelerNotes, setTravelerNotes] = useState("");
-  const [contactPreference, setContactPreference] = useState("");
 
   const [bio, setBio] = useState("");
   const [homeAirport, setHomeAirport] = useState("");
@@ -92,7 +187,6 @@ export function ProfileSettingsForm({
         setPhone(p.phone ?? "");
         setPreferredAirport(p.preferred_airport ?? "");
         setTravelerNotes(p.traveler_notes ?? "");
-        setContactPreference(p.contact_preference ?? "");
         setBio(p.bio ?? "");
         setHomeAirport(p.home_airport ?? "");
         setServingAirportsText((p.serving_airports ?? []).join(", "));
@@ -104,9 +198,11 @@ export function ProfileSettingsForm({
         setAvatarStoragePath(path);
         if (path) {
           const { data: pub } = supabase.storage
-            .from(AVATAR_BUCKET)
+            .from(AVATAR_STORAGE_BUCKET)
             .getPublicUrl(path);
-          setAvatarPublicUrl(pub.publicUrl);
+          setAvatarPublicUrl(
+            avatarPublicUrlWithBust(pub.publicUrl, p.updated_at ?? null)
+          );
         } else {
           setAvatarPublicUrl(null);
         }
@@ -120,30 +216,54 @@ export function ProfileSettingsForm({
     load();
   }, [load]);
 
+  useEffect(() => {
+    return () => {
+      if (previewBlobRef.current) {
+        URL.revokeObjectURL(previewBlobRef.current);
+        previewBlobRef.current = null;
+      }
+    };
+  }, []);
+
+  function clearPreviewBlob() {
+    if (previewBlobRef.current) {
+      URL.revokeObjectURL(previewBlobRef.current);
+      previewBlobRef.current = null;
+    }
+    setPreviewObjectUrl(null);
+  }
+
   async function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    if (!file.type.startsWith("image/")) {
-      setMessage("Please choose an image file.");
+
+    const check = validateAvatarFile(file);
+    if (!check.ok) {
+      setMessage(check.message);
+      e.target.value = "";
       return;
     }
+
+    clearPreviewBlob();
+    const localUrl = URL.createObjectURL(file);
+    previewBlobRef.current = localUrl;
+    setPreviewObjectUrl(localUrl);
     setUploading(true);
     setMessage("");
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const safeExt = ["jpg", "jpeg", "png", "webp", "gif"].includes(ext)
-      ? ext
-      : "jpg";
-    const path = `${userId}/avatar.${safeExt}`;
+    const path = userAvatarObjectPath(userId, file.type);
     const { error: upErr } = await supabase.storage
-      .from(AVATAR_BUCKET)
+      .from(AVATAR_STORAGE_BUCKET)
       .upload(path, file, { upsert: true, contentType: file.type });
 
     if (upErr) {
       setUploading(false);
+      clearPreviewBlob();
+      logProfileError("avatar upload", upErr);
+      const raw = upErr.message ?? "";
       setMessage(
-        upErr.message.includes("Bucket not found") || upErr.message.includes("not found")
+        raw.includes("Bucket not found") || raw.includes("not found")
           ? "Photo storage is not set up yet. Ask your admin to create the avatars bucket in Supabase."
-          : upErr.message
+          : AVATAR_UPLOAD_FAILED_MSG
       );
       e.target.value = "";
       return;
@@ -156,7 +276,9 @@ export function ProfileSettingsForm({
 
     if (dbErr) {
       setUploading(false);
-      setMessage(dbErr.message);
+      clearPreviewBlob();
+      logProfileError("avatar db update", dbErr);
+      setMessage(AVATAR_UPLOAD_FAILED_MSG);
       e.target.value = "";
       return;
     }
@@ -175,9 +297,12 @@ export function ProfileSettingsForm({
         .eq("id", userId);
     }
 
+    clearPreviewBlob();
     setAvatarStoragePath(path);
-    const { data } = supabase.storage.from(AVATAR_BUCKET).getPublicUrl(path);
-    setAvatarPublicUrl(data.publicUrl);
+    const { data } = supabase.storage
+      .from(AVATAR_STORAGE_BUCKET)
+      .getPublicUrl(path);
+    setAvatarPublicUrl(avatarPublicUrlWithBust(data.publicUrl, Date.now()));
     setUploading(false);
     e.target.value = "";
     setMessage("__avatar_saved__");
@@ -211,7 +336,6 @@ export function ProfileSettingsForm({
     if (role === "customer") {
       base.preferred_airport = preferredAirport.trim() || null;
       base.traveler_notes = travelerNotes.trim() || null;
-      base.contact_preference = contactPreference.trim() || null;
     }
 
     if (role === "waiter") {
@@ -236,7 +360,8 @@ export function ProfileSettingsForm({
     const { error } = await supabase.from("profiles").update(base).eq("id", user.id);
 
     if (error) {
-      setMessage(error.message);
+      logProfileError("profile save", error);
+      setMessage(SAVE_FAILED_MSG);
       setSaving(false);
       return;
     }
@@ -247,9 +372,25 @@ export function ProfileSettingsForm({
     router.refresh();
   }
 
-  if (loading) {
+  if (loading && !heroFallback) {
     return (
       <p className="text-center text-sm text-slate-500">Loading profile…</p>
+    );
+  }
+
+  if (loading && heroFallback) {
+    return (
+      <div className="space-y-6">
+        <ProfileHeroCard
+          photoSrc={heroFallback.avatarUrl}
+          initial={heroFallback.initial}
+          display={heroFallback.display}
+          email={heroFallback.email}
+          roleBadge={heroFallback.roleLabel}
+          busy
+        />
+        <p className="text-center text-sm text-slate-500">Loading profile…</p>
+      </div>
     );
   }
 
@@ -266,8 +407,52 @@ export function ProfileSettingsForm({
     .filter(Boolean);
   const servingCodesUnique = [...new Set(servingCodesParsed)];
 
+  const avatarInitial = (
+    displayName.trim() || firstName.trim() || userEmail?.[0] || "?"
+  )
+    .toString()
+    .charAt(0)
+    .toUpperCase();
+
+  const accountIntro =
+    role === "customer"
+      ? "Your email stays read-only. First name, display name, phone, and photo shape how travelers and Line Holders see you."
+      : "Your email stays read-only. First name, display name, phone, and photo shape your Line Holder profile.";
+
+  const heroPhotoSrc =
+    previewObjectUrl || avatarPublicUrl || heroFallback?.avatarUrl || null;
+  const heroHeading =
+    displayName.trim() ||
+    firstName.trim() ||
+    userEmail?.split("@")[0] ||
+    heroFallback?.display ||
+    "Account";
+  const heroEmailLine = userEmail ?? heroFallback?.email ?? null;
+  const heroBadge =
+    role === "waiter"
+      ? "Line Holder"
+      : role === "customer"
+        ? "Customer"
+        : heroFallback?.roleLabel ?? "Account";
+  const heroInitialChar = (
+    heroHeading.slice(0, 1) ||
+    heroFallback?.initial ||
+    "?"
+  ).toUpperCase();
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-10">
+      {compactAvatar ? (
+        <ProfileHeroCard
+          photoSrc={heroPhotoSrc}
+          initial={heroInitialChar}
+          display={heroHeading}
+          email={heroEmailLine}
+          roleBadge={heroBadge}
+          busy={uploading}
+        />
+      ) : null}
+
       <p>
         <Link
           href={dashboardHref}
@@ -299,15 +484,137 @@ export function ProfileSettingsForm({
         />
       )}
 
-      <section className={sectionShell}>
+      <section className={sectionShell} aria-labelledby="section-account">
         <div className="border-b border-slate-100 pb-5">
-          <h2 className={sectionTitle}>Basic info</h2>
-          <p className={sectionDesc}>
-            How you appear to others and how we reach you.
-          </p>
+          <h2 id="section-account" className={sectionTitle}>
+            Account
+          </h2>
+          <p className={sectionDesc}>{accountIntro}</p>
         </div>
 
         <div className="mt-6 space-y-6">
+          <div>
+            <span className={labelClass}>Profile photo</span>
+            {compactAvatar ? (
+              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+                <div className="flex shrink-0 items-start gap-4">
+                  <div className="relative shrink-0">
+                    {heroPhotoSrc ? (
+                      <img
+                        src={heroPhotoSrc}
+                        alt="Your profile photo"
+                        className="h-20 w-20 rounded-full border-2 border-slate-200/90 object-cover shadow-md ring-2 ring-white sm:h-[72px] sm:w-[72px]"
+                      />
+                    ) : (
+                      <div
+                        className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 text-xl font-semibold text-slate-600 shadow-inner sm:h-[72px] sm:w-[72px] sm:text-2xl"
+                        aria-hidden
+                      >
+                        {avatarInitial}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={handleAvatarFile}
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    aria-busy={uploading}
+                    onClick={() => fileRef.current?.click()}
+                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
+                  >
+                    {uploading
+                      ? "Uploading…"
+                      : avatarStoragePath
+                        ? "Change photo"
+                        : "Upload photo"}
+                  </button>
+                  {uploading ? (
+                    <p
+                      className="text-xs font-medium text-blue-800 sm:text-sm"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Finishing upload—preview updates when this completes.
+                    </p>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
+                      JPG, PNG, WebP, or GIF, max{" "}
+                      {Math.round(AVATAR_MAX_FILE_BYTES / (1024 * 1024))} MB.
+                      You&apos;ll see your selection right away; when upload
+                      finishes, your photo is saved. Use Save changes for your
+                      name and other profile fields.
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
+                <div className="relative shrink-0">
+                  {heroPhotoSrc ? (
+                    <img
+                      src={heroPhotoSrc}
+                      alt="Your profile photo"
+                      className="h-28 w-28 rounded-full border-2 border-slate-200/90 object-cover shadow-md sm:h-24 sm:w-24"
+                    />
+                  ) : (
+                    <div
+                      className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 text-2xl font-semibold text-slate-600 shadow-inner sm:h-24 sm:w-24"
+                      aria-hidden
+                    >
+                      {avatarInitial}
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="sr-only"
+                    onChange={handleAvatarFile}
+                  />
+                  <button
+                    type="button"
+                    disabled={uploading}
+                    aria-busy={uploading}
+                    onClick={() => fileRef.current?.click()}
+                    className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    {uploading
+                      ? "Uploading…"
+                      : avatarStoragePath
+                        ? "Change photo"
+                        : "Upload photo"}
+                  </button>
+                  {uploading ? (
+                    <p
+                      className="text-xs font-medium text-blue-800 sm:text-sm"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      Finishing upload—preview updates when this completes.
+                    </p>
+                  ) : (
+                    <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
+                      JPG, PNG, WebP, or GIF, max{" "}
+                      {Math.round(AVATAR_MAX_FILE_BYTES / (1024 * 1024))} MB.
+                      Instant preview while uploading; when upload finishes, your
+                      photo is saved. Use Save changes for name and other fields.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <label htmlFor="first_name" className={labelClass}>
               First name
@@ -318,30 +625,40 @@ export function ProfileSettingsForm({
               onChange={(e) => setFirstName(e.target.value)}
               autoComplete="given-name"
               className={inputClass}
-              placeholder="First name"
+              placeholder="Legal or preferred first name"
             />
           </div>
           <div>
             <label htmlFor="display_name" className={labelClass}>
               Display name
             </label>
+            <p className="mb-1.5 text-xs text-slate-500 sm:text-[13px]">
+              Shown on bookings and to Line Holders—separate from your first
+              name.
+            </p>
             <input
               id="display_name"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               autoComplete="nickname"
               className={inputClass}
-              placeholder="Name shown in the app"
+              placeholder="How you want to appear"
             />
           </div>
           <div>
             <label htmlFor="email_ro" className={labelClass}>
               Email
             </label>
+            <p className="mb-1.5 text-xs text-slate-500 sm:text-[13px]">
+              Read-only. Contact support if you need to change your sign-in
+              email.
+            </p>
             <input
               id="email_ro"
               value={userEmail ?? ""}
               disabled
+              readOnly
+              autoComplete="email"
               className={`${inputClass} bg-slate-50 text-slate-600`}
             />
           </div>
@@ -358,88 +675,18 @@ export function ProfileSettingsForm({
               placeholder="+1 …"
             />
           </div>
-          <div>
-            <span className={labelClass}>Profile photo</span>
-            {compactAvatar ? (
-              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="sr-only"
-                  onChange={handleAvatarFile}
-                />
-                <button
-                  type="button"
-                  disabled={uploading}
-                  onClick={() => fileRef.current?.click()}
-                  className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
-                >
-                  {uploading ? "Uploading…" : avatarStoragePath ? "Change photo" : "Upload photo"}
-                </button>
-                <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
-                  JPG, PNG, WebP, or GIF. Updates the preview above after save.
-                </p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
-                <div className="relative shrink-0">
-                  {avatarPublicUrl ? (
-                    <img
-                      src={avatarPublicUrl}
-                      alt=""
-                      className="h-28 w-28 rounded-full border-2 border-slate-200/90 object-cover shadow-md sm:h-24 sm:w-24"
-                    />
-                  ) : (
-                    <div
-                      className="flex h-28 w-28 items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 text-2xl font-semibold text-slate-600 shadow-inner sm:h-24 sm:w-24"
-                      aria-hidden
-                    >
-                      {(displayName.trim() || firstName.trim() || userEmail?.[0] || "?")
-                        .toString()
-                        .charAt(0)
-                        .toUpperCase()}
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1 space-y-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="sr-only"
-                    onChange={handleAvatarFile}
-                  />
-                  <button
-                    type="button"
-                    disabled={uploading}
-                    onClick={() => fileRef.current?.click()}
-                    className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    {uploading ? "Uploading…" : avatarStoragePath ? "Change photo" : "Upload photo"}
-                  </button>
-                  <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
-                    JPG, PNG, WebP, or GIF up to 5 MB. Stored securely in your
-                    account folder.
-                  </p>
-                  {avatarStoragePath && (
-                    <p className="truncate text-xs text-slate-400" title={avatarStoragePath}>
-                      {avatarStoragePath}
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </section>
 
       {role === "customer" && (
-        <section className={sectionShell}>
+        <section className={sectionShell} aria-labelledby="section-traveler">
           <div className="border-b border-slate-100 pb-5">
-            <h2 className={sectionTitle}>Traveler</h2>
+            <h2 id="section-traveler" className={sectionTitle}>
+              Traveler preferences
+            </h2>
             <p className={sectionDesc}>
-              Preferences for booking and line requests.
+              Optional defaults for line requests and bookings. You can change
+              details per booking when you post a job.
             </p>
           </div>
           <div className="mt-6 space-y-6">
@@ -468,30 +715,14 @@ export function ProfileSettingsForm({
                 placeholder="Accessibility, timing, or other context"
               />
             </div>
-            <div>
-              <label htmlFor="contact_preference" className={labelClass}>
-                Contact preference
-              </label>
-              <select
-                id="contact_preference"
-                value={contactPreference}
-                onChange={(e) => setContactPreference(e.target.value)}
-                className={inputClass}
-              >
-                <option value="">No preference</option>
-                <option value="email">Email</option>
-                <option value="sms">SMS</option>
-                <option value="both">Email and SMS</option>
-              </select>
-            </div>
           </div>
         </section>
       )}
 
       {role === "waiter" && (
-        <section className={sectionShell}>
+        <section className={sectionShell} aria-labelledby="section-waiter">
           <div className="border-b border-slate-100 pb-5">
-            <h2 className={sectionTitle}>Line Holder</h2>
+            <h2 id="section-waiter" className={sectionTitle}>Line Holder</h2>
             <p className={sectionDesc}>
               Airport coverage and availability for bookings.
             </p>
@@ -547,32 +778,44 @@ export function ProfileSettingsForm({
         </section>
       )}
 
-      <div className="flex flex-col gap-4 pt-2 sm:items-end">
-        {message && (
-          <p
-            className={`w-full rounded-xl px-4 py-3 text-sm sm:max-w-md ${
-              message === "__saved__" || message === "__avatar_saved__"
-                ? "border border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
-                : "border border-red-200/80 bg-red-50/90 text-red-800"
-            }`}
-            role="status"
-          >
-            {message === "__saved__"
-              ? "Profile saved."
-              : message === "__avatar_saved__"
-                ? "Photo updated."
-                : message}
+      <section className={sectionShell} aria-labelledby="section-save">
+        <div className="border-b border-slate-100 pb-5">
+          <h2 id="section-save" className={sectionTitle}>
+            Save changes
+          </h2>
+          <p className={sectionDesc}>
+            {role === "customer"
+              ? "Saves your account details and traveler preferences. Photos save separately when you upload."
+              : "Saves your account details and Line Holder settings. Photos save separately when you upload."}
           </p>
-        )}
+        </div>
+        <div className="mt-6 flex flex-col gap-4 sm:items-end">
+          {message && (
+            <p
+              className={`w-full rounded-xl px-4 py-3 text-sm sm:max-w-md ${
+                message === "__saved__" || message === "__avatar_saved__"
+                  ? "border border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
+                  : "border border-red-200/80 bg-red-50/90 text-red-800"
+              }`}
+              role="status"
+            >
+              {message === "__saved__"
+                ? "Profile saved."
+                : message === "__avatar_saved__"
+                  ? "Photo updated."
+                  : message}
+            </p>
+          )}
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
-      </div>
+          <button
+            type="submit"
+            disabled={saving}
+            className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
+      </section>
     </form>
   );
 }
