@@ -17,6 +17,7 @@ import {
 } from "@/lib/customer-tracking";
 import { getCustomerStickyActions } from "@/lib/handoff-guidance";
 import { CUSTOMER_TRACKING_PAGE_LABELS, statusBadgeClass } from "@/lib/job-status";
+import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import type { OverageRequest } from "@/lib/types/overage";
@@ -139,7 +140,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
   if (job.waiter_id) {
     const { data: wp } = await supabase
       .from("profiles")
-      .select("first_name, full_name, avatar_url, bio")
+      .select("full_name, display_name, avatar_url, bio")
       .eq("id", job.waiter_id)
       .maybeSingle();
 
@@ -150,9 +151,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
       waiterAvatarPublic = pub.publicUrl;
     }
     waiterDisplayName =
-      wp?.first_name?.trim() ||
-      wp?.full_name?.trim() ||
-      (job.waiter_email ? job.waiter_email.split("@")[0] : "Line Holder");
+      profileResolvedLabel(wp ?? null, job.waiter_email) || "Line Holder";
     waiterBio = wp?.bio?.trim() ? truncate(wp.bio.trim(), 220) : null;
   }
 

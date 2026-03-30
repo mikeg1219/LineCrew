@@ -22,7 +22,7 @@ export default async function DashboardProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, first_name, full_name, display_name, avatar_url, updated_at")
+    .select("role, full_name, display_name, avatar_url, updated_at")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -40,7 +40,6 @@ export default async function DashboardProfilePage() {
   const display =
     profile?.display_name?.trim() ||
     profile?.full_name?.trim() ||
-    profile?.first_name?.trim() ||
     user.email?.split("@")[0] ||
     "Account";
 

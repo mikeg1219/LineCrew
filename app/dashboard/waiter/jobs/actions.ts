@@ -36,7 +36,7 @@ export async function acceptJobAction(
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
+      "role, full_name, display_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();

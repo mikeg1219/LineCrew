@@ -10,8 +10,11 @@ export function isCustomerProfileComplete(
   p: CustomerProfileBannerRow
 ): boolean {
   if (p.profile_completed === true) return true;
-  const display = (p.display_name ?? p.full_name ?? "").trim();
-  return Boolean(
-    p.first_name?.trim() && display.length > 0 && p.phone?.trim()
-  );
+  const display = (
+    p.display_name ??
+    p.full_name ??
+    p.first_name ??
+    ""
+  ).trim();
+  return Boolean(display.length > 0 && p.phone?.trim());
 }

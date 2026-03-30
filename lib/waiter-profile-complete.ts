@@ -1,9 +1,12 @@
 import type { User } from "@supabase/supabase-js";
 
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
+import {
+  profileHasResolvableName,
+  type ProfileNameFields,
+} from "@/lib/profile-display-name";
 
-export type WaiterProfileGateRow = {
-  first_name?: string | null;
+export type WaiterProfileGateRow = ProfileNameFields & {
   avatar_url?: string | null;
   phone?: string | null;
   bio?: string | null;
@@ -20,7 +23,7 @@ export type WaiterAcceptGateRow = WaiterProfileGateRow & {
 export function waiterCoreFieldsComplete(p: WaiterProfileGateRow): boolean {
   const airports = p.serving_airports?.filter(Boolean) ?? [];
   return (
-    Boolean(p.first_name?.trim()) &&
+    profileHasResolvableName(p) &&
     Boolean(p.avatar_url?.trim()) &&
     Boolean(p.phone?.trim()) &&
     Boolean(p.bio?.trim()) &&
@@ -33,7 +36,7 @@ export function waiterProfileBasicsAndOnboardingComplete(
   p: WaiterProfileGateRow
 ): boolean {
   return (
-    Boolean(p.first_name?.trim()) &&
+    profileHasResolvableName(p) &&
     Boolean(p.avatar_url?.trim()) &&
     Boolean(p.phone?.trim()) &&
     Boolean(p.bio?.trim()) &&
@@ -90,7 +93,7 @@ export function waiterAcceptSetupShortfallMessage(
     return "Verify your email before accepting bookings.";
   }
   if (
-    !String(p.first_name ?? "").trim() ||
+    !profileHasResolvableName(p) ||
     !String(p.avatar_url ?? "").trim() ||
     !String(p.phone ?? "").trim() ||
     !String(p.bio ?? "").trim()

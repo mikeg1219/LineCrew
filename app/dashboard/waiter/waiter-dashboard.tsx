@@ -1,6 +1,10 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
+import {
+  profileResolvedLabel,
+  profileWelcomeFirstName,
+} from "@/lib/profile-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
@@ -18,7 +22,7 @@ export default async function WaiterDashboardPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, stripe_account_id, serving_airports, avatar_url, full_name")
+    .select("role, stripe_account_id, serving_airports, avatar_url, full_name, display_name")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -61,11 +65,15 @@ export default async function WaiterDashboardPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9fa", paddingTop: "60px", paddingBottom: "80px" }}>
-      <NavBar role="waiter" avatarUrl={avatarUrl} fullName={profile.full_name} />
+      <NavBar
+        role="waiter"
+        avatarUrl={avatarUrl}
+        fullName={profileResolvedLabel(profile, user.email)}
+      />
 
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Welcome back{profile.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}!
+          Welcome back, {profileWelcomeFirstName(profile, user.email)}!
         </h1>
         <p className="mt-2 text-lg text-slate-600">
           Signed in as <span className="font-medium text-slate-900">{user.email}</span>

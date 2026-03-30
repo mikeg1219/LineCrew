@@ -11,6 +11,7 @@ import { parseBookingDescription } from "@/lib/customer-tracking";
 import { getLineHolderStickyActions } from "@/lib/handoff-guidance";
 import { buildProviderTimelineEvents } from "@/lib/provider-booking";
 import { PROVIDER_LINE_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
+import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import {
@@ -48,7 +49,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
+      "role, full_name, display_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -105,7 +106,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   if (isAssigned) {
     const { data: cust } = await supabase
       .from("profiles")
-      .select("first_name, full_name, avatar_url")
+      .select("full_name, display_name, avatar_url")
       .eq("id", job.customer_id)
       .maybeSingle();
 
@@ -116,9 +117,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
       customerAvatarPublic = pub.publicUrl;
     }
     customerDisplayName =
-      cust?.first_name?.trim() ||
-      cust?.full_name?.trim() ||
-      (job.customer_email ? job.customer_email.split("@")[0] : "Customer");
+      profileResolvedLabel(cust ?? null, job.customer_email) || "Customer";
   }
 
   const timelineEvents = buildProviderTimelineEvents(job);

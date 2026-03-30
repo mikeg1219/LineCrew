@@ -41,7 +41,7 @@ export default async function WaiterDashboardPage() {
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
-      "role, stripe_account_id, serving_airports, email_verified_at, first_name, avatar_url, phone, bio, onboarding_completed"
+      "role, stripe_account_id, serving_airports, email_verified_at, full_name, display_name, avatar_url, phone, bio, onboarding_completed"
     )
     .eq("id", user.id)
     .maybeSingle();

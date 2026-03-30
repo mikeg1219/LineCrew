@@ -3,6 +3,7 @@ import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfileForUser } from "@/lib/ensure-profile";
+import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { redirect } from "next/navigation";
 
 export default async function DashboardLayout({
@@ -28,7 +29,7 @@ export default async function DashboardLayout({
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, full_name, avatar_url, updated_at, email_verified_at"
+      "role, full_name, display_name, avatar_url, updated_at, email_verified_at"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -50,11 +51,7 @@ export default async function DashboardLayout({
     );
   }
 
-  const displayName =
-    profile?.first_name?.trim() ||
-    profile?.full_name?.trim() ||
-    user.email?.split("@")[0] ||
-    "Account";
+  const displayName = profileResolvedLabel(profile ?? null, user.email);
 
   const role =
     profile?.role === "waiter" || profile?.role === "customer"
