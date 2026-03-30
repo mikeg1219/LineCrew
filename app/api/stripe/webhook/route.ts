@@ -8,6 +8,36 @@ export const runtime = "nodejs";
 /** Vercel serverless timeout (Stripe webhook can wait on DB). */
 export const maxDuration = 60;
 
+/** Dev-only: event type/id and non-sensitive metadata keys — never log secrets or full payloads. */
+function devLogStripeEvent(event: Stripe.Event): void {
+  if (process.env.NODE_ENV !== "development") return;
+
+  const base = { type: event.type, id: event.id };
+  if (
+    event.type === "payment_intent.succeeded" ||
+    event.type === "payment_intent.payment_failed"
+  ) {
+    const o = event.data.object as Stripe.PaymentIntent;
+    console.log("[stripe/webhook]", {
+      ...base,
+      payment_intent: o.id,
+      metadata_keys: Object.keys(o.metadata ?? {}),
+      customer_id: o.metadata?.customer_id ?? null,
+    });
+    return;
+  }
+  if (event.type === "account.updated") {
+    const a = event.data.object as Stripe.Account;
+    console.log("[stripe/webhook]", {
+      ...base,
+      stripe_account: a.id,
+      supabase_user_id: a.metadata?.supabase_user_id ?? null,
+    });
+    return;
+  }
+  console.log("[stripe/webhook]", base);
+}
+
 export async function POST(req: Request) {
   const rawBody = await req.text();
   const sig = req.headers.get("stripe-signature");
@@ -25,9 +55,14 @@ export async function POST(req: Request) {
   let event: Stripe.Event;
   try {
     event = getStripe().webhooks.constructEvent(rawBody, sig, whSecret);
-  } catch {
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[stripe/webhook] constructEvent failed", err);
+    }
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
+
+  devLogStripeEvent(event);
 
   const admin = createAdminClient();
 
@@ -39,10 +74,19 @@ export async function POST(req: Request) {
           event.data.object as Stripe.PaymentIntent
         );
         break;
+      case "payment_intent.payment_failed":
+        handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
       case "account.updated":
         await handleAccountUpdated(admin, event.data.object as Stripe.Account);
         break;
       default:
+        if (process.env.NODE_ENV === "development") {
+          console.log("[stripe/webhook] unhandled event type (acknowledged)", {
+            type: event.type,
+            id: event.id,
+          });
+        }
         break;
     }
   } catch (e) {
@@ -51,6 +95,19 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+/**
+ * Jobs are only inserted on payment_intent.succeeded. Failed intents never create
+ * a job row; log for ops/debug (no customer PII in production logs beyond ids).
+ */
+function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
+  const md = pi.metadata;
+  console.warn("[stripe] payment_intent.payment_failed", {
+    id: pi.id,
+    customer_id: md.customer_id ?? null,
+    last_payment_error: pi.last_payment_error?.message ?? null,
+  });
 }
 
 async function handlePaymentIntentSucceeded(
@@ -137,5 +194,9 @@ async function handleAccountUpdated(
       .from("profiles")
       .update({ stripe_account_id: account.id })
       .eq("id", userId);
+  } else if (process.env.NODE_ENV === "development") {
+    console.warn("[stripe/webhook] account.updated: missing supabase_user_id or id", {
+      account_id: account.id,
+    });
   }
 }

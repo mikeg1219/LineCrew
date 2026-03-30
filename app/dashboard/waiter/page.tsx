@@ -66,84 +66,169 @@ export default async function WaiterDashboardPage() {
     (profile as { serving_airports?: string[] | null })?.serving_airports
       ?.length ?? 0;
 
+  const hasPayouts = Boolean(profile?.stripe_account_id);
+  const showSetupSection = servingCount === 0 || !hasPayouts;
+
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-        Welcome to your dashboard
-      </h1>
-      <p className="mt-2 text-lg text-slate-600">
-        Hello — you&apos;re signed in as{" "}
-        <span className="font-medium text-slate-900">{user.email}</span>.
-      </p>
-      <p className="mt-6 max-w-2xl leading-relaxed text-slate-600">
-        As a <span className="font-medium text-slate-800">Line Holder</span>, you can
-        accept bookings to wait in airport lines for Customers. More tools will
-        appear here as LineCrew grows.
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        <Link
-          href="/dashboard/waiter/browse-jobs"
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
-        >
-          Browse bookings
-        </Link>
-        <Link
-          href="/dashboard/waiter/airports"
-          className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
-        >
-          Edit my airports
-        </Link>
+    <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
+      <header className="border-b border-slate-200/80 pb-6 sm:pb-7">
+        <h1 className="text-balance text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl sm:leading-[1.15]">
+          Start earning as a Line Holder
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-slate-600 sm:mt-4 sm:text-lg sm:leading-relaxed">
+          Browse available bookings, manage your setup, and get paid after
+          completed handoffs.
+        </p>
+        <p className="mt-4 text-xs text-slate-500 sm:mt-5 sm:text-sm">
+          Signed in as{" "}
+          <span className="font-medium text-slate-600">{user.email}</span>
+        </p>
+      </header>
+
+      <div className="mt-6 rounded-2xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/90 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-900/[0.03] sm:mt-7 sm:p-5">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
+          Primary action
+        </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
+          <Link
+            href="/dashboard/waiter/browse-jobs"
+            className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700 active:bg-blue-800 sm:min-h-[48px] sm:max-w-xs sm:flex-none"
+          >
+            Browse available bookings
+          </Link>
+          <Link
+            href="/dashboard/waiter/airports"
+            className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-xl border border-slate-200/90 bg-white px-6 py-3.5 text-base font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 sm:min-h-[48px] sm:w-auto sm:flex-none"
+          >
+            Edit my airports
+          </Link>
+        </div>
       </div>
 
-      <p className="mt-4 text-sm text-slate-600">
-        Active bookings (max 2 while in progress):{" "}
-        <span className="font-semibold text-slate-900">
-          {activeJobCount ?? 0} / 2
-        </span>
-        {servingCount === 0 && (
-          <span className="ml-2 text-amber-800">
-            — select airports to see open bookings.
-          </span>
-        )}
-      </p>
+      {showSetupSection && (
+        <section
+          className="mt-7 space-y-3 sm:mt-8"
+          aria-labelledby="line-holder-next-steps"
+        >
+          <h2
+            id="line-holder-next-steps"
+            className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500"
+          >
+            <span
+              className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500"
+              aria-hidden
+            />
+            Finish setup
+          </h2>
+          {servingCount === 0 && (
+            <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 border-l-[4px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-50/40 p-4 shadow-sm sm:p-5">
+              <h3 className="pr-6 text-base font-semibold leading-snug text-amber-950 sm:text-lg">
+                Select your airports to unlock bookings
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-amber-950/80 sm:text-[15px]">
+                Choose where you&apos;re available so we can show you nearby
+                opportunities.
+              </p>
+              <Link
+                href="/dashboard/waiter/airports"
+                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-amber-400/50 bg-white px-5 py-3 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-100/60 active:bg-amber-100 sm:w-auto sm:min-w-[200px]"
+              >
+                Edit my airports
+              </Link>
+            </div>
+          )}
+          {!hasPayouts && (
+            <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 border-l-[4px] border-l-amber-500 bg-amber-50/70 p-4 shadow-sm sm:p-5">
+              <p className="text-sm font-semibold leading-snug text-amber-950 sm:text-base">
+                Connect payouts to get paid for completed bookings
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-amber-950/80">
+                Add your bank details in the card below so earnings can reach you
+                after handoffs. You&apos;ll need this before marking a booking
+                complete.
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       <WaiterPayoutSetup
         stripeAccountId={profile?.stripe_account_id ?? null}
       />
 
-      <section className="mt-12">
-        <h2 className="text-lg font-semibold text-slate-900">Your active bookings</h2>
+      <div className="mt-7 rounded-2xl border border-slate-200/80 bg-white px-4 py-5 shadow-sm sm:mt-8 sm:px-6 sm:py-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">
+          Capacity
+        </p>
+        <p className="mt-2 text-sm font-medium text-slate-800">
+          Active bookings in progress
+        </p>
+        <p className="mt-1 text-3xl font-semibold tabular-nums tracking-tight text-slate-900 sm:text-[2rem]">
+          {activeJobCount ?? 0}
+          <span className="text-xl font-normal text-slate-400 sm:text-2xl">
+            {" "}
+            / 2
+          </span>
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-slate-600">
+          Up to two bookings in progress at once. Finish or hand off before
+          accepting another when you&apos;re at capacity.
+        </p>
+      </div>
+
+      <section className="mt-10 sm:mt-12">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
+              Your active bookings
+            </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Bookings you&apos;ve accepted show here until they&apos;re done.
+            </p>
+          </div>
+        </div>
         {activeJobs.length === 0 ? (
-          <p className="mt-3 text-slate-600">
-            No active bookings yet. Browse open listings and accept one to get
-            started.
-          </p>
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-300/80 bg-slate-50/50 px-5 py-10 text-center sm:px-8 sm:py-12">
+            <p className="text-base font-semibold text-slate-900 sm:text-lg">
+              No active bookings yet
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600 sm:mt-3 sm:text-[15px]">
+              Browse available bookings to accept your first opportunity.
+              In-progress bookings will appear here with status and next steps.
+            </p>
+            <Link
+              href="/dashboard/waiter/browse-jobs"
+              className="mt-6 inline-flex min-h-[52px] w-full max-w-sm items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-blue-600/15 transition hover:bg-blue-700 active:bg-blue-800 sm:mx-auto sm:min-h-[48px] sm:w-auto"
+            >
+              Browse available bookings
+            </Link>
+          </div>
         ) : (
-          <ul className="mt-4 space-y-3">
+          <ul className="mt-5 space-y-3 sm:space-y-3.5">
             {activeJobs.map((job) => {
               const st = job.status as JobStatus;
               return (
                 <li
                   key={job.id}
-                  className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
+                  className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200/90 bg-white px-4 py-4 shadow-sm sm:px-5 sm:py-4"
                 >
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium text-slate-900">
                       {job.airport} · {job.line_type}
                     </p>
-                    <p className="text-sm text-slate-600">
+                    <p className="mt-0.5 text-sm text-slate-600">
                       ${Number(job.offered_price).toFixed(2)} ·{" "}
                       {new Date(job.created_at).toLocaleString()}
                     </p>
                     <span
-                      className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${statusBadgeClass(st)}`}
+                      className={`mt-2.5 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${statusBadgeClass(st)}`}
                     >
                       {JOB_STATUS_LABELS[st]}
                     </span>
                   </div>
                   <Link
                     href={`/dashboard/waiter/jobs/${job.id}`}
-                    className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100"
+                    className="inline-flex min-h-[44px] min-w-[9rem] shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-800 transition hover:bg-blue-100 active:bg-blue-200/80"
                   >
                     Open booking
                   </Link>

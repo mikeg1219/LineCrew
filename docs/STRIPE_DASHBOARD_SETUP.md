@@ -23,10 +23,28 @@ Follow these steps in the [Stripe Dashboard](https://dashboard.stripe.com/) (use
 2. **Endpoint URL**:  
    - Local testing: use the [Stripe CLI](https://stripe.com/docs/stripe-cli) to forward events (`stripe listen --forward-to localhost:3000/api/stripe/webhook`) and paste the **webhook signing secret** the CLI prints into `STRIPE_WEBHOOK_SECRET`.  
    - Production: `https://your-domain.com/api/stripe/webhook`
-3. **Events to send**, add at least:
+3. **Events to send**, add at least (must match `app/api/stripe/webhook/route.ts`):
    - `payment_intent.succeeded`
+   - `payment_intent.payment_failed`
    - `account.updated`
 4. After creating the endpoint, open it and copy **Signing secret** → set `STRIPE_WEBHOOK_SECRET` in `.env.local` (use the CLI secret for local dev, the dashboard secret for production).
+
+### Simulating webhooks (Stripe CLI)
+
+With `STRIPE_WEBHOOK_SECRET` set to the CLI signing secret (`stripe listen` prints `whsec_...`):
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+Smoke triggers (Stripe-generated payloads — **not** full LineCrew checkout metadata; use real Checkout to test job creation):
+
+```bash
+stripe trigger payment_intent.succeeded
+stripe trigger payment_intent.payment_failed
+```
+
+Expect HTTP **200** and `{ "received": true }`. A **real** job insert only occurs when `payment_intent.succeeded` includes metadata from `postJobAction` (`customer_id`, `offered_price`, `airport`, etc.); use a test Checkout session for an end-to-end test.
 
 ### Connect-related webhooks
 
