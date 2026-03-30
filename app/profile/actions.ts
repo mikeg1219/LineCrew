@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { buildProfileSettingsSupabasePayload } from "@/lib/profile-settings-payload";
 import type { UserRole } from "@/lib/types";
 import { isValidE164ForStorage, normalizePhoneE164 } from "@/lib/phone";
@@ -34,6 +35,16 @@ function devLogProfileSave(
   console.error(`[profile/save] ${label}`, data);
 }
 
+function sanitizePayload(
+  p: Record<string, unknown>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
 export async function saveProfileSettingsAction(
   input: SaveProfileSettingsInput
 ): Promise<SaveProfileSettingsResult> {
@@ -65,7 +76,7 @@ export async function saveProfileSettingsAction(
   }
 
   const dbRole = profileRow.role as UserRole;
-  if (input.role !== dbRole) {
+  if (input.role != null && input.role !== dbRole) {
     devLogProfileSave("role_mismatch", { inputRole: input.role, dbRole });
     return { ok: false, kind: "auth" };
   }
@@ -100,41 +111,47 @@ export async function saveProfileSettingsAction(
     .filter(Boolean);
   const unique = [...new Set(parts)];
 
-  const payload = buildProfileSettingsSupabasePayload(
-    dbRole,
-    shared,
-    {
-      preferred_airport: input.preferredAirport.trim() || null,
-      traveler_notes: input.travelerNotes.trim() || null,
-    },
-    {
-      bio: input.bio.trim() || null,
-      home_airport: input.homeAirport.trim() || null,
-      serving_airports: unique,
-      is_available: input.isAvailable,
-      onboarding_completed: Boolean(
-        fn &&
-          ph &&
-          input.bio.trim() &&
-          unique.length > 0 &&
-          input.avatarStoragePath
-      ),
-    }
+  const payload = sanitizePayload(
+    buildProfileSettingsSupabasePayload(
+      dbRole,
+      shared,
+      {
+        preferred_airport: input.preferredAirport.trim() || null,
+        traveler_notes: input.travelerNotes.trim() || null,
+      },
+      {
+        bio: input.bio.trim() || null,
+        home_airport: input.homeAirport.trim() || null,
+        serving_airports: unique,
+        is_available: input.isAvailable,
+        onboarding_completed: Boolean(
+          fn &&
+            ph &&
+            input.bio.trim() &&
+            unique.length > 0 &&
+            input.avatarStoragePath
+        ),
+      }
+    ) as Record<string, unknown>
   );
+
+  const service = createServiceRoleClient();
+  const clientForUpdate = service ?? supabase;
 
   devLogProfileSave("payload", {
     keys: Object.keys(payload),
     eqColumn: "id",
     eqValue: user.id,
+    usingServiceRole: Boolean(service),
     phoneLen: typeof payload.phone === "string" ? payload.phone.length : 0,
+    payloadPreview: payload,
   });
 
-  const { data: updatedRow, error } = await supabase
+  const { data: updatedRows, error } = await clientForUpdate
     .from("profiles")
     .update(payload)
     .eq("id", user.id)
-    .select("id")
-    .maybeSingle();
+    .select("id");
 
   if (error) {
     devLogProfileSave("supabase_update", {
@@ -143,14 +160,19 @@ export async function saveProfileSettingsAction(
       details: error.details,
       hint: error.hint,
       keys: Object.keys(payload),
+      usingServiceRole: Boolean(service),
     });
     return { ok: false, kind: "save" };
   }
 
-  if (!updatedRow) {
+  const rowCount = updatedRows?.length ?? 0;
+  if (rowCount === 0) {
     devLogProfileSave("zero_rows", {
       userId: user.id,
       keys: Object.keys(payload),
+      usingServiceRole: Boolean(service),
+      hint:
+        "No row updated — check profiles.id matches auth user, RLS, or run migrations for payload columns.",
     });
     return { ok: false, kind: "save" };
   }
