@@ -47,40 +47,39 @@ export function CompletionConfirmationPanel({
   const err = confirmState?.error ?? disputeState?.error;
 
   return (
-    <div className="mt-6 rounded-xl border border-violet-200 bg-violet-50/80 p-6 shadow-sm ring-1 ring-violet-200/60">
-      <p className="font-semibold text-violet-950">
-        Your Line Holder marked this booking complete. Please confirm or dispute within{" "}
+    <div className="rounded-2xl border-2 border-violet-300/80 bg-violet-50/90 p-5 shadow-md ring-2 ring-violet-200/50 sm:p-7">
+      <p className="text-base font-semibold leading-snug text-violet-950 sm:text-lg">
+        Your Line Holder marked this booking ready for handoff. Confirm or dispute within{" "}
         <span className="tabular-nums">
           {mins}:{secs.toString().padStart(2, "0")}
         </span>{" "}
-        minutes or it will be auto-approved.
+        or it auto-completes per policy.
       </p>
       {err && <p className="mt-3 text-sm text-red-700">{err}</p>}
-      <div className="mt-4 flex flex-wrap gap-3">
-        <form action={confirmAction}>
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
+        <form action={confirmAction} className="w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-md">
           <input type="hidden" name="jobId" value={jobId} />
           <button
             type="submit"
             disabled={confirmPending || disputePending}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+            className="w-full min-h-[52px] touch-manipulation rounded-2xl bg-emerald-600 px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:opacity-60 active:scale-[0.99]"
           >
-            {confirmPending ? "…" : "Confirm completion"}
+            {confirmPending ? "…" : "Confirm handoff"}
           </button>
         </form>
-        <form action={disputeAction}>
+        <form action={disputeAction} className="w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-md">
           <input type="hidden" name="jobId" value={jobId} />
           <button
             type="submit"
             disabled={confirmPending || disputePending}
-            className="rounded-lg border border-violet-300 bg-white px-4 py-2 text-sm font-semibold text-violet-950 hover:bg-violet-100 disabled:opacity-60"
+            className="w-full min-h-[48px] touch-manipulation rounded-2xl border-2 border-violet-300 bg-white px-5 py-3 text-sm font-semibold text-violet-950 hover:bg-violet-100 disabled:opacity-60 active:scale-[0.99]"
           >
-            {disputePending ? "…" : "Dispute this booking"}
+            {disputePending ? "…" : "Dispute"}
           </button>
         </form>
       </div>
-      <p className="mt-4 text-xs text-violet-900/80">
-        If you dispute, payment stays on hold until an admin reviews (within 24
-        hours).
+      <p className="mt-4 text-xs leading-relaxed text-violet-900/80">
+        Disputes hold payment until an admin reviews (within 24 hours).
       </p>
     </div>
   );

@@ -31,7 +31,8 @@ export function ProviderCustomerCard({
 
   return (
     <section
-      className="relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/40 to-blue-50/30 p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
+      id="booking-customer-contact"
+      className="scroll-mt-28 relative overflow-hidden rounded-3xl border border-slate-200 bg-gradient-to-br from-white via-slate-50/40 to-blue-50/30 p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
       aria-labelledby="provider-customer-heading"
     >
       <div
@@ -75,14 +76,6 @@ export function ProviderCustomerCard({
           </div>
         </div>
       </div>
-
-      {!redacted && (
-        <BookingContactPanel
-          jobId={job.id}
-          contactTarget="customer"
-          eligible={contactEligible}
-        />
-      )}
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className="rounded-xl border border-slate-100 bg-white/80 px-3 py-2.5 sm:py-3">
@@ -130,6 +123,18 @@ export function ProviderCustomerCard({
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">
             {notes}
           </p>
+        </div>
+      )}
+      {!redacted && (
+        <div className="mt-6 border-t border-dashed border-slate-200 pt-6">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            Optional — only if needed
+          </p>
+          <BookingContactPanel
+            jobId={job.id}
+            contactTarget="customer"
+            eligible={contactEligible}
+          />
         </div>
       )}
       {redacted && (

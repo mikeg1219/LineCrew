@@ -29,8 +29,8 @@ const STEPS: { nextStatus: JobStatus; label: string; hint?: string }[] = [
   },
   {
     nextStatus: "pending_confirmation",
-    label: "Ready for handoff",
-    hint: "Customer confirms next — completes your line hold",
+    label: "Complete booking",
+    hint: "Ready for handoff — customer confirms on their phone",
   },
 ];
 
@@ -96,16 +96,32 @@ export function LineHolderStatusPanel({
       )}
 
       {currentStatus !== "open" && (
-        <ol className="flex list-none flex-col gap-2 sm:gap-2.5" aria-label="Progress steps">
+        <>
+          {currentStatus === "near_front" && (
+            <div className="mb-4 rounded-2xl border-2 border-amber-400 bg-amber-50 px-4 py-3.5 shadow-sm ring-1 ring-amber-200/80">
+              <p className="text-sm font-semibold text-amber-950">
+                Near the front — time-sensitive
+              </p>
+              <p className="mt-1 text-sm leading-relaxed text-amber-900/90">
+                Prepare to hand off position. When the traveler should step in, tap{" "}
+                <span className="font-semibold">Complete booking</span> below.
+              </p>
+            </div>
+          )}
+          <ol className="flex list-none flex-col gap-2 sm:gap-2.5" aria-label="Progress steps">
           {STEPS.map(({ nextStatus, label, hint }, idx) => {
             const stepNum = idx + 1;
             const enabled = canTransitionTo(currentStatus, nextStatus);
+            const handoffCompleteStep =
+              enabled && nextStatus === "pending_confirmation";
             return (
               <li key={nextStatus} className="flex gap-3 sm:gap-4">
                 <span
                   className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums sm:size-11 sm:text-sm ${
                     enabled
-                      ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
+                      ? handoffCompleteStep
+                        ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/40"
+                        : "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
                       : "border border-slate-200 bg-slate-50 text-slate-400"
                   }`}
                   aria-hidden
@@ -118,9 +134,11 @@ export function LineHolderStatusPanel({
                   <button
                     type="submit"
                     disabled={!enabled || pending}
-                    className={`flex w-full min-h-[52px] flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 touch-manipulation sm:min-h-0 sm:py-3.5 ${
+                    className={`flex w-full min-h-[56px] flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 touch-manipulation sm:min-h-0 sm:py-3.5 ${
                       enabled
-                        ? "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/20 hover:bg-blue-50"
+                        ? handoffCompleteStep
+                          ? "border-amber-500 bg-amber-50/90 shadow-md ring-2 ring-amber-400/50 hover:bg-amber-50"
+                          : "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/20 hover:bg-blue-50"
                         : "border-slate-200 bg-white ring-1 ring-slate-900/5 hover:border-slate-300 disabled:hover:border-slate-200"
                     }`}
                   >
@@ -143,6 +161,7 @@ export function LineHolderStatusPanel({
             );
           })}
         </ol>
+        </>
       )}
 
       <div className="border-t border-slate-100 pt-6">

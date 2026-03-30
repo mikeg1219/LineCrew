@@ -6,6 +6,7 @@ import {
 } from "@/app/dashboard/customer/jobs/booking-line-holder-card";
 import { BookingProgressTracker } from "@/app/dashboard/customer/jobs/booking-progress-tracker";
 import { CustomerBookingExtraActions } from "@/app/dashboard/customer/jobs/customer-booking-extra-actions";
+import { CustomerHandoffGuidanceCard } from "@/app/dashboard/customer/jobs/customer-handoff-guidance";
 import { CompletionConfirmationPanel } from "@/app/dashboard/customer/jobs/completion-confirmation-panel";
 import { OverageCustomerAlert } from "@/app/dashboard/customer/jobs/overage-customer-alert";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
@@ -14,6 +15,7 @@ import {
   buildBookingTimelineEvents,
   parseBookingDescription,
 } from "@/lib/customer-tracking";
+import { getCustomerStickyActions } from "@/lib/handoff-guidance";
 import { CUSTOMER_TRACKING_PAGE_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
@@ -158,6 +160,13 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
   const showLiveStrip = LIVE_TRACKING.has(status);
 
+  const hasConfirmHandoff =
+    status === "pending_confirmation" && Boolean(job.completed_at);
+  const stickyActions = getCustomerStickyActions(status, hasConfirmHandoff);
+
+  const handoffUrgent =
+    status === "near_front" || status === "pending_confirmation";
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
       <BookingTrackingLive jobId={job.id} />
@@ -201,7 +210,11 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           </h1>
           <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <span
-              className={`inline-flex w-fit items-center rounded-full px-4 py-2 text-sm font-semibold shadow-sm ring-1 ${statusBadgeClass(status)}`}
+              className={`inline-flex w-fit items-center rounded-full px-4 py-2 text-sm font-semibold shadow-sm ring-1 ${statusBadgeClass(status)} ${
+                handoffUrgent
+                  ? "ring-2 ring-amber-400/70 ring-offset-2 ring-offset-white"
+                  : ""
+              }`}
             >
               {badgeLabel}
             </span>
@@ -246,8 +259,15 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         </div>
       </header>
 
+      <CustomerHandoffGuidanceCard
+        status={status}
+        terminal={job.terminal}
+        exactLocation={exactLocation}
+        airportLabelText={airportLabel(job.airport)}
+      />
+
       {status === "pending_confirmation" && job.completed_at && (
-        <div className="mt-6">
+        <div id="booking-confirm-handoff" className="scroll-mt-28 mt-6">
           <CompletionConfirmationPanel
             jobId={job.id}
             completedAt={job.completed_at}
@@ -275,7 +295,10 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           ) : null}
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-8">
+        <section
+          id="booking-details"
+          className="scroll-mt-28 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-8"
+        >
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Booking details
           </h2>
@@ -373,24 +396,16 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           />
         )}
 
-        <BookingActivityTimeline events={timelineEvents} />
+        <div id="booking-activity-timeline" className="scroll-mt-28">
+          <BookingActivityTimeline events={timelineEvents} />
+        </div>
 
         <div id="booking-more-actions" className="scroll-mt-28">
           <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
         </div>
       </div>
 
-      <MobileBookingStickyBar
-        actions={[
-          { href: "#booking-progress-track", label: "Track" },
-          {
-            href: "#booking-line-holder-contact",
-            label: "Contact",
-            emphasis: true,
-          },
-          { href: "#booking-more-actions", label: "More" },
-        ]}
-      />
+      <MobileBookingStickyBar actions={stickyActions} />
     </div>
   );
 }

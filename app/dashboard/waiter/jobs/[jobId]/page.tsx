@@ -1,3 +1,4 @@
+import { LineHolderHandoffGuidanceCard } from "@/app/dashboard/waiter/jobs/line-holder-handoff-guidance";
 import { LineHolderStatusPanel } from "@/app/dashboard/waiter/jobs/line-holder-status-panel";
 import { ProviderBookingDetailsCard } from "@/app/dashboard/waiter/jobs/provider-booking-details-card";
 import { ProviderBookingTimeline } from "@/app/dashboard/waiter/jobs/provider-booking-timeline";
@@ -5,6 +6,8 @@ import { ProviderCustomerCard } from "@/app/dashboard/waiter/jobs/provider-custo
 import { ProviderExecutionNote } from "@/app/dashboard/waiter/jobs/provider-execution-note";
 import { RequestExtraTimeForm } from "@/app/dashboard/waiter/jobs/request-extra-time-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
+import { parseBookingDescription } from "@/lib/customer-tracking";
+import { getLineHolderStickyActions } from "@/lib/handoff-guidance";
 import { buildProviderTimelineEvents } from "@/lib/provider-booking";
 import { PROVIDER_LINE_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
@@ -118,6 +121,10 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const showActionSubcopy =
     !TERMINAL.has(status) && status !== "pending_confirmation";
 
+  const { exactLocation } = parseBookingDescription(job.description ?? "");
+  const handoffUrgent =
+    status === "near_front" || status === "pending_confirmation";
+
   return (
     <div className="mx-auto max-w-3xl space-y-7 px-4 pb-24 pt-6 sm:space-y-8 sm:px-5 sm:pb-24 sm:pt-10 md:pb-14">
       <Link
@@ -190,6 +197,14 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
         </div>
       </header>
 
+      <LineHolderHandoffGuidanceCard
+        status={status}
+        terminal={job.terminal}
+        isOpenPreview={isOpenPreview}
+        exactLocation={exactLocation}
+        airportLabelText={airportLabel(job.airport)}
+      />
+
       <ProviderCustomerCard
         job={job}
         customerDisplayName={customerDisplayName}
@@ -200,7 +215,8 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
       <ProviderBookingDetailsCard job={job} />
 
       <section
-        className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
+        id="booking-line-holder-actions"
+        className="scroll-mt-28 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
         aria-labelledby="booking-actions-heading"
       >
         <div className="border-b border-slate-100 pb-5">
@@ -299,17 +315,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
         <ProviderBookingTimeline events={timelineEvents} />
       </div>
 
-      <MobileBookingStickyBar
-        actions={[
-          {
-            href: "#booking-customer-contact",
-            label: "Contact",
-            emphasis: true,
-          },
-          { href: "#booking-line-holder-actions", label: "Status" },
-          { href: "#booking-timeline", label: "Updates" },
-        ]}
-      />
+      <MobileBookingStickyBar actions={getLineHolderStickyActions(status)} />
     </div>
   );
 }

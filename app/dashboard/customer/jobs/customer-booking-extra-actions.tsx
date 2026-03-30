@@ -1,6 +1,7 @@
 "use client";
 
 import { CancelJobButton } from "@/app/dashboard/customer/jobs/cancel-job-button";
+import Link from "next/link";
 
 type Props = {
   jobId: string;
@@ -14,8 +15,15 @@ export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
         Actions
       </h2>
       <p className="mt-4 text-sm leading-relaxed text-slate-600">
-        Use the Line Holder card above to send a masked SMS (requires Twilio on
-        the server). Numbers are never shown here.
+        Tracking and status updates above are the main workflow—no messaging
+        required.{" "}
+        <Link
+          href="#booking-line-holder-contact"
+          className="font-medium text-blue-700 underline-offset-2 hover:text-blue-800 hover:underline"
+        >
+          Optional SMS
+        </Link>{" "}
+        is available in the Line Holder card when eligible.
       </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button

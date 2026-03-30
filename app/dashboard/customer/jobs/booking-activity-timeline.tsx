@@ -16,7 +16,7 @@ export function BookingActivityTimeline({ events }: { events: TimelineEvent[] })
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-        Updates
+        Activity timeline
       </h2>
       <ol className="relative mt-5 space-y-0 border-l border-slate-200 pl-6">
         {events.map((ev, i) => {

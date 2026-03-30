@@ -26,7 +26,7 @@ export function MobileBookingStickyBar({ actions }: Props) {
           <a
             key={`${a.href}-${a.label}`}
             href={a.href}
-            className={`flex min-h-[48px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl px-2 text-center text-sm font-semibold leading-tight transition active:scale-[0.99] ${
+            className={`flex min-h-[50px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl px-1.5 text-center text-[11px] font-semibold leading-tight transition active:scale-[0.99] sm:px-2.5 sm:text-sm ${
               a.emphasis
                 ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 hover:bg-blue-700"
                 : "border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50"

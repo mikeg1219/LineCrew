@@ -86,11 +86,16 @@ export function BookingLineHolderCard({
             {bioSnippet ??
               "Profile details appear here when your Line Holder adds them."}
           </p>
-          <BookingContactPanel
-            jobId={jobId}
-            contactTarget="line_holder"
-            eligible={contactEligible}
-          />
+          <div className="mt-6 border-t border-dashed border-slate-200 pt-6">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Optional — only if needed
+            </p>
+            <BookingContactPanel
+              jobId={jobId}
+              contactTarget="line_holder"
+              eligible={contactEligible}
+            />
+          </div>
         </div>
       </div>
     </div>

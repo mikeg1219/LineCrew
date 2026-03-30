@@ -26,7 +26,8 @@ export function ProviderBookingDetailsCard({ job }: Props) {
 
   return (
     <section
-      className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
+      id="booking-details-waiter"
+      className="scroll-mt-28 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-7"
       aria-labelledby="provider-booking-details-heading"
     >
       <h2
