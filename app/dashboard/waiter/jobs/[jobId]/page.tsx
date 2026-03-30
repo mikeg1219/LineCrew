@@ -10,6 +10,7 @@ import { PROVIDER_LINE_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status"
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -115,7 +116,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
     !TERMINAL.has(status) && status !== "pending_confirmation";
 
   return (
-    <div className="mx-auto max-w-3xl space-y-7 px-4 pb-12 pt-6 sm:space-y-8 sm:px-5 sm:pb-14 sm:pt-10">
+    <div className="mx-auto max-w-3xl space-y-7 px-4 pb-24 pt-6 sm:space-y-8 sm:px-5 sm:pb-24 sm:pt-10 md:pb-14">
       <Link
         href="/dashboard/waiter"
         className="inline-flex min-h-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"
@@ -291,7 +292,21 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
 
       <ProviderExecutionNote />
 
-      <ProviderBookingTimeline events={timelineEvents} />
+      <div id="booking-timeline" className="scroll-mt-28">
+        <ProviderBookingTimeline events={timelineEvents} />
+      </div>
+
+      <MobileBookingStickyBar
+        actions={[
+          {
+            href: "#booking-customer-contact",
+            label: "Contact",
+            emphasis: true,
+          },
+          { href: "#booking-line-holder-actions", label: "Status" },
+          { href: "#booking-timeline", label: "Updates" },
+        ]}
+      />
     </div>
   );
 }

@@ -13,18 +13,11 @@ export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
         Actions
       </h2>
+      <p className="mt-4 text-sm leading-relaxed text-slate-600">
+        Use the Line Holder card above to send a masked SMS (requires Twilio on
+        the server). Numbers are never shown here.
+      </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <button
-          type="button"
-          disabled
-          title="Messaging is coming soon"
-          className="inline-flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-400"
-        >
-          Contact Line Holder
-          <span className="ml-2 rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-            Soon
-          </span>
-        </button>
         <button
           type="button"
           disabled

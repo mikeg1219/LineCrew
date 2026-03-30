@@ -9,6 +9,7 @@ import { CustomerBookingExtraActions } from "@/app/dashboard/customer/jobs/custo
 import { CompletionConfirmationPanel } from "@/app/dashboard/customer/jobs/completion-confirmation-panel";
 import { OverageCustomerAlert } from "@/app/dashboard/customer/jobs/overage-customer-alert";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
+import { bookingAllowsMaskedContact } from "@/lib/booking-contact/eligibility";
 import {
   buildBookingTimelineEvents,
   parseBookingDescription,
@@ -17,6 +18,7 @@ import { CUSTOMER_TRACKING_PAGE_LABELS, statusBadgeClass } from "@/lib/job-statu
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import type { OverageRequest } from "@/lib/types/overage";
+import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -254,19 +256,24 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
       )}
 
       <div className="mt-6 space-y-6">
-        <BookingProgressTracker status={status} />
+        <div id="booking-progress-track" className="scroll-mt-28">
+          <BookingProgressTracker status={status} />
+        </div>
 
-        {status === "open" ? (
-          <BookingLineHolderPendingCard />
-        ) : hasWaiter ? (
-          <BookingLineHolderCard
-            displayName={waiterDisplayName}
-            avatarUrl={waiterAvatarPublic}
-            status={status}
-            bioSnippet={waiterBio}
-            email={job.waiter_email}
-          />
-        ) : null}
+        <div id="booking-line-holder-contact" className="scroll-mt-28">
+          {status === "open" ? (
+            <BookingLineHolderPendingCard />
+          ) : hasWaiter ? (
+            <BookingLineHolderCard
+              jobId={job.id}
+              contactEligible={bookingAllowsMaskedContact(status)}
+              displayName={waiterDisplayName}
+              avatarUrl={waiterAvatarPublic}
+              status={status}
+              bioSnippet={waiterBio}
+            />
+          ) : null}
+        </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-8">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -368,8 +375,22 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
         <BookingActivityTimeline events={timelineEvents} />
 
-        <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
+        <div id="booking-more-actions" className="scroll-mt-28">
+          <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
+        </div>
       </div>
+
+      <MobileBookingStickyBar
+        actions={[
+          { href: "#booking-progress-track", label: "Track" },
+          {
+            href: "#booking-line-holder-contact",
+            label: "Contact",
+            emphasis: true,
+          },
+          { href: "#booking-more-actions", label: "More" },
+        ]}
+      />
     </div>
   );
 }

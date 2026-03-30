@@ -1,3 +1,4 @@
+import { BookingContactPanel } from "@/components/booking-contact-panel";
 import type { JobStatus } from "@/lib/types/job";
 import { CUSTOMER_TRACKING_PAGE_LABELS } from "@/lib/job-status";
 
@@ -26,19 +27,21 @@ function lineHolderStatusLine(status: JobStatus): string {
 }
 
 type Props = {
+  jobId: string;
+  contactEligible: boolean;
   displayName: string;
   avatarUrl: string | null;
   status: JobStatus;
   bioSnippet: string | null;
-  email: string | null;
 };
 
 export function BookingLineHolderCard({
+  jobId,
+  contactEligible,
   displayName,
   avatarUrl,
   status,
   bioSnippet,
-  email,
 }: Props) {
   const statusLabel = CUSTOMER_TRACKING_PAGE_LABELS[status];
   const statusLine = lineHolderStatusLine(status);
@@ -71,9 +74,6 @@ export function BookingLineHolderCard({
           <p className="text-xl font-semibold tracking-tight text-slate-900">
             {displayName}
           </p>
-          {email && (
-            <p className="mt-0.5 truncate text-sm text-slate-600">{email}</p>
-          )}
           <span className="mt-3 inline-flex rounded-full bg-indigo-50 px-3.5 py-1.5 text-xs font-semibold text-indigo-900 ring-1 ring-indigo-200/80">
             {statusLabel}
           </span>
@@ -86,6 +86,11 @@ export function BookingLineHolderCard({
             {bioSnippet ??
               "Profile details appear here when your Line Holder adds them."}
           </p>
+          <BookingContactPanel
+            jobId={jobId}
+            contactTarget="line_holder"
+            eligible={contactEligible}
+          />
         </div>
       </div>
     </div>

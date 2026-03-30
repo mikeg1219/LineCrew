@@ -1,6 +1,8 @@
+import { BookingContactPanel } from "@/components/booking-contact-panel";
+import { bookingAllowsMaskedContact } from "@/lib/booking-contact/eligibility";
 import { parseBookingDescription } from "@/lib/customer-tracking";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
-import type { Job } from "@/lib/types/job";
+import type { Job, JobStatus } from "@/lib/types/job";
 
 function airportLabel(code: string) {
   return US_AIRPORTS_TOP_20.find((a) => a.code === code)?.label ?? code;
@@ -24,6 +26,8 @@ export function ProviderCustomerCard({
     job.description ?? ""
   );
   const notes = customerNotes?.trim() || job.description?.trim() || null;
+  const contactEligible =
+    !redacted && bookingAllowsMaskedContact(job.status as JobStatus);
 
   return (
     <section
@@ -63,11 +67,6 @@ export function ProviderCustomerCard({
             <p className="mt-1.5 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
               {redacted ? "Customer" : customerDisplayName}
             </p>
-            {!redacted && job.customer_email && (
-              <p className="mt-1 truncate text-sm text-slate-600">
-                {job.customer_email}
-              </p>
-            )}
             {redacted && (
               <p className="mt-3 rounded-xl border border-slate-200 bg-white/90 px-3 py-2.5 text-sm leading-snug text-slate-600 ring-1 ring-slate-100">
                 Name and contact details unlock after you accept this booking.
@@ -76,6 +75,14 @@ export function ProviderCustomerCard({
           </div>
         </div>
       </div>
+
+      {!redacted && (
+        <BookingContactPanel
+          jobId={job.id}
+          contactTarget="customer"
+          eligible={contactEligible}
+        />
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
         <div className="rounded-xl border border-slate-100 bg-white/80 px-3 py-2.5 sm:py-3">

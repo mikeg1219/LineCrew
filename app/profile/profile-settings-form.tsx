@@ -7,7 +7,7 @@ import { waiterCoreFieldsComplete } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   AVATAR_MAX_INPUT_BYTES,
@@ -23,6 +23,16 @@ import { getCroppedSquareJpegBlob } from "@/lib/crop-image";
 import { AVATAR_MAX_DIMENSION, processAvatarImageToJpeg } from "@/lib/process-avatar-image";
 import type { Area } from "react-easy-crop";
 
+import {
+  DEFAULT_PHONE_COUNTRY_ID,
+  formatUsNationalDisplay,
+  getPhoneCountry,
+  isValidE164ForStorage,
+  normalizePhoneE164,
+  parsePhoneFromStored,
+  PHONE_COUNTRIES,
+} from "@/lib/phone";
+
 export type ProfileHeroFallback = {
   display: string;
   email: string | null;
@@ -31,10 +41,39 @@ export type ProfileHeroFallback = {
   avatarUrl: string | null;
 };
 
-function logProfileError(context: string, err: unknown) {
-  if (process.env.NODE_ENV === "development") {
-    console.error(`[profile] ${context}`, err);
-  }
+function logProfileError(
+  context: string,
+  err: unknown,
+  meta?: Record<string, unknown>
+) {
+  if (process.env.NODE_ENV !== "development") return;
+  const e = err as {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  };
+  console.error(`[profile] ${context}`, {
+    code: e?.code,
+    message: e?.message,
+    details: e?.details,
+    hint: e?.hint,
+    err: err ?? null,
+    ...meta,
+  });
+}
+
+function stripUndefinedPayload(
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, v]) => v !== undefined)
+  );
+}
+
+/** DB: only `profiles.phone` (E.164). Country + national digits stay in UI state only. */
+function profilePhonePersistFields(e164: string | null): { phone: string | null } {
+  return { phone: e164 };
 }
 
 const SAVE_FAILED_MSG =
@@ -151,7 +190,9 @@ export function ProfileSettingsForm({
 
   const [firstName, setFirstName] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneCountryId, setPhoneCountryId] = useState(DEFAULT_PHONE_COUNTRY_ID);
+  const [phoneNationalDigits, setPhoneNationalDigits] = useState("");
+  const [phoneError, setPhoneError] = useState("");
 
   const [preferredAirport, setPreferredAirport] = useState("");
   const [travelerNotes, setTravelerNotes] = useState("");
@@ -165,6 +206,11 @@ export function ProfileSettingsForm({
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(
     null
   );
+
+  const phoneE164ForCompletion = useMemo(() => {
+    const r = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
+    return r.ok && r.e164 ? r.e164 : "";
+  }, [phoneCountryId, phoneNationalDigits]);
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -194,7 +240,10 @@ export function ProfileSettingsForm({
         setRole(p.role);
         setFirstName(p.first_name ?? "");
         setDisplayName(p.display_name ?? p.full_name ?? "");
-        setPhone(p.phone ?? "");
+        const parsed = parsePhoneFromStored(p.phone ?? null);
+        setPhoneCountryId(parsed.countryId);
+        setPhoneNationalDigits(parsed.nationalDigits);
+        setPhoneError("");
         setPreferredAirport(p.preferred_airport ?? "");
         setTravelerNotes(p.traveler_notes ?? "");
         setBio(p.bio ?? "");
@@ -389,17 +438,34 @@ export function ProfileSettingsForm({
 
     setSaving(true);
     setMessage("");
+    setPhoneError("");
 
     const fn = firstName.trim();
     const dn = displayName.trim();
-    const ph = phone.trim();
+    const phoneNorm = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
+    if (!phoneNorm.ok) {
+      setPhoneError(phoneNorm.message);
+      setSaving(false);
+      return;
+    }
+    const ph = phoneNorm.e164;
+    if (!isValidE164ForStorage(ph)) {
+      setPhoneError("Enter a valid phone number.");
+      setSaving(false);
+      logProfileError("profile save phone validation", null, {
+        phoneNormOk: phoneNorm.ok,
+        phoneLen: ph?.length ?? 0,
+      });
+      return;
+    }
+
     const profile_completed = Boolean(fn && dn && ph);
 
     const base: Record<string, unknown> = {
       first_name: fn || null,
       display_name: dn || null,
       full_name: dn || null,
-      phone: ph || null,
+      ...profilePhonePersistFields(ph),
       profile_completed,
     };
 
@@ -427,10 +493,31 @@ export function ProfileSettingsForm({
       );
     }
 
-    const { error } = await supabase.from("profiles").update(base).eq("id", user.id);
+    const payload = stripUndefinedPayload(base);
+
+    const { data: updatedRow, error } = await supabase
+      .from("profiles")
+      .update(payload)
+      .eq("id", user.id)
+      .select("id")
+      .maybeSingle();
 
     if (error) {
-      logProfileError("profile save", error);
+      logProfileError("profile save", error, {
+        payloadKeys: Object.keys(payload),
+        phoneLen: ph?.length ?? 0,
+        hasPhone: ph != null,
+      });
+      setMessage(SAVE_FAILED_MSG);
+      setSaving(false);
+      return;
+    }
+
+    if (!updatedRow) {
+      logProfileError("profile save no row updated", null, {
+        userId: user.id,
+        payloadKeys: Object.keys(payload),
+      });
       setMessage(SAVE_FAILED_MSG);
       setSaving(false);
       return;
@@ -512,6 +599,8 @@ export function ProfileSettingsForm({
 
   const avatarBusy = avatarPhase !== "idle";
 
+  const isNanp = getPhoneCountry(phoneCountryId)?.nanp ?? true;
+
   return (
     <>
     <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-10">
@@ -540,7 +629,7 @@ export function ProfileSettingsForm({
           role="customer"
           firstName={firstName}
           displayName={displayName}
-          phone={phone}
+          phone={phoneE164ForCompletion}
           profileCompletedFlag={profileCompleted}
         />
       )}
@@ -548,7 +637,7 @@ export function ProfileSettingsForm({
         <ProfileCompletionStatus
           role="waiter"
           firstName={firstName}
-          phone={phone}
+          phone={phoneE164ForCompletion}
           bio={bio}
           avatarPath={avatarStoragePath}
           servingCodes={servingCodesUnique}
@@ -756,17 +845,77 @@ export function ProfileSettingsForm({
             />
           </div>
           <div>
-            <label htmlFor="phone" className={labelClass}>
+            <span className={labelClass} id="phone-label">
               Phone
-            </label>
-            <input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              autoComplete="tel"
-              className={inputClass}
-              placeholder="+1 …"
-            />
+            </span>
+            <p className="mb-2 text-xs text-slate-500 sm:text-[13px]">
+              Saved in international format (E.164) for SMS and bookings.
+            </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-3">
+              <div className="w-full shrink-0 sm:max-w-[min(100%,14rem)]">
+                <label htmlFor="phone_country" className="sr-only">
+                  Country code
+                </label>
+                <select
+                  id="phone_country"
+                  value={phoneCountryId}
+                  onChange={(e) => {
+                    setPhoneCountryId(e.target.value);
+                    setPhoneError("");
+                  }}
+                  className={inputClass}
+                  aria-labelledby="phone-label"
+                >
+                  {PHONE_COUNTRIES.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="min-w-0 flex-1">
+                <label htmlFor="phone_national" className="sr-only">
+                  Phone number
+                </label>
+                <input
+                  id="phone_national"
+                  type="tel"
+                  inputMode={isNanp ? "numeric" : "tel"}
+                  autoComplete={isNanp ? "tel-national" : "tel"}
+                  value={
+                    isNanp
+                      ? formatUsNationalDisplay(phoneNationalDigits)
+                      : phoneNationalDigits
+                  }
+                  onChange={(e) => {
+                    setPhoneError("");
+                    const c = getPhoneCountry(phoneCountryId);
+                    if (c?.nanp) {
+                      setPhoneNationalDigits(
+                        e.target.value.replace(/\D/g, "").slice(0, 10)
+                      );
+                    } else {
+                      setPhoneNationalDigits(
+                        e.target.value.replace(/\D/g, "").slice(0, 15)
+                      );
+                    }
+                  }}
+                  placeholder={isNanp ? "(555) 123-4567" : "National number"}
+                  className={inputClass}
+                  aria-invalid={phoneError ? true : undefined}
+                  aria-describedby={phoneError ? "phone-error" : undefined}
+                />
+              </div>
+            </div>
+            {phoneError ? (
+              <p
+                id="phone-error"
+                className="mt-2 text-sm text-red-600"
+                role="alert"
+              >
+                {phoneError}
+              </p>
+            ) : null}
           </div>
         </div>
       </section>
