@@ -7,6 +7,7 @@ import {
 } from "@/app/dashboard/waiter/jobs/actions";
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
+import Link from "next/link";
 import { useActionState } from "react";
 
 const initial: JobActionState = null;
@@ -37,12 +38,14 @@ const STEPS: { nextStatus: JobStatus; label: string; hint?: string }[] = [
 export function LineHolderStatusPanel({
   jobId,
   currentStatus,
-  profileComplete = true,
+  acceptSetupReady = true,
+  acceptSetupHint = "",
 }: {
   jobId: string;
   currentStatus: JobStatus;
-  /** When false, Accept booking is disabled (profile incomplete). */
-  profileComplete?: boolean;
+  /** When false, Accept booking is disabled until setup (profile, payouts, etc.). */
+  acceptSetupReady?: boolean;
+  acceptSetupHint?: string;
 }) {
   const [acceptState, acceptAction, acceptPending] = useActionState(
     acceptJobAction,
@@ -78,16 +81,27 @@ export function LineHolderStatusPanel({
       {currentStatus === "open" && (
         <form action={acceptAction} className="w-full">
           <input type="hidden" name="jobId" value={jobId} />
-          {!profileComplete && (
+          {!acceptSetupReady && (
             <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50/90 px-3 py-2.5 text-sm leading-snug text-amber-950">
-              Complete your Line Holder profile (photo, phone, bio, airports,
-              onboarding, verified email) before accepting. Open{" "}
-              <span className="font-semibold">Profile</span> to finish.
+              {acceptSetupHint || "Finish setup on your dashboard before accepting."}{" "}
+              <Link
+                href="/dashboard/waiter"
+                className="font-semibold text-amber-900 underline decoration-amber-700/40 underline-offset-2 hover:text-amber-950"
+              >
+                Dashboard
+              </Link>
+              {" · "}
+              <Link
+                href="/dashboard/profile"
+                className="font-semibold text-amber-900 underline decoration-amber-700/40 underline-offset-2 hover:text-amber-950"
+              >
+                Profile
+              </Link>
             </p>
           )}
           <button
             type="submit"
-            disabled={pending || !profileComplete}
+            disabled={pending || !acceptSetupReady}
             className="w-full min-h-[52px] rounded-2xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation"
           >
             {acceptPending ? "Accepting…" : "Accept booking"}

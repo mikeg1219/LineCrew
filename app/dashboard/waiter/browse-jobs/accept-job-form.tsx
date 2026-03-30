@@ -8,9 +8,11 @@ const initial: JobActionState = null;
 export function AcceptJobForm({
   jobId,
   canAccept,
+  setupHint,
 }: {
   jobId: string;
   canAccept: boolean;
+  setupHint?: string;
 }) {
   const [state, formAction, pending] = useActionState(acceptJobAction, initial);
 
@@ -20,6 +22,9 @@ export function AcceptJobForm({
       {state?.error && (
         <p className="text-sm text-red-600">{state.error}</p>
       )}
+      {!canAccept && setupHint ? (
+        <p className="text-xs leading-snug text-amber-900/90">{setupHint}</p>
+      ) : null}
       <button
         type="submit"
         disabled={pending || !canAccept}

@@ -75,12 +75,11 @@ export async function sendEmailVerificationForNewUser(
       });
 
     if (insErr) {
-      if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "[email verification] Token insert failed:",
-          insErr.message
-        );
-      }
+      console.error(
+        "[email verification] Token insert failed:",
+        insErr.message,
+        insErr.code ?? ""
+      );
       return false;
     }
 
@@ -95,11 +94,14 @@ export async function sendEmailVerificationForNewUser(
 
     if (!sendResult.ok) {
       if ("skipped" in sendResult && sendResult.skipped) {
-        console.warn(
+        console.error(
           "[email verification] Email not sent: RESEND_API_KEY is not set."
         );
       } else if ("error" in sendResult) {
-        console.warn("[email verification] Resend API error:", sendResult.error);
+        console.error(
+          "[email verification] Resend API error:",
+          sendResult.error
+        );
       }
       await admin
         .from("email_verification_tokens")
@@ -109,7 +111,10 @@ export async function sendEmailVerificationForNewUser(
     }
     return true;
   } catch (e) {
-    console.warn("[email verification] sendEmailVerificationForNewUser failed:", e);
+    console.error(
+      "[email verification] sendEmailVerificationForNewUser failed:",
+      e
+    );
     return false;
   }
 }

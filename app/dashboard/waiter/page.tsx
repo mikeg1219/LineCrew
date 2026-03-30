@@ -1,7 +1,14 @@
+import { LineHolderSetupChecklist } from "@/app/dashboard/waiter/line-holder-setup-checklist";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
+import {
+  isWaiterAcceptSetupComplete,
+  waiterAcceptSetupShortfallMessage,
+  waiterProfileBasicsAndOnboardingComplete,
+} from "@/lib/waiter-profile-complete";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -32,7 +39,9 @@ export default async function WaiterDashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, stripe_account_id, serving_airports")
+    .select(
+      "role, stripe_account_id, serving_airports, email_verified_at, first_name, avatar_url, phone, bio, onboarding_completed"
+    )
     .eq("id", user.id)
     .maybeSingle();
 
@@ -67,7 +76,20 @@ export default async function WaiterDashboardPage() {
       ?.length ?? 0;
 
   const hasPayouts = Boolean(profile?.stripe_account_id);
-  const showSetupSection = servingCount === 0 || !hasPayouts;
+  const hasAirports = servingCount > 0;
+  const emailVerified = isEmailVerifiedForApp(
+    profile as { email_verified_at: string | null } | null,
+    user
+  );
+  const profileBasicsComplete = profile
+    ? waiterProfileBasicsAndOnboardingComplete(profile)
+    : false;
+
+  const acceptSetupReady =
+    profile && user
+      ? isWaiterAcceptSetupComplete(profile, user)
+      : false;
+  const acceptSetupSummary = waiterAcceptSetupShortfallMessage(profile, user);
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
@@ -84,6 +106,48 @@ export default async function WaiterDashboardPage() {
           <span className="font-medium text-slate-600">{user.email}</span>
         </p>
       </header>
+
+      {!acceptSetupReady && (
+        <div
+          className="mt-6 rounded-2xl border border-slate-200/90 bg-slate-50/95 px-4 py-4 shadow-sm sm:px-5 sm:py-5"
+          role="status"
+        >
+          <p className="text-sm font-semibold text-slate-900">
+            Earning flow: setup incomplete
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            You can browse available bookings anytime. To{" "}
+            <span className="font-medium text-slate-800">accept</span> a booking,
+            finish: email verification, profile, airports, onboarding, and payout
+            connection.{" "}
+            <span className="text-slate-700">{acceptSetupSummary}</span>
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/waiter/browse-jobs"
+              className="inline-flex min-h-[44px] items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
+            >
+              Browse bookings
+            </Link>
+            <Link
+              href="/dashboard/profile"
+              className="inline-flex min-h-[44px] items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-100/80"
+            >
+              Profile
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {user.email && (
+        <LineHolderSetupChecklist
+          userEmail={user.email}
+          emailVerified={emailVerified}
+          profileBasicsComplete={profileBasicsComplete}
+          hasAirports={hasAirports}
+          hasPayouts={hasPayouts}
+        />
+      )}
 
       <div className="mt-6 rounded-2xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/90 p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] ring-1 ring-slate-900/[0.03] sm:mt-7 sm:p-5">
         <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500">
@@ -104,53 +168,6 @@ export default async function WaiterDashboardPage() {
           </Link>
         </div>
       </div>
-
-      {showSetupSection && (
-        <section
-          className="mt-7 space-y-3 sm:mt-8"
-          aria-labelledby="line-holder-next-steps"
-        >
-          <h2
-            id="line-holder-next-steps"
-            className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500"
-          >
-            <span
-              className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500"
-              aria-hidden
-            />
-            Finish setup
-          </h2>
-          {servingCount === 0 && (
-            <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 border-l-[4px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-50/40 p-4 shadow-sm sm:p-5">
-              <h3 className="pr-6 text-base font-semibold leading-snug text-amber-950 sm:text-lg">
-                Select your airports to unlock bookings
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-amber-950/80 sm:text-[15px]">
-                Choose where you&apos;re available so we can show you nearby
-                opportunities.
-              </p>
-              <Link
-                href="/dashboard/waiter/airports"
-                className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-amber-400/50 bg-white px-5 py-3 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-100/60 active:bg-amber-100 sm:w-auto sm:min-w-[200px]"
-              >
-                Edit my airports
-              </Link>
-            </div>
-          )}
-          {!hasPayouts && (
-            <div className="relative overflow-hidden rounded-2xl border border-amber-200/90 border-l-[4px] border-l-amber-500 bg-amber-50/70 p-4 shadow-sm sm:p-5">
-              <p className="text-sm font-semibold leading-snug text-amber-950 sm:text-base">
-                Connect payouts to get paid for completed bookings
-              </p>
-              <p className="mt-2 text-sm leading-relaxed text-amber-950/80">
-                Add your bank details in the card below so earnings can reach you
-                after handoffs. You&apos;ll need this before marking a booking
-                complete.
-              </p>
-            </div>
-          )}
-        </section>
-      )}
 
       <WaiterPayoutSetup
         stripeAccountId={profile?.stripe_account_id ?? null}

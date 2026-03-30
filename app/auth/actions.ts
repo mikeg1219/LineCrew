@@ -1,8 +1,10 @@
 "use server";
 
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
-import { createClient } from "@/lib/supabase/server";
 import { sendEmailVerificationForNewUser } from "@/lib/email-verification-service";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
+import { normalizeEmail } from "@/lib/password-reset-crypto";
 import type { UserRole } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -78,7 +80,31 @@ export async function authAction(
       return { error: error.message, mode: authMode };
     }
 
-    const userId = data.user?.id;
+    let userId =
+      data.user?.id ?? data.session?.user?.id ?? null;
+
+    if (!userId) {
+      try {
+        const admin = createAdminClient();
+        const { data: uid, error: rpcErr } = await admin.rpc(
+          "auth_user_id_by_email",
+          { p_email: normalizeEmail(email) }
+        );
+        if (rpcErr) {
+          console.error(
+            "[auth] auth_user_id_by_email failed after sign-up:",
+            rpcErr.message
+          );
+        } else if (typeof uid === "string") {
+          userId = uid;
+        }
+      } catch (e) {
+        console.error(
+          "[auth] Could not resolve user id after sign-up (admin client):",
+          e
+        );
+      }
+    }
 
     let verificationSent = false;
     if (userId) {
@@ -88,10 +114,16 @@ export async function authAction(
         role
       );
       if (!verificationSent) {
-        console.warn(
-          "[auth] Verification email was not sent after sign-up. Check RESEND_API_KEY, SUPABASE_SERVICE_ROLE_KEY, and email_verification_tokens / auth_user_id_by_email."
+        console.error(
+          "[auth] Verification email was not sent after sign-up. Check RESEND_API_KEY, RESEND_FROM, SUPABASE_SERVICE_ROLE_KEY, email_verification_tokens table, and server logs above for token insert or Resend errors."
         );
       }
+    } else {
+      console.error(
+        "[auth] Sign-up returned no user id and lookup failed; verification email was not sent. Email:",
+        normalizeEmail(email),
+        "If Supabase requires email confirmation, ensure the user row exists in auth.users or run auth_user_id_by_email migration."
+      );
     }
 
     revalidatePath("/", "layout");

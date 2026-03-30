@@ -522,6 +522,9 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
               name="mode"
               value={mode === "signup" ? "signup" : "signin"}
             />
+            {mode === "signup" && urlLocksRole && intent ? (
+              <input type="hidden" name="role" value={intent} />
+            ) : null}
 
             {mode === "signup" && (
               <fieldset
@@ -543,7 +546,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   >
                     <input
                       type="radio"
-                      name="role"
+                      name={urlLocksRole ? undefined : "role"}
                       value="customer"
                       checked={roleForUi === "customer"}
                       onChange={() => {
@@ -565,7 +568,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   >
                     <input
                       type="radio"
-                      name="role"
+                      name={urlLocksRole ? undefined : "role"}
                       value="waiter"
                       checked={roleForUi === "waiter"}
                       onChange={() => {

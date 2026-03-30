@@ -1,23 +1,12 @@
 "use client";
 
-import {
-  startStripeConnectOnboardingAction,
-  type ConnectState,
-} from "@/app/dashboard/waiter/connect/actions";
-import { useActionState } from "react";
-
-const initial: ConnectState = null;
+import { WaiterPayoutConnectForm } from "@/app/dashboard/waiter/waiter-payout-connect-form";
 
 export function WaiterPayoutSetup({
   stripeAccountId,
 }: {
   stripeAccountId: string | null;
 }) {
-  const [state, formAction, pending] = useActionState(
-    startStripeConnectOnboardingAction,
-    initial
-  );
-
   const incomplete = !stripeAccountId;
 
   return (
@@ -48,22 +37,15 @@ export function WaiterPayoutSetup({
           ready to receive earnings when bookings finish.
         </p>
       )}
-      <form action={formAction} className="mt-6">
-        <button
-          type="submit"
-          disabled={pending}
-          className={
+      <div className="mt-6">
+        <WaiterPayoutConnectForm
+          buttonClassName={
             incomplete
               ? "min-h-[52px] w-full rounded-xl bg-slate-900 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60 sm:min-h-[48px] sm:w-auto"
               : "min-h-[44px] rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
           }
-        >
-          {pending ? "Redirecting…" : "Set up payouts"}
-        </button>
-      </form>
-      {state?.error && (
-        <p className="mt-3 text-sm text-red-600">{state.error}</p>
-      )}
+        />
+      </div>
     </div>
   );
 }

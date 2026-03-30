@@ -12,7 +12,10 @@ import { buildProviderTimelineEvents } from "@/lib/provider-booking";
 import { PROVIDER_LINE_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
-import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import {
+  isWaiterAcceptSetupComplete,
+  waiterAcceptSetupShortfallMessage,
+} from "@/lib/waiter-profile-complete";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -44,7 +47,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at"
+      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -83,7 +86,8 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const showExtraTimeRequest =
     isAssigned && (status === "in_line" || status === "near_front");
   const overageRate = Number(job.overage_rate ?? 10);
-  const canAcceptJobs = isWaiterProfileComplete(profile);
+  const canAcceptJobs = isWaiterAcceptSetupComplete(profile, user);
+  const acceptSetupHint = waiterAcceptSetupShortfallMessage(profile, user);
 
   let customerAvatarPublic: string | null = null;
   let customerDisplayName = "Customer";
@@ -288,7 +292,8 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
             <LineHolderStatusPanel
               jobId={job.id}
               currentStatus={status}
-              profileComplete={canAcceptJobs}
+              acceptSetupReady={canAcceptJobs}
+              acceptSetupHint={acceptSetupHint}
             />
           )}
         </div>

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import { isWaiterAcceptSetupComplete } from "@/lib/waiter-profile-complete";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -20,7 +20,7 @@ export default async function WaiterLayout({
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at"
+      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -31,7 +31,7 @@ export default async function WaiterLayout({
 
   const showBanner =
     profile?.role === "waiter" &&
-    !isWaiterProfileComplete(profile);
+    !isWaiterAcceptSetupComplete(profile, user);
 
   return (
     <>
@@ -47,9 +47,9 @@ export default async function WaiterLayout({
               </span>
               <span className="text-amber-950/95">
                 {" "}
-                — Add your first name, profile photo, phone, short bio, at least
-                one airport you serve, and verify your email. This helps
-                travelers trust you.
+                — Verify email, complete profile and airports, finish onboarding,
+                and connect payouts. This helps travelers trust you and lets you
+                accept bookings.
               </span>
             </p>
             <p className="mt-2 text-center sm:text-left">

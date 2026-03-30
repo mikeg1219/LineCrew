@@ -1,6 +1,9 @@
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
-import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import {
+  isWaiterAcceptSetupComplete,
+  waiterAcceptSetupShortfallMessage,
+} from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/job";
 import Link from "next/link";
@@ -25,7 +28,7 @@ export default async function BrowseJobsPage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "role, serving_airports, first_name, avatar_url, phone, bio, onboarding_completed, email_verified_at"
+      "role, serving_airports, first_name, avatar_url, phone, bio, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -38,7 +41,8 @@ export default async function BrowseJobsPage() {
     redirect("/dashboard/customer");
   }
 
-  const canAcceptJobs = isWaiterProfileComplete(profile);
+  const canAcceptJobs = isWaiterAcceptSetupComplete(profile, user);
+  const acceptHint = waiterAcceptSetupShortfallMessage(profile, user);
 
   const serving =
     (profile as { serving_airports?: string[] | null }).serving_airports ??
@@ -74,6 +78,22 @@ export default async function BrowseJobsPage() {
           Open listings from Customers who need someone in line. Accept a booking to
           see full details and contact the Customer.
         </p>
+        {!canAcceptJobs && (
+          <div
+            className="mt-4 rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-950"
+            role="status"
+          >
+            <span className="font-semibold">Accepting is paused until setup is complete.</span>{" "}
+            You can browse listings anytime.{" "}
+            <span className="text-amber-950/90">{acceptHint}</span>{" "}
+            <Link
+              href="/dashboard/waiter"
+              className="font-semibold text-amber-900 underline decoration-amber-700/40 underline-offset-2 hover:text-amber-950"
+            >
+              Go to dashboard
+            </Link>
+          </div>
+        )}
       </div>
 
       {error != null && (
@@ -138,7 +158,11 @@ export default async function BrowseJobsPage() {
                   View booking
                 </Link>
                 <div className="min-w-0 flex-1 sm:max-w-xs">
-                  <AcceptJobForm jobId={job.id} canAccept={canAcceptJobs} />
+                  <AcceptJobForm
+                    jobId={job.id}
+                    canAccept={canAcceptJobs}
+                    setupHint={acceptHint}
+                  />
                 </div>
               </div>
             </li>

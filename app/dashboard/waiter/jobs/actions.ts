@@ -2,7 +2,7 @@
 
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
-import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import { isWaiterAcceptSetupComplete } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -36,7 +36,7 @@ export async function acceptJobAction(
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at"
+      "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -45,10 +45,10 @@ export async function acceptJobAction(
     return { error: "Only Line Holders can accept bookings." };
   }
 
-  if (!isWaiterProfileComplete(profile)) {
+  if (!isWaiterAcceptSetupComplete(profile, user)) {
     return {
       error:
-        "Complete your Line Holder profile (photo, phone, bio, airports, onboarding, verified email) before accepting bookings. Open Profile to finish.",
+        "Finish setup before accepting: verify your email, complete profile and airports, finish onboarding, and connect payouts on your dashboard.",
     };
   }
 
