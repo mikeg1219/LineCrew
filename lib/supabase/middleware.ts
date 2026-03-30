@@ -31,17 +31,14 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const isAdmin = request.nextUrl.pathname.startsWith("/admin");
-  const isAuth = request.nextUrl.pathname.startsWith("/auth");
-  const isResetPassword = request.nextUrl.pathname.startsWith(
-    "/auth/reset-password"
-  );
-  const isVerifyEmail = request.nextUrl.pathname.startsWith(
-    "/auth/verify-email"
-  );
+  const pathname = request.nextUrl.pathname;
+  const isDashboard = pathname.startsWith("/dashboard");
+  const isAdmin = pathname.startsWith("/admin");
+  const isAuth = pathname.startsWith("/auth");
+  const isResetPassword = pathname.startsWith("/auth/reset-password");
+  const isVerifyEmail = pathname.startsWith("/auth/verify-email");
 
-  const isProfile = request.nextUrl.pathname === "/profile";
+  const isProfile = pathname === "/profile";
 
   if ((isDashboard || isAdmin || isProfile) && !user) {
     const url = request.nextUrl.clone();
@@ -50,14 +47,22 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user && (isVerifyEmail || isResetPassword)) {
+    return supabaseResponse;
+  }
+
   if ((isDashboard || isAdmin || isProfile) && user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select("email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!isEmailVerifiedForApp(profile, user)) {
+    if (profileErr) {
+      console.error("[middleware] profiles select:", profileErr.message);
+    }
+
+    if (!isEmailVerifiedForApp(profileErr ? null : profile, user)) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
@@ -69,16 +74,22 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuth && user && !isResetPassword && !isVerifyEmail) {
-    const { data: authProfile } = await supabase
+    const { data: authProfile, error: authProfileErr } = await supabase
       .from("profiles")
       .select("email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    const needsVerify = !isEmailVerifiedForApp(authProfile, user);
+    if (authProfileErr) {
+      console.error("[middleware] profiles select (auth):", authProfileErr.message);
+    }
+
+    const needsVerify = !isEmailVerifiedForApp(
+      authProfileErr ? null : authProfile,
+      user
+    );
 
     if (needsVerify) {
-      const pathname = request.nextUrl.pathname;
       if (pathname === "/auth" || pathname === "/auth/") {
         return supabaseResponse;
       }

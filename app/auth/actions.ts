@@ -159,11 +159,11 @@ export async function authAction(
       .eq("id", uid)
       .maybeSingle();
 
-    if (
-      !profileError &&
-      profile &&
-      !isEmailVerifiedForApp(profile, sessionUser)
-    ) {
+    if (profileError) {
+      console.error("[auth] profile fetch on sign-in:", profileError.message);
+    }
+
+    if (!isEmailVerifiedForApp(profileError ? null : profile, sessionUser)) {
       redirect(
         `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}`
       );

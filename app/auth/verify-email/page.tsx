@@ -46,12 +46,15 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from("profiles")
       .select("email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
-    if (isEmailVerifiedForApp(profile, user)) {
+    if (profileErr) {
+      console.error("[verify-email page] profiles select:", profileErr.message);
+    }
+    if (isEmailVerifiedForApp(profileErr ? null : profile, user)) {
       redirect("/dashboard");
     }
   }
