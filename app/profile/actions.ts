@@ -153,8 +153,8 @@ payload.updated_at = new Date().toISOString();
     .eq("id", user.id)
     .select("id");
 
-  if (error) {
-    devLogProfileSave("supabase_update", {
+if (error) {
+    console.error("[profile/save] supabase_update", {
       code: error.code,
       message: error.message,
       details: error.details,
@@ -167,12 +167,10 @@ payload.updated_at = new Date().toISOString();
 
   const rowCount = updatedRows?.length ?? 0;
   if (rowCount === 0) {
-    devLogProfileSave("zero_rows", {
+    console.error("[profile/save] zero_rows", {
       userId: user.id,
       keys: Object.keys(payload),
       usingServiceRole: Boolean(service),
-      hint:
-        "No row updated — check profiles.id matches auth user, RLS, or run migrations for payload columns.",
     });
     return { ok: false, kind: "save" };
   }
