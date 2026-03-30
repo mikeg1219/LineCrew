@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { PostJobForm } from "@/app/dashboard/customer/post-job/post-job-form";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -70,14 +71,23 @@ export default async function PostJobPage({ searchParams }: PageProps) {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
   if (!profile) {
-    redirect("/dashboard");
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   if (profile.role === "waiter") {

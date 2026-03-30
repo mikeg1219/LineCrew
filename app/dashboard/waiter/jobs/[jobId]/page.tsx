@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { LineHolderHandoffGuidanceCard } from "@/app/dashboard/waiter/jobs/line-holder-handoff-guidance";
 import { LineHolderStatusPanel } from "@/app/dashboard/waiter/jobs/line-holder-status-panel";
 import { ProviderBookingDetailsCard } from "@/app/dashboard/waiter/jobs/provider-booking-details-card";
@@ -44,7 +45,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
       "role, first_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
@@ -52,8 +53,17 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
   if (!profile) {
-    redirect("/dashboard");
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   if (profile.role !== "waiter") {

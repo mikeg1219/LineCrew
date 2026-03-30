@@ -1,4 +1,5 @@
 import { AuthenticatedAppHeader } from "@/components/authenticated-app-header";
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfileForUser } from "@/lib/ensure-profile";
@@ -24,11 +25,19 @@ export default async function DashboardLayout({
     user.user_metadata as Record<string, unknown> | undefined
   );
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("profiles")
-    .select("role, first_name, full_name, avatar_url, updated_at")
+    .select(
+      "role, first_name, full_name, avatar_url, updated_at, email_verified_at"
+    )
     .eq("id", user.id)
     .maybeSingle();
+
+  if (!isEmailVerifiedForApp(profileErr ? null : profile, user)) {
+    const q = new URLSearchParams({ pending: "1" });
+    if (user.email) q.set("email", user.email);
+    redirect(`/auth/verify-email?${q.toString()}`);
+  }
 
   let avatarPublic: string | null = null;
   if (profile?.avatar_url) {

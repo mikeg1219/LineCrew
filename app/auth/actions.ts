@@ -16,7 +16,7 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/dashboard");
+    redirect("/auth");
   }
 
   const { data: profile } = await supabase

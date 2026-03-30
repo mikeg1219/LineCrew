@@ -1,4 +1,5 @@
 import { JobActionButtons } from "@/app/admin/job-action-buttons";
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isAdminEmail } from "@/lib/admin-config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -13,6 +14,22 @@ export default async function AdminPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth");
+  }
+
+  const { data: verifyProfile, error: verifyErr } = await supabase
+    .from("profiles")
+    .select("email_verified_at")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (!isEmailVerifiedForApp(verifyErr ? null : verifyProfile, user)) {
+    const q = new URLSearchParams({ pending: "1" });
+    if (user.email) q.set("email", user.email);
+    redirect(`/auth/verify-email?${q.toString()}`);
+  }
 
   if (!user?.email || !isAdminEmail(user.email)) {
     redirect("/dashboard");

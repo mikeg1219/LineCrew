@@ -60,9 +60,12 @@ export async function updateSession(request: NextRequest) {
 
     if (profileErr) {
       console.error("[middleware] profiles select:", profileErr.message);
+      // Do not send to verify-email here — server layouts/pages can read profiles reliably.
+      // Otherwise verify-email may redirect to /dashboard while proxy still treats user as unverified (loop).
+      return supabaseResponse;
     }
 
-    if (!isEmailVerifiedForApp(profileErr ? null : profile, user)) {
+    if (!isEmailVerifiedForApp(profile, user)) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");

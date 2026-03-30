@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
@@ -15,13 +16,24 @@ export default async function WaiterDashboardPage() {
 
   if (!user) redirect("/auth");
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role, stripe_account_id, serving_airports, avatar_url, full_name")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile) redirect("/dashboard");
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
+  if (!profile) {
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
+  }
   if (profile.role === "customer") redirect("/dashboard/customer");
 
   let avatarUrl = null;

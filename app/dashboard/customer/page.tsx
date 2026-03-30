@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import {
   CUSTOMER_DASHBOARD_STATUS_LABELS,
   statusBadgeClass,
@@ -17,14 +18,23 @@ export default async function CustomerDashboardPage() {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
   if (!profile) {
-    redirect("/dashboard");
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   if (profile.role === "waiter") {

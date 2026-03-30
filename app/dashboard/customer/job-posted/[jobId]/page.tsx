@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { createClient } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/job";
@@ -25,14 +26,31 @@ export default async function JobPostedPage({ params }: PageProps) {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .maybeSingle();
 
-  if (profile?.role !== "customer") {
-    redirect("/dashboard");
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
+  if (!profile) {
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
+  }
+
+  if (profile.role === "waiter") {
+    redirect("/dashboard/waiter");
+  }
+
+  if (profile.role !== "customer") {
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   const { data: job, error } = await supabase

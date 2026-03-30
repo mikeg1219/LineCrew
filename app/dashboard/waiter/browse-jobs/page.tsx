@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import {
@@ -25,7 +26,7 @@ export default async function BrowseJobsPage() {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
       "role, serving_airports, first_name, avatar_url, phone, bio, onboarding_completed, email_verified_at, stripe_account_id"
@@ -33,8 +34,17 @@ export default async function BrowseJobsPage() {
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
   if (!profile) {
-    redirect("/dashboard");
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   if (profile.role === "customer") {

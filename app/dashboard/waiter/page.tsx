@@ -1,3 +1,4 @@
+import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { LineHolderSetupChecklist } from "@/app/dashboard/waiter/line-holder-setup-checklist";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
@@ -37,7 +38,7 @@ export default async function WaiterDashboardPage() {
     redirect("/auth");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select(
       "role, stripe_account_id, serving_airports, email_verified_at, first_name, avatar_url, phone, bio, onboarding_completed"
@@ -45,8 +46,17 @@ export default async function WaiterDashboardPage() {
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileError) {
+    return (
+      <DashboardFinishingSetup
+        userEmail={user.email ?? ""}
+        errorMessage={`We couldn’t load your profile (${profileError.message}). Try again in a moment.`}
+      />
+    );
+  }
+
   if (!profile) {
-    redirect("/dashboard");
+    return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
   if (profile.role === "customer") {
