@@ -44,7 +44,8 @@ export default async function WaiterDashboardPage() {
     .in("status", [...COUNT_ACTIVE_STATUSES]);
 
   const activeJobs = (jobRows ?? []) as Pick<Job, "id" | "status" | "airport" | "line_type" | "offered_price" | "created_at">[];
-  const servingCount = (profile as any)?.serving_airports?.length ?? 0;
+  const servingAirports = profile.serving_airports ?? null;
+  const servingCount = Array.isArray(servingAirports) ? servingAirports.length : 0;
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9fa", paddingTop: "60px", paddingBottom: "80px" }}>

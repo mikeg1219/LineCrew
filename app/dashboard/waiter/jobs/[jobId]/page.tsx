@@ -105,7 +105,10 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   }
 
   const timelineEvents = buildProviderTimelineEvents(job);
-  const badgeLabel = PROVIDER_LINE_STATUS_LABELS[status];
+  const badgeLabel =
+    isOpenPreview && status === "open"
+      ? "Available booking"
+      : PROVIDER_LINE_STATUS_LABELS[status];
   const bookingTitle = `${airportLabel(job.airport)} — ${job.line_type}`;
   const showLiveStrip =
     isAssigned &&

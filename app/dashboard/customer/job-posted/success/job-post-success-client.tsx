@@ -8,11 +8,10 @@ export function JobPostSuccessClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const sessionId = searchParams.get("session_id");
-  const [error, setError] = useState<string | null>(null);
+  const [pollError, setPollError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!sessionId) {
-      setError("Missing checkout session.");
       return;
     }
     const sid = sessionId;
@@ -32,7 +31,7 @@ export function JobPostSuccessClient() {
           pending?: boolean;
         } = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "Could not confirm payment.");
+          setPollError(data.error ?? "Could not confirm payment.");
           return;
         }
         if (data.jobId) {
@@ -46,7 +45,7 @@ export function JobPostSuccessClient() {
         await new Promise((r) => setTimeout(r, 1000));
       }
       if (!cancelled) {
-        setError(
+        setPollError(
           "Your payment is processing. Check your customer dashboard in a moment — the booking will appear once Stripe confirms."
         );
       }
@@ -56,6 +55,9 @@ export function JobPostSuccessClient() {
       cancelled = true;
     };
   }, [sessionId, router]);
+
+  const error =
+    !sessionId ? "Missing checkout session." : pollError;
 
   if (error) {
     return (

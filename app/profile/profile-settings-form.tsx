@@ -23,6 +23,7 @@ import { getCroppedSquareJpegBlob } from "@/lib/crop-image";
 import { AVATAR_MAX_DIMENSION, processAvatarImageToJpeg } from "@/lib/process-avatar-image";
 import type { Area } from "react-easy-crop";
 
+import { saveProfileSettingsAction } from "@/app/profile/actions";
 import {
   DEFAULT_PHONE_COUNTRY_ID,
   formatUsNationalDisplay,
@@ -61,19 +62,6 @@ function logProfileError(
     err: err ?? null,
     ...meta,
   });
-}
-
-function stripUndefinedPayload(
-  payload: Record<string, unknown>
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(payload).filter(([, v]) => v !== undefined)
-  );
-}
-
-/** DB: only `profiles.phone` (E.164). Country + national digits stay in UI state only. */
-function profilePhonePersistFields(e164: string | null): { phone: string | null } {
-  return { phone: e164 };
 }
 
 const SAVE_FAILED_MSG =
@@ -214,7 +202,6 @@ export function ProfileSettingsForm({
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
-      if (!opts?.silent) setLoading(true);
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -272,7 +259,10 @@ export function ProfileSettingsForm({
   );
 
   useEffect(() => {
-    load();
+    const run = () => {
+      void load();
+    };
+    queueMicrotask(run);
   }, [load]);
 
   useEffect(() => {
@@ -459,66 +449,30 @@ export function ProfileSettingsForm({
       return;
     }
 
-    const profile_completed = Boolean(fn && dn && ph);
+    const result = await saveProfileSettingsAction({
+      firstName: fn,
+      displayName: dn,
+      phoneCountryId,
+      phoneNationalDigits,
+      role,
+      preferredAirport,
+      travelerNotes,
+      bio,
+      homeAirport,
+      servingAirportsText,
+      isAvailable,
+      avatarStoragePath,
+    });
 
-    const base: Record<string, unknown> = {
-      first_name: fn || null,
-      display_name: dn || null,
-      full_name: dn || null,
-      ...profilePhonePersistFields(ph),
-      profile_completed,
-    };
-
-    if (role === "customer") {
-      base.preferred_airport = preferredAirport.trim() || null;
-      base.traveler_notes = travelerNotes.trim() || null;
-    }
-
-    if (role === "waiter") {
-      const parts = servingAirportsText
-        .split(/[,;\s]+/)
-        .map((s) => s.trim().toUpperCase())
-        .filter(Boolean);
-      const unique = [...new Set(parts)];
-      base.bio = bio.trim() || null;
-      base.home_airport = homeAirport.trim() || null;
-      base.serving_airports = unique;
-      base.is_available = isAvailable;
-      base.onboarding_completed = Boolean(
-        fn &&
-          ph &&
-          bio.trim() &&
-          unique.length > 0 &&
-          avatarStoragePath
-      );
-    }
-
-    const payload = stripUndefinedPayload(base);
-
-    const { data: updatedRow, error } = await supabase
-      .from("profiles")
-      .update(payload)
-      .eq("id", user.id)
-      .select("id")
-      .maybeSingle();
-
-    if (error) {
-      logProfileError("profile save", error, {
-        payloadKeys: Object.keys(payload),
-        phoneLen: ph?.length ?? 0,
-        hasPhone: ph != null,
-      });
-      setMessage(SAVE_FAILED_MSG);
-      setSaving(false);
-      return;
-    }
-
-    if (!updatedRow) {
-      logProfileError("profile save no row updated", null, {
-        userId: user.id,
-        payloadKeys: Object.keys(payload),
-      });
-      setMessage(SAVE_FAILED_MSG);
+    if (!result.ok) {
+      if ("phoneError" in result && result.phoneError) {
+        setPhoneError(result.phoneError);
+      } else {
+        logProfileError("profile save action", null, {
+          kind: "kind" in result ? result.kind : undefined,
+        });
+        setMessage(SAVE_FAILED_MSG);
+      }
       setSaving(false);
       return;
     }

@@ -8,24 +8,31 @@ import { useEffect, useRef, useState } from "react";
 
 export type AuthHeaderRole = "customer" | "waiter" | null;
 
-export function AuthenticatedAppHeader({
-  email,
-  role,
-  avatarUrl,
-  displayName,
-  breadcrumbCurrent,
-}: {
+type AuthenticatedAppHeaderProps = {
   email: string | null;
   role: AuthHeaderRole;
   avatarUrl: string | null;
   displayName: string;
   /** e.g. "Profile" — shows LineCrew / Profile */
   breadcrumbCurrent?: string;
-}) {
+};
+
+export function AuthenticatedAppHeader(props: AuthenticatedAppHeaderProps) {
+  const pathname = usePathname();
+  return <AuthenticatedAppHeaderInner key={pathname} {...props} pathname={pathname} />;
+}
+
+function AuthenticatedAppHeaderInner({
+  email,
+  role,
+  avatarUrl,
+  displayName,
+  breadcrumbCurrent,
+  pathname,
+}: AuthenticatedAppHeaderProps & { pathname: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountWrapRef = useRef<HTMLDivElement>(null);
-  const pathname = usePathname();
 
   const dashboardHref =
     role === "waiter"
@@ -40,11 +47,6 @@ export function AuthenticatedAppHeader({
       : role === "customer"
         ? "Customer"
         : "Account setup";
-
-  useEffect(() => {
-    setMenuOpen(false);
-    setAccountOpen(false);
-  }, [pathname]);
 
   useEffect(() => {
     if (!menuOpen) return;

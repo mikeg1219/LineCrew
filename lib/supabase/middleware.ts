@@ -51,17 +51,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if ((isDashboard || isAdmin || isProfile) && user) {
-    const { data: profile, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (
-      !profileError &&
-      profile &&
-      !isEmailVerifiedForApp(profile, user)
-    ) {
+    if (!isEmailVerifiedForApp(profile, user)) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth/verify-email";
       url.searchParams.set("pending", "1");
@@ -73,16 +69,13 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (isAuth && user && !isResetPassword && !isVerifyEmail) {
-    const { data: authProfile, error: authProfileError } = await supabase
+    const { data: authProfile } = await supabase
       .from("profiles")
       .select("email_verified_at")
       .eq("id", user.id)
       .maybeSingle();
 
-    const needsVerify =
-      !authProfileError &&
-      authProfile &&
-      !isEmailVerifiedForApp(authProfile, user);
+    const needsVerify = !isEmailVerifiedForApp(authProfile, user);
 
     if (needsVerify) {
       const pathname = request.nextUrl.pathname;
