@@ -61,7 +61,7 @@ export async function saveProfileSettingsAction(
 
   const { data: profileRow, error: profileErr } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

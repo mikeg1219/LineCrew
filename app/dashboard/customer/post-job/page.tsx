@@ -73,7 +73,7 @@ export default async function PostJobPage({ searchParams }: PageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

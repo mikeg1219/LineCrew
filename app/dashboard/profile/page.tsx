@@ -2,6 +2,7 @@ import { ProfileSettingsForm } from "@/app/profile/profile-settings-form";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfileForUser } from "@/lib/ensure-profile";
+import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { redirect } from "next/navigation";
 
 export default async function DashboardProfilePage() {
@@ -22,7 +23,7 @@ export default async function DashboardProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, full_name, display_name, avatar_url, updated_at")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -37,11 +38,11 @@ export default async function DashboardProfilePage() {
     );
   }
 
-  const display =
-    profile?.display_name?.trim() ||
-    profile?.full_name?.trim() ||
-    user.email?.split("@")[0] ||
-    "Account";
+  const display = profileResolvedLabel(
+    profile ?? null,
+    user.email,
+    user.user_metadata as Record<string, unknown> | undefined
+  );
 
   const role = profile?.role;
   const roleLabel =

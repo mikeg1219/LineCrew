@@ -12,7 +12,7 @@ export default async function WaiterAirportsPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, serving_airports")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

@@ -141,11 +141,12 @@ export async function executeBookingScopedContactOutbound(params: {
 
   const { data: senderProfile } = await supabase
     .from("profiles")
-    .select("display_name, full_name")
+    .select("*")
     .eq("id", senderUserId)
     .maybeSingle();
 
   const senderLabel =
+    senderProfile?.first_name?.trim() ||
     senderProfile?.display_name?.trim() ||
     senderProfile?.full_name?.trim() ||
     "Someone";
@@ -155,7 +156,7 @@ export async function executeBookingScopedContactOutbound(params: {
 
   const { data: recipientProfile } = await supabase
     .from("profiles")
-    .select("phone")
+    .select("*")
     .eq("id", recipientUserId)
     .maybeSingle();
 

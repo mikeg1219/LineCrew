@@ -20,7 +20,7 @@ export async function ensureProfileForUser(
 ): Promise<void> {
   const { data } = await supabase
     .from("profiles")
-    .select("id")
+    .select("*")
     .eq("id", userId)
     .maybeSingle();
 

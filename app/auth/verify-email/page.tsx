@@ -48,7 +48,7 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
   if (user) {
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("email_verified_at")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
     if (profileErr) {

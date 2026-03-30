@@ -28,9 +28,7 @@ export default async function BrowseJobsPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select(
-      "role, serving_airports, full_name, display_name, avatar_url, phone, bio, onboarding_completed, email_verified_at, stripe_account_id"
-    )
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

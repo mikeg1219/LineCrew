@@ -22,7 +22,7 @@ export async function startStripeConnectOnboardingAction(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role, stripe_account_id")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

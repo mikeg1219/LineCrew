@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
       const { data: profile } = await admin
         .from("profiles")
-        .select("phone")
+        .select("*")
         .eq("id", job.customer_id)
         .maybeSingle();
 

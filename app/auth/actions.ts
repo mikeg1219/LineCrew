@@ -21,7 +21,7 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -155,7 +155,7 @@ export async function authAction(
   if (uid && sessionUser) {
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
-      .select("email_verified_at")
+      .select("*")
       .eq("id", uid)
       .maybeSingle();
 

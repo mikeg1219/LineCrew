@@ -21,7 +21,7 @@ export default async function AdminPage() {
 
   const { data: verifyProfile, error: verifyErr } = await supabase
     .from("profiles")
-    .select("email_verified_at")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

@@ -187,7 +187,7 @@ export async function resendEmailVerificationFlow(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("email_verified_at")
+    .select("*")
     .eq("id", userId)
     .maybeSingle();
 
@@ -241,7 +241,7 @@ export async function verifyEmailTokenFromLink(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("email_verified_at")
+    .select("*")
     .eq("id", row.user_id)
     .maybeSingle();
 
@@ -281,7 +281,7 @@ export async function verifyEmailWithCode(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("email_verified_at")
+    .select("*")
     .eq("id", userId)
     .maybeSingle();
 

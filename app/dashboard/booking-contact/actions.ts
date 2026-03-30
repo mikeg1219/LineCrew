@@ -32,7 +32,7 @@ export async function contactLineHolderForBooking(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -83,7 +83,7 @@ export async function contactCustomerForBooking(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

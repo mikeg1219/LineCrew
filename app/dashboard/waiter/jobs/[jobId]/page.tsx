@@ -48,9 +48,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select(
-      "role, full_name, display_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
-    )
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -106,7 +104,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   if (isAssigned) {
     const { data: cust } = await supabase
       .from("profiles")
-      .select("full_name, display_name, avatar_url")
+      .select("*")
       .eq("id", job.customer_id)
       .maybeSingle();
 

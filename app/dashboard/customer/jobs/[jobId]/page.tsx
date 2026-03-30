@@ -76,7 +76,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -140,7 +140,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
   if (job.waiter_id) {
     const { data: wp } = await supabase
       .from("profiles")
-      .select("full_name, display_name, avatar_url, bio")
+      .select("*")
       .eq("id", job.waiter_id)
       .maybeSingle();
 

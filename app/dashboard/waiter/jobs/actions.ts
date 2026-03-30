@@ -35,9 +35,7 @@ export async function acceptJobAction(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select(
-      "role, full_name, display_name, avatar_url, phone, bio, serving_airports, onboarding_completed, email_verified_at, stripe_account_id"
-    )
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -152,7 +150,7 @@ export async function updateWaiterJobStatusAction(
   if (nextStatus === "pending_confirmation") {
     const { data: waiterProfile } = await supabase
       .from("profiles")
-      .select("stripe_account_id")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
 

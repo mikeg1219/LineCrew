@@ -42,7 +42,7 @@ export async function finalizeJobPayout(
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("stripe_account_id")
+    .select("*")
     .eq("id", job.waiter_id)
     .maybeSingle();
 

@@ -22,7 +22,7 @@ export default async function WaiterDashboardPage() {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role, stripe_account_id, serving_airports, avatar_url, full_name, display_name")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -68,12 +68,22 @@ export default async function WaiterDashboardPage() {
       <NavBar
         role="waiter"
         avatarUrl={avatarUrl}
-        fullName={profileResolvedLabel(profile, user.email)}
+        fullName={profileResolvedLabel(
+          profile,
+          user.email,
+          user.user_metadata as Record<string, unknown> | undefined
+        )}
       />
 
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-          Welcome back, {profileWelcomeFirstName(profile, user.email)}!
+          Welcome back,{" "}
+          {profileWelcomeFirstName(
+            profile,
+            user.email,
+            user.user_metadata as Record<string, unknown> | undefined
+          )}
+          !
         </h1>
         <p className="mt-2 text-lg text-slate-600">
           Signed in as <span className="font-medium text-slate-900">{user.email}</span>

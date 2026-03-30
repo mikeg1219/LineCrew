@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
   if ((isDashboard || isAdmin || isProfile) && user) {
     const { data: profile, error: profileErr } = await supabase
       .from("profiles")
-      .select("email_verified_at")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -79,7 +79,7 @@ export async function updateSession(request: NextRequest) {
   if (isAuth && user && !isResetPassword && !isVerifyEmail) {
     const { data: authProfile, error: authProfileErr } = await supabase
       .from("profiles")
-      .select("email_verified_at")
+      .select("*")
       .eq("id", user.id)
       .maybeSingle();
 

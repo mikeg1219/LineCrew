@@ -28,7 +28,7 @@ export default async function JobPostedPage({ params }: PageProps) {
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 

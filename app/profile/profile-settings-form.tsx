@@ -360,7 +360,7 @@ export function ProfileSettingsForm({
 
       const { data: row } = await supabase
         .from("profiles")
-        .select("full_name, display_name, avatar_url, phone, bio, serving_airports")
+        .select("*")
         .eq("id", userId)
         .maybeSingle();
       if (row) {

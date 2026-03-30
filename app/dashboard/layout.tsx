@@ -28,9 +28,7 @@ export default async function DashboardLayout({
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")
-    .select(
-      "role, full_name, display_name, avatar_url, updated_at, email_verified_at"
-    )
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -51,7 +49,11 @@ export default async function DashboardLayout({
     );
   }
 
-  const displayName = profileResolvedLabel(profile ?? null, user.email);
+  const displayName = profileResolvedLabel(
+    profile ?? null,
+    user.email,
+    user.user_metadata as Record<string, unknown> | undefined
+  );
 
   const role =
     profile?.role === "waiter" || profile?.role === "customer"

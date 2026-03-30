@@ -160,7 +160,7 @@ export async function cancelJobAction(
       const { data: waiterRow } = job.waiter_id
         ? await supabase
             .from("profiles")
-            .select("stripe_account_id")
+            .select("*")
             .eq("id", job.waiter_id)
             .maybeSingle()
         : { data: null };
