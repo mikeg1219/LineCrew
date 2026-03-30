@@ -146,7 +146,7 @@ export async function saveProfileSettingsAction(
     phoneLen: typeof payload.phone === "string" ? payload.phone.length : 0,
     payloadPreview: payload,
   });
-
+payload.updated_at = new Date().toISOString();
   const { data: updatedRows, error } = await clientForUpdate
     .from("profiles")
     .update(payload)
