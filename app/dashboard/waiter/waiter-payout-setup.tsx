@@ -14,6 +14,21 @@ export function WaiterPayoutSetup({
   stripePayoutsEnabled?: boolean | null;
   returnTo?: "/dashboard/waiter" | "/dashboard/profile";
 }) {
+  const payoutBypass = process.env.NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS === "true";
+  if (payoutBypass) {
+    return (
+      <div className="mt-7 rounded-2xl border border-amber-200/90 bg-amber-50/80 p-5 shadow-sm sm:mt-8 sm:p-6">
+        <h2 className="text-lg font-semibold leading-snug tracking-tight text-slate-900 sm:text-[1.125rem]">
+          Payouts — test mode bypass enabled
+        </h2>
+        <p className="mt-3 text-sm leading-relaxed text-amber-900 sm:text-[15px]">
+          Stripe Connect payout setup is bypassed for testing right now. You can
+          continue end-to-end booking tests without registering a payout account.
+        </p>
+      </div>
+    );
+  }
+
   const hasSchema =
     stripeDetailsSubmitted !== undefined && stripePayoutsEnabled !== undefined;
   const payoutReady =
