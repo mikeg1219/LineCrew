@@ -11,8 +11,58 @@ import { buildJobPaymentMetadata } from "@/lib/stripe-job-metadata";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import type Stripe from "stripe";
 
 export type PostJobState = { error: string } | null;
+
+const DEFAULT_CHECKOUT_METHODS = [
+  "card",
+  "link",
+  "cashapp",
+  "klarna",
+  "amazon_pay",
+  "us_bank_account",
+] as const;
+
+function checkoutMethodsFromEnv(): string[] {
+  const raw = process.env.STRIPE_CHECKOUT_PAYMENT_METHOD_TYPES?.trim();
+  const configured =
+    raw && raw.length > 0
+      ? raw
+          .split(",")
+          .map((v) => v.trim())
+          .filter(Boolean)
+      : [...DEFAULT_CHECKOUT_METHODS];
+
+  const disableLink = process.env.STRIPE_CHECKOUT_DISABLE_LINK === "true";
+  const next = disableLink ? configured.filter((m) => m !== "link") : configured;
+  return next.length > 0 ? next : ["card"];
+}
+
+async function createCheckoutSessionWithFallback(
+  stripe: Stripe,
+  params: Stripe.Checkout.SessionCreateParams
+) {
+  const methods = checkoutMethodsFromEnv();
+  try {
+    return await stripe.checkout.sessions.create({
+      ...params,
+      payment_method_types:
+        methods as unknown as Stripe.Checkout.SessionCreateParams.PaymentMethodType[],
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    const isMethodConfigIssue =
+      /payment_method_types|not supported|unknown payment method|invalid/i.test(msg);
+    if (!isMethodConfigIssue) throw e;
+
+    // Safe fallback so checkout still works if account/mode/currency doesn't support a method.
+    return await stripe.checkout.sessions.create({
+      ...params,
+      payment_method_types: ["card"],
+    });
+  }
+}
 
 export async function postJobAction(
   _prev: PostJobState,
@@ -147,7 +197,7 @@ export async function postJobAction(
 
   const base = appBaseUrl();
 
-  const session = await stripe.checkout.sessions.create({
+  const session = await createCheckoutSessionWithFallback(stripe, {
     mode: "payment",
     customer_email: user.email ?? undefined,
     line_items: [
