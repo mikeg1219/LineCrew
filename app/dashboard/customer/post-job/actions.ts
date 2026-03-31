@@ -39,11 +39,31 @@ function checkoutMethodsFromEnv(): string[] {
   return next.length > 0 ? next : ["card"];
 }
 
+function methodsForSelectedPaymentMethod(code: string): string[] {
+  // Wallets (Apple/Google) and Link are part of Stripe Checkout's supported set.
+  // We still request the broad configured set for these.
+  if (
+    code === "stripe_card" ||
+    code === "stripe_apple_pay" ||
+    code === "stripe_google_pay" ||
+    code === "stripe_link" ||
+    code === "stripe_wallet_qr"
+  ) {
+    return checkoutMethodsFromEnv();
+  }
+  // Try method-specific preference first, then fallback will keep checkout alive.
+  if (code === "external_paypal") return ["paypal", "card"];
+  if (code === "external_cash_app") return ["cashapp", "card"];
+  // Zelle / custom are not direct Stripe Checkout rails.
+  return ["card"];
+}
+
 async function createCheckoutSessionWithFallback(
   stripe: Stripe,
-  params: Stripe.Checkout.SessionCreateParams
+  params: Stripe.Checkout.SessionCreateParams,
+  paymentMethodCode: string
 ) {
-  const methods = checkoutMethodsFromEnv();
+  const methods = methodsForSelectedPaymentMethod(paymentMethodCode);
   try {
     return await stripe.checkout.sessions.create({
       ...params,
@@ -197,7 +217,10 @@ export async function postJobAction(
 
   const base = appBaseUrl();
 
-  const session = await createCheckoutSessionWithFallback(stripe, {
+  const chosenPaymentMethod = payment_method_code_raw || "stripe_card";
+  const session = await createCheckoutSessionWithFallback(
+    stripe,
+    {
     mode: "payment",
     customer_email: user.email ?? undefined,
     line_items: [
@@ -219,7 +242,9 @@ export async function postJobAction(
     },
     success_url: `${base}/dashboard/customer/job-posted/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/dashboard/customer/post-job?cancelled=1`,
-  });
+    },
+    chosenPaymentMethod
+  );
 
   if (!session.url) {
     return { error: "Could not start checkout. Please try again." };

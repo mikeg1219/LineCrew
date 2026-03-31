@@ -46,6 +46,9 @@ export function PostJobForm() {
   const [urgencyType, setUrgencyType] = useState<string>("asap");
   const [offeredPrice, setOfferedPrice] = useState(DEFAULT_OFFER);
   const [overageRate, setOverageRate] = useState("10");
+  const [estimatedWait, setEstimatedWait] = useState<string>(
+    ESTIMATED_WAIT_OPTIONS[0] ?? ""
+  );
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodCode>("stripe_card");
 
@@ -336,11 +339,14 @@ export function PostJobForm() {
               name="estimated_wait"
               required
               className={inputClass}
-              defaultValue=""
+              value={estimatedWait}
+              onChange={(e) => setEstimatedWait(e.target.value)}
             >
-              <option value="" disabled>
-                Select duration
-              </option>
+              {ESTIMATED_WAIT_OPTIONS.length > 1 && (
+                <option value="" disabled>
+                  Select duration
+                </option>
+              )}
               {ESTIMATED_WAIT_OPTIONS.map((w) => (
                 <option key={w} value={w}>
                   {w}
