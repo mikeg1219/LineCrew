@@ -57,7 +57,11 @@ export function PostJobForm() {
   const platformFee = offerValid ? offerNum * 0.2 : 0;
 
   return (
-    <form action={formAction} className="mx-auto max-w-2xl space-y-6 sm:space-y-8">
+    <form
+      action={formAction}
+      noValidate
+      className="mx-auto max-w-2xl space-y-6 sm:space-y-8"
+    >
       {/* Timing */}
       <section className={sectionClass} aria-labelledby="section-timing">
         <h2 id="section-timing" className={sectionTitle}>
