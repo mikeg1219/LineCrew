@@ -23,11 +23,16 @@ export type WaiterAcceptGateRow = WaiterProfileGateRow & {
   stripe_payouts_enabled?: boolean | null;
 };
 
+function stripePayoutBypassEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS === "true";
+}
+
 /**
  * True when Stripe reports onboarding done and payouts enabled (can receive transfers).
  * If `stripe_details_submitted` / `stripe_payouts_enabled` are absent (pre-migration), only `stripe_account_id` is required.
  */
 export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
+  if (stripePayoutBypassEnabled()) return true;
   if (!String(p.stripe_account_id ?? "").trim()) return false;
   const ds = p.stripe_details_submitted;
   const pe = p.stripe_payouts_enabled;
@@ -38,6 +43,9 @@ export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
 }
 
 export function stripeConnectPayoutShortfallMessage(p: WaiterAcceptGateRow): string {
+  if (stripePayoutBypassEnabled()) {
+    return "";
+  }
   if (!String(p.stripe_account_id ?? "").trim()) {
     return "Connect payouts on your dashboard before accepting bookings.";
   }
