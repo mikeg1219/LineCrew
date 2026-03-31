@@ -126,27 +126,22 @@ export async function GET(req: Request) {
   }
 
   if (error) {
-    if (
-      error.code === "23514" &&
-      (error.message ?? "").includes("jobs_line_type_check")
-    ) {
-      const fallbackLineType = legacyCompatibleLineType(baseInsert.line_type);
-      if (fallbackLineType !== baseInsert.line_type) {
-        const fallbackDescription = baseInsert.description
-          ? `${baseInsert.description}\n\nOriginal line type: ${baseInsert.line_type}`
-          : `Original line type: ${baseInsert.line_type}`;
-        const retry = await admin
-          .from("jobs")
-          .insert({
-            ...baseInsert,
-            line_type: fallbackLineType,
-            description: fallbackDescription,
-          })
-          .select("id")
-          .single();
-        newJob = retry.data;
-        error = retry.error;
-      }
+    const fallbackLineType = legacyCompatibleLineType(baseInsert.line_type);
+    if (fallbackLineType !== baseInsert.line_type) {
+      const fallbackDescription = baseInsert.description
+        ? `${baseInsert.description}\n\nOriginal line type: ${baseInsert.line_type}`
+        : `Original line type: ${baseInsert.line_type}`;
+      const retry = await admin
+        .from("jobs")
+        .insert({
+          ...baseInsert,
+          line_type: fallbackLineType,
+          description: fallbackDescription,
+        })
+        .select("id")
+        .single();
+      newJob = retry.data;
+      error = retry.error;
     }
   }
 

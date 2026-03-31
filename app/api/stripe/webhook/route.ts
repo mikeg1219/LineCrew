@@ -135,7 +135,11 @@ export async function POST(req: Request) {
     }
   } catch (e) {
     console.error("Stripe webhook handler error:", e);
-    return NextResponse.json({ error: "Webhook handler failed" }, { status: 500 });
+    const err = e as { code?: string; message?: string };
+    return NextResponse.json(
+      { error: "Webhook handler failed", code: err?.code ?? null },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ received: true });
@@ -227,23 +231,18 @@ async function handlePaymentIntentSucceeded(
 
   if (error) {
     if (error.code === "23505") return;
-    if (
-      error.code === "23514" &&
-      (error.message ?? "").includes("jobs_line_type_check")
-    ) {
-      const fallbackLineType = legacyCompatibleLineType(lineType);
-      if (fallbackLineType !== lineType) {
-        const fallbackDescription = baseInsert.description
-          ? `${baseInsert.description}\n\nOriginal line type: ${lineType}`
-          : `Original line type: ${lineType}`;
-        const { error: retryErr } = await admin.from("jobs").insert({
-          ...baseInsert,
-          line_type: fallbackLineType,
-          description: fallbackDescription,
-        });
-        if (!retryErr || retryErr.code === "23505") return;
-        throw retryErr;
-      }
+    const fallbackLineType = legacyCompatibleLineType(lineType);
+    if (fallbackLineType !== lineType) {
+      const fallbackDescription = baseInsert.description
+        ? `${baseInsert.description}\n\nOriginal line type: ${lineType}`
+        : `Original line type: ${lineType}`;
+      const { error: retryErr } = await admin.from("jobs").insert({
+        ...baseInsert,
+        line_type: fallbackLineType,
+        description: fallbackDescription,
+      });
+      if (!retryErr || retryErr.code === "23505") return;
+      throw retryErr;
     }
     throw error;
   }
