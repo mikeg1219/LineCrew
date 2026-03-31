@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">LineCrew</string>
+    <string name="title_activity_main">LineCrew</string>
+    <string name="package_name">com.linecrew.app</string>
+    <string name="custom_url_scheme">com.linecrew.app</string>
+</resources>
