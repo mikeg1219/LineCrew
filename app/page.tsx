@@ -115,6 +115,46 @@ export default function Home() {
 
       <section
         className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16"
+        aria-labelledby="getting-started-heading"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2
+            id="getting-started-heading"
+            className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
+          >
+            Getting started on the web
+          </h2>
+          <div className="mt-8 grid gap-6 sm:grid-cols-2 sm:gap-8">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                For travelers (customers)
+              </h3>
+              <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+                <li>1. Click “Book a Line Holder” at the top of this page.</li>
+                <li>2. Create your account with email and password.</li>
+                <li>3. Open your email and verify your address.</li>
+                <li>4. Go to Dashboard → Customer and complete your profile.</li>
+                <li>5. Post a booking, choose your payment option, and complete checkout.</li>
+              </ol>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
+                For Line Holders (LineWaiters)
+              </h3>
+              <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
+                <li>1. Click “Become a Line Holder” at the top of this page.</li>
+                <li>2. Create your account and verify your email.</li>
+                <li>3. In Dashboard → Line Holder, finish onboarding (photo, bio, airports).</li>
+                <li>4. Set up payouts when Stripe Connect is ready, or continue in test mode.</li>
+                <li>5. Browse bookings, accept a job, and follow the in‑app steps.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16"
         aria-labelledby="why-linecrew-heading"
       >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
