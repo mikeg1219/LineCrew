@@ -20,7 +20,7 @@ function normalizeStripeConnectError(err: unknown): string {
   const lowered = msg.toLowerCase();
 
   if (lowered.includes("signed up for connect")) {
-    return "Stripe Connect is not enabled for the configured STRIPE_SECRET_KEY. In Stripe Dashboard, enable Connect for this account and use the matching test/live secret key in Vercel, then retry.";
+    return "Stripe Connect account creation is blocked for the configured STRIPE_SECRET_KEY. Confirm Connect is enabled for this Stripe account and that the key has Connect write permissions in the same test/live mode.";
   }
 
   if (lowered.includes("no such account")) {
@@ -32,6 +32,28 @@ function normalizeStripeConnectError(err: unknown): string {
   }
 
   return msg || fallback;
+}
+
+async function findExistingConnectedAccountId(
+  stripe: Stripe,
+  userId: string,
+  userEmail: string
+): Promise<string | null> {
+  let startingAfter: string | undefined;
+  for (let page = 0; page < 5; page += 1) {
+    const list = await stripe.accounts.list({
+      limit: 100,
+      ...(startingAfter ? { starting_after: startingAfter } : {}),
+    });
+    const hit = list.data.find((acct) => {
+      if (acct.metadata?.supabase_user_id === userId) return true;
+      return (acct.email ?? "").toLowerCase() === userEmail.toLowerCase();
+    });
+    if (hit?.id) return hit.id;
+    if (!list.has_more || list.data.length === 0) break;
+    startingAfter = list.data[list.data.length - 1]?.id;
+  }
+  return null;
 }
 
 /**
@@ -76,6 +98,17 @@ export async function startStripeConnectOnboardingAction(
 
     const stripe = getStripe();
     let accountId = profile?.stripe_account_id ?? null;
+
+    if (!accountId) {
+      const existingId = await findExistingConnectedAccountId(
+        stripe,
+        user.id,
+        user.email
+      );
+      if (existingId) {
+        accountId = existingId;
+      }
+    }
 
     if (!accountId) {
       // Transfers only: Line Holders receive platform payouts, not direct charges.
