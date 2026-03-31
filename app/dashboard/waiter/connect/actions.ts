@@ -6,8 +6,33 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import Stripe from "stripe";
 
 export type ConnectState = { error: string } | null;
+
+function normalizeStripeConnectError(err: unknown): string {
+  const fallback = "Could not start Stripe onboarding.";
+  if (!(err instanceof Stripe.errors.StripeError)) {
+    return err instanceof Error ? err.message : fallback;
+  }
+
+  const msg = (err.message ?? "").trim();
+  const lowered = msg.toLowerCase();
+
+  if (lowered.includes("signed up for connect")) {
+    return "Stripe Connect is not enabled for the configured STRIPE_SECRET_KEY. In Stripe Dashboard, enable Connect for this account and use the matching test/live secret key in Vercel, then retry.";
+  }
+
+  if (lowered.includes("no such account")) {
+    return "Your saved Stripe account could not be found. Please contact support to reconnect payouts.";
+  }
+
+  if (err.code === "api_key_expired" || lowered.includes("invalid api key")) {
+    return "Stripe secret key is invalid for this environment. Update STRIPE_SECRET_KEY and retry.";
+  }
+
+  return msg || fallback;
+}
 
 /**
  * Incomplete Connect → resume with account_onboarding.
@@ -100,7 +125,7 @@ export async function startStripeConnectOnboardingAction(
     if (isRedirectError(e)) {
       throw e;
     }
-    const msg = e instanceof Error ? e.message : "Could not start Stripe onboarding.";
+    const msg = normalizeStripeConnectError(e);
     console.error("[waiter/connect] start onboarding failed:", msg);
     return {
       error: msg,
