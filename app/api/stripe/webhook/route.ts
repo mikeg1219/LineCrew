@@ -23,6 +23,27 @@ function readMeta(
   return out;
 }
 
+function legacyCompatibleLineType(raw: string): string {
+  const v = raw.trim();
+  if (v === "Check-In (Ticket Counter)") return "Check-In";
+  if (v === "Bag Drop (Checked Bags)") return "Bag Drop";
+  if (v === "Security Line (Standard)") return "Security";
+  if (v === "Security Line (PreCheck / CLEAR)") return "TSA PreCheck";
+  // For legacy schemas limited to 5 enum-like values.
+  if (
+    v === "Flight Changes / Customer Service" ||
+    v.startsWith("Gate Agent") ||
+    v === "Rental Car Pickup" ||
+    v === "Taxi / Rideshare Line" ||
+    v === "Food / Coffee Line" ||
+    v === "Lounge Entry Waitlist" ||
+    v === "Other (Describe your line)"
+  ) {
+    return "Customs";
+  }
+  return v;
+}
+
 /** Dev-only: event type/id and non-sensitive metadata keys — never log secrets or full payloads. */
 function devLogStripeEvent(event: Stripe.Event): void {
   if (process.env.NODE_ENV !== "development") return;
@@ -187,7 +208,7 @@ async function handlePaymentIntentSucceeded(
     return;
   }
 
-  const { error } = await admin.from("jobs").insert({
+  const baseInsert = {
     customer_id: customerId,
     customer_email: md.customer_email || null,
     airport,
@@ -200,10 +221,30 @@ async function handlePaymentIntentSucceeded(
     estimated_wait: estimatedWait,
     status: "open",
     stripe_payment_intent_id: pi.id,
-  });
+  };
+
+  const { error } = await admin.from("jobs").insert(baseInsert);
 
   if (error) {
     if (error.code === "23505") return;
+    if (
+      error.code === "23514" &&
+      (error.message ?? "").includes("jobs_line_type_check")
+    ) {
+      const fallbackLineType = legacyCompatibleLineType(lineType);
+      if (fallbackLineType !== lineType) {
+        const fallbackDescription = baseInsert.description
+          ? `${baseInsert.description}\n\nOriginal line type: ${lineType}`
+          : `Original line type: ${lineType}`;
+        const { error: retryErr } = await admin.from("jobs").insert({
+          ...baseInsert,
+          line_type: fallbackLineType,
+          description: fallbackDescription,
+        });
+        if (!retryErr || retryErr.code === "23505") return;
+        throw retryErr;
+      }
+    }
     throw error;
   }
 }

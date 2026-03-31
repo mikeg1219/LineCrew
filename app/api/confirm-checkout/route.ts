@@ -20,6 +20,26 @@ function readMeta(
   return out;
 }
 
+function legacyCompatibleLineType(raw: string): string {
+  const v = raw.trim();
+  if (v === "Check-In (Ticket Counter)") return "Check-In";
+  if (v === "Bag Drop (Checked Bags)") return "Bag Drop";
+  if (v === "Security Line (Standard)") return "Security";
+  if (v === "Security Line (PreCheck / CLEAR)") return "TSA PreCheck";
+  if (
+    v === "Flight Changes / Customer Service" ||
+    v.startsWith("Gate Agent") ||
+    v === "Rental Car Pickup" ||
+    v === "Taxi / Rideshare Line" ||
+    v === "Food / Coffee Line" ||
+    v === "Lounge Entry Waitlist" ||
+    v === "Other (Describe your line)"
+  ) {
+    return "Customs";
+  }
+  return v;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get("session_id");
@@ -75,22 +95,24 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, pending: true });
   }
 
-  const { data: newJob, error } = await admin
+  const baseInsert = {
+    customer_id: md.customer_id,
+    customer_email: md.customer_email || null,
+    airport: md.airport,
+    terminal: md.terminal,
+    line_type: md.line_type,
+    description: md.description ?? "",
+    offered_price: offered,
+    overage_rate: overageRate,
+    overage_agreed: md.overage_agreed === "true",
+    estimated_wait: md.estimated_wait,
+    status: "open",
+    stripe_payment_intent_id: piId,
+  };
+
+  let { data: newJob, error } = await admin
     .from("jobs")
-    .insert({
-      customer_id: md.customer_id,
-      customer_email: md.customer_email || null,
-      airport: md.airport,
-      terminal: md.terminal,
-      line_type: md.line_type,
-      description: md.description ?? "",
-      offered_price: offered,
-      overage_rate: overageRate,
-      overage_agreed: md.overage_agreed === "true",
-      estimated_wait: md.estimated_wait,
-      status: "open",
-      stripe_payment_intent_id: piId,
-    })
+    .insert(baseInsert)
     .select("id")
     .single();
 
@@ -101,6 +123,31 @@ export async function GET(req: Request) {
       .eq("stripe_payment_intent_id", piId)
       .maybeSingle();
     return NextResponse.json({ ok: true, jobId: dup?.id });
+  }
+
+  if (error) {
+    if (
+      error.code === "23514" &&
+      (error.message ?? "").includes("jobs_line_type_check")
+    ) {
+      const fallbackLineType = legacyCompatibleLineType(baseInsert.line_type);
+      if (fallbackLineType !== baseInsert.line_type) {
+        const fallbackDescription = baseInsert.description
+          ? `${baseInsert.description}\n\nOriginal line type: ${baseInsert.line_type}`
+          : `Original line type: ${baseInsert.line_type}`;
+        const retry = await admin
+          .from("jobs")
+          .insert({
+            ...baseInsert,
+            line_type: fallbackLineType,
+            description: fallbackDescription,
+          })
+          .select("id")
+          .single();
+        newJob = retry.data;
+        error = retry.error;
+      }
+    }
   }
 
   if (error) {
@@ -124,5 +171,8 @@ export async function GET(req: Request) {
     );
   }
 
+  if (!newJob?.id) {
+    return NextResponse.json({ ok: false, pending: true, reason: "retry_insert" });
+  }
   return NextResponse.json({ ok: true, jobId: newJob.id });
 }
