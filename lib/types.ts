@@ -15,6 +15,8 @@ export type Profile = {
   bio?: string | null;
   profile_completed?: boolean;
   stripe_account_id?: string | null;
+  stripe_details_submitted?: boolean | null;
+  stripe_payouts_enabled?: boolean | null;
   serving_airports?: string[] | null;
   preferred_airport?: string | null;
   traveler_notes?: string | null;

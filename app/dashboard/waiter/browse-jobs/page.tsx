@@ -1,6 +1,7 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
+import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
   isWaiterAcceptSetupComplete,
   waiterAcceptSetupShortfallMessage,
@@ -26,7 +27,7 @@ export default async function BrowseJobsPage() {
     redirect("/auth");
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -40,6 +41,15 @@ export default async function BrowseJobsPage() {
       />
     );
   }
+
+  const profile = profileRow
+    ? ((await syncWaiterStripeIfNeeded(
+        supabase,
+        user.id,
+        profileRow as Record<string, unknown>,
+        { force: false }
+      )) as typeof profileRow)
+    : null;
 
   if (!profile) {
     return <DashboardFinishingSetup userEmail={user.email ?? ""} />;

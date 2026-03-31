@@ -1,0 +1,16 @@
+---
+description: Signal completion with a final "done" line (helps when the UI appears stuck)
+alwaysApply: true
+---
+
+# Completion marker: `done`
+
+At the **end** of assistant responses (after substantive work, explanations, or when tools/commands were used), add a **final line** containing exactly:
+
+```text
+done
+```
+
+Use this so it is clear the reply **finished** even if Cursor lags, truncates, or appears frozen.
+
+If the response is **only** a refusal, a single clarifying question, or there is **nothing** to execute, you may omit the marker—otherwise prefer including **`done`** on its own last line for completed turns.

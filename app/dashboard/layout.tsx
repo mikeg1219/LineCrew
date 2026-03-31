@@ -2,7 +2,10 @@ import { AuthenticatedAppHeader } from "@/components/authenticated-app-header";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfileForUser } from "@/lib/ensure-profile";
+import {
+  ensureProfileForUser,
+  syncEmailVerifiedFromAuth,
+} from "@/lib/ensure-profile";
 import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { redirect } from "next/navigation";
 
@@ -25,6 +28,7 @@ export default async function DashboardLayout({
     user.id,
     user.user_metadata as Record<string, unknown> | undefined
   );
+  await syncEmailVerifiedFromAuth(supabase, user);
 
   const { data: profile, error: profileErr } = await supabase
     .from("profiles")

@@ -5,7 +5,12 @@ import { ensureProfileForUser } from "@/lib/ensure-profile";
 import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { redirect } from "next/navigation";
 
-export default async function DashboardProfilePage() {
+export default async function DashboardProfilePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ connect?: string }>;
+}) {
+  const sp = await (searchParams ?? Promise.resolve({}));
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,11 +26,17 @@ export default async function DashboardProfilePage() {
     user.user_metadata as Record<string, unknown> | undefined
   );
 
-  const { data: profile } = await supabase
+  const { data: profileRow } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+
+  const connectRaw = sp.connect;
+  const connect = Array.isArray(connectRaw) ? connectRaw[0] : connectRaw;
+  const stripeSyncForce = connect === "return" || connect === "refresh";
+
+  const profile = profileRow;
 
   let avatarPublic: string | null = null;
   if (profile?.avatar_url) {
@@ -76,6 +87,7 @@ export default async function DashboardProfilePage() {
 
       <ProfileSettingsForm
         compactAvatar
+        stripeSyncForce={stripeSyncForce}
         heroFallback={{
           display,
           email: user.email ?? null,

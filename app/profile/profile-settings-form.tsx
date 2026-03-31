@@ -1,7 +1,10 @@
 "use client";
 
 import { ProfileCompletionStatus } from "@/app/profile/profile-completion-status";
-import { ensureProfileForUser } from "@/lib/ensure-profile";
+import {
+  ensureProfileForUser,
+  syncEmailVerifiedFromAuth,
+} from "@/lib/ensure-profile";
 import type { Profile, UserRole } from "@/lib/types";
 import { waiterCoreFieldsComplete } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/client";
@@ -23,7 +26,9 @@ import { getCroppedSquareJpegBlob } from "@/lib/crop-image";
 import { AVATAR_MAX_DIMENSION, processAvatarImageToJpeg } from "@/lib/process-avatar-image";
 import type { Area } from "react-easy-crop";
 
+import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { saveProfileSettingsAction } from "@/app/profile/actions";
+import { refreshStripeConnectStatusAction } from "@/app/profile/stripe-refresh-actions";
 import {
   DEFAULT_PHONE_COUNTRY_ID,
   formatUsNationalDisplay,
@@ -149,11 +154,14 @@ function ProfileHeroCard({
 export function ProfileSettingsForm({
   compactAvatar = false,
   heroFallback,
+  stripeSyncForce = false,
 }: {
   /** When true, avatar upload is a compact row (use when a hero shows the photo). */
   compactAvatar?: boolean;
   /** Server snapshot for hero before client profile load (dashboard profile page). */
   heroFallback?: ProfileHeroFallback;
+  /** From ?connect=return|refresh after Stripe — triggers Connect flag refresh on load. */
+  stripeSyncForce?: boolean;
 } = {}) {
   const supabase = createClient();
   const router = useRouter();
@@ -191,6 +199,16 @@ export function ProfileSettingsForm({
   const [isAvailable, setIsAvailable] = useState(true);
   const [profileCompleted, setProfileCompleted] = useState<boolean | null>(null);
   const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
+  const [authEmailConfirmedAt, setAuthEmailConfirmedAt] = useState<
+    string | null
+  >(null);
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  const [stripeDetailsSubmitted, setStripeDetailsSubmitted] = useState<
+    boolean | null
+  >(null);
+  const [stripePayoutsEnabled, setStripePayoutsEnabled] = useState<
+    boolean | null
+  >(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(
     null
   );
@@ -211,11 +229,13 @@ export function ProfileSettingsForm({
       }
       setUserId(user.id);
       setUserEmail(user.email ?? null);
+      setAuthEmailConfirmedAt(user.email_confirmed_at ?? null);
       await ensureProfileForUser(
         supabase,
         user.id,
         user.user_metadata as Record<string, unknown> | undefined
       );
+      await syncEmailVerifiedFromAuth(supabase, user);
       const { data } = await supabase
         .from("profiles")
         .select("*")
@@ -239,6 +259,15 @@ export function ProfileSettingsForm({
         setIsAvailable(p.is_available !== false);
         setProfileCompleted(p.profile_completed ?? null);
         setEmailVerifiedAt(p.email_verified_at ?? null);
+        setStripeAccountId(p.stripe_account_id ?? null);
+        setStripeDetailsSubmitted(
+          (p as { stripe_details_submitted?: boolean | null })
+            .stripe_details_submitted ?? null
+        );
+        setStripePayoutsEnabled(
+          (p as { stripe_payouts_enabled?: boolean | null })
+            .stripe_payouts_enabled ?? null
+        );
         setOnboardingCompleted(p.onboarding_completed ?? null);
         const path = p.avatar_url ?? null;
         setAvatarStoragePath(path);
@@ -252,10 +281,34 @@ export function ProfileSettingsForm({
         } else {
           setAvatarPublicUrl(null);
         }
+
+        const accountId = p.stripe_account_id ?? "";
+        const detailsSubmitted =
+          (p as { stripe_details_submitted?: boolean | null })
+            .stripe_details_submitted ?? null;
+        const payoutsEnabled =
+          (p as { stripe_payouts_enabled?: boolean | null })
+            .stripe_payouts_enabled ?? null;
+        if (
+          p.role === "waiter" &&
+          accountId.trim() !== ""
+        ) {
+          const needsSync =
+            detailsSubmitted == null || payoutsEnabled == null;
+          if (stripeSyncForce || needsSync) {
+            const r = await refreshStripeConnectStatusAction({
+              force: stripeSyncForce,
+            });
+            if (r.ok) {
+              setStripeDetailsSubmitted(r.stripe_details_submitted);
+              setStripePayoutsEnabled(r.stripe_payouts_enabled);
+            }
+          }
+        }
       }
       if (!opts?.silent) setLoading(false);
     },
-    [supabase]
+    [supabase, stripeSyncForce]
   );
 
   useEffect(() => {
@@ -597,6 +650,10 @@ export function ProfileSettingsForm({
           servingCodes={servingCodesUnique}
           onboardingCompleted={onboardingCompleted}
           emailVerifiedAt={emailVerifiedAt}
+          authEmailConfirmedAt={authEmailConfirmedAt}
+          stripeAccountId={stripeAccountId}
+          stripeDetailsSubmitted={stripeDetailsSubmitted}
+          stripePayoutsEnabled={stripePayoutsEnabled}
         />
       )}
 
@@ -1013,6 +1070,16 @@ export function ProfileSettingsForm({
         </div>
       </section>
     </form>
+
+    {role === "waiter" && (
+      <WaiterPayoutSetup
+        stripeAccountId={stripeAccountId}
+        stripeDetailsSubmitted={stripeDetailsSubmitted}
+        stripePayoutsEnabled={stripePayoutsEnabled}
+        returnTo="/dashboard/profile"
+      />
+    )}
+
     {cropModal ? (
       <AvatarCropModal
         imageSrc={cropModal.src}

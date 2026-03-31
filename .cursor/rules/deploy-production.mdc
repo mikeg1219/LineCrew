@@ -1,0 +1,14 @@
+---
+description: Production deploy — run the repo deploy script when user asks to ship
+alwaysApply: true
+---
+
+# Deploy to production (Vercel)
+
+When the user asks to **deploy**, **ship to production**, **run Vercel prod**, or similar:
+
+1. From the **repository root**, run **`npm run deploy:prod`** (executes `scripts/deploy-production.mjs`: commit if there are changes, `git push`, then `npx vercel deploy --prod --yes`).
+2. Optional commit message: **`npm run deploy:prod -- "fix: short description"`**
+3. Confirm the command **exits with code 0**. If `git push` or Vercel fails, report the error; do not claim success.
+
+Prerequisites (human / one-time): Git remote configured, Vercel CLI logged in and project linked (`npx vercel link` in this repo if needed).

@@ -18,7 +18,42 @@ export type WaiterProfileGateRow = ProfileNameFields & {
 /** Profile row including Stripe for accept / earning gates */
 export type WaiterAcceptGateRow = WaiterProfileGateRow & {
   stripe_account_id?: string | null;
+  /** Synced from Stripe API / account.updated webhook */
+  stripe_details_submitted?: boolean | null;
+  stripe_payouts_enabled?: boolean | null;
 };
+
+/**
+ * True when Stripe reports onboarding done and payouts enabled (can receive transfers).
+ * If `stripe_details_submitted` / `stripe_payouts_enabled` are absent (pre-migration), only `stripe_account_id` is required.
+ */
+export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
+  if (!String(p.stripe_account_id ?? "").trim()) return false;
+  const ds = p.stripe_details_submitted;
+  const pe = p.stripe_payouts_enabled;
+  if (ds === undefined && pe === undefined) {
+    return true;
+  }
+  return ds === true && pe === true;
+}
+
+export function stripeConnectPayoutShortfallMessage(p: WaiterAcceptGateRow): string {
+  if (!String(p.stripe_account_id ?? "").trim()) {
+    return "Connect payouts on your dashboard before accepting bookings.";
+  }
+  const ds = p.stripe_details_submitted;
+  const pe = p.stripe_payouts_enabled;
+  if (ds === undefined && pe === undefined) {
+    return "";
+  }
+  if (ds !== true) {
+    return "Finish Stripe payout onboarding (identity and bank details) on your dashboard before accepting bookings.";
+  }
+  if (pe !== true) {
+    return "Stripe payouts are not enabled yet — complete bank verification in payout setup before accepting bookings.";
+  }
+  return "";
+}
 
 export function waiterCoreFieldsComplete(p: WaiterProfileGateRow): boolean {
   const airports = p.serving_airports?.filter(Boolean) ?? [];
@@ -71,7 +106,7 @@ export function isWaiterAcceptSetupComplete(
   }
   if (!waiterCoreFieldsComplete(p)) return false;
   if (p.onboarding_completed !== true) return false;
-  if (!String(p.stripe_account_id ?? "").trim()) return false;
+  if (!isStripeConnectPayoutReady(p)) return false;
   return true;
 }
 
@@ -106,8 +141,7 @@ export function waiterAcceptSetupShortfallMessage(
   if (p.onboarding_completed !== true) {
     return "Finish Line Holder onboarding in Profile before accepting.";
   }
-  if (!String(p.stripe_account_id ?? "").trim()) {
-    return "Connect payouts on your dashboard before accepting bookings.";
-  }
+  const stripeMsg = stripeConnectPayoutShortfallMessage(p);
+  if (stripeMsg) return stripeMsg;
   return "Finish setup on your dashboard before accepting.";
 }

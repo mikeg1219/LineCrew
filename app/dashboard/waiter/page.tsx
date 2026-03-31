@@ -5,7 +5,9 @@ import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
+import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
+  isStripeConnectPayoutReady,
   isWaiterAcceptSetupComplete,
   waiterAcceptSetupShortfallMessage,
   waiterProfileBasicsAndOnboardingComplete,
@@ -28,7 +30,12 @@ const COUNT_ACTIVE_STATUSES = [
   "near_front",
 ] as const;
 
-export default async function WaiterDashboardPage() {
+export default async function WaiterDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ connect?: string }>;
+}) {
+  const sp = await (searchParams ?? Promise.resolve({}));
   const supabase = await createClient();
   const {
     data: { user },
@@ -38,7 +45,7 @@ export default async function WaiterDashboardPage() {
     redirect("/auth");
   }
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRow, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
@@ -53,13 +60,24 @@ export default async function WaiterDashboardPage() {
     );
   }
 
-  if (!profile) {
+  if (!profileRow) {
     return <DashboardFinishingSetup userEmail={user.email ?? ""} />;
   }
 
-  if (profile.role === "customer") {
+  if (profileRow.role === "customer") {
     redirect("/dashboard/customer");
   }
+
+  const connectRaw = sp.connect;
+  const connect = Array.isArray(connectRaw) ? connectRaw[0] : connectRaw;
+  const forceStripeSync =
+    connect === "return" || connect === "refresh";
+  const profile = (await syncWaiterStripeIfNeeded(
+    supabase,
+    user.id,
+    profileRow as Record<string, unknown>,
+    { force: forceStripeSync }
+  )) as typeof profileRow;
 
   const { data: jobRows } = await supabase
     .from("jobs")
@@ -83,7 +101,7 @@ export default async function WaiterDashboardPage() {
     (profile as { serving_airports?: string[] | null })?.serving_airports
       ?.length ?? 0;
 
-  const hasPayouts = Boolean(profile?.stripe_account_id);
+  const hasPayouts = isStripeConnectPayoutReady(profile);
   const hasAirports = servingCount > 0;
   const emailVerified = isEmailVerifiedForApp(
     profile as { email_verified_at: string | null } | null,
@@ -179,6 +197,8 @@ export default async function WaiterDashboardPage() {
 
       <WaiterPayoutSetup
         stripeAccountId={profile?.stripe_account_id ?? null}
+        stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
+        stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
       />
 
       <div className="mt-7 rounded-2xl border border-slate-200/80 bg-white px-4 py-5 shadow-sm sm:mt-8 sm:px-6 sm:py-5">

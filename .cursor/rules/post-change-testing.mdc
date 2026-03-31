@@ -1,0 +1,28 @@
+---
+description: After code changes — test notification, steps, one yes/no confirmation
+alwaysApply: true
+---
+
+# Post-change testing and confirmation
+
+After **substantive code updates** (features, fixes, refactors—not trivial one-line tweaks unless requested), end the response with:
+
+## 1. Test execution notification
+One short line, e.g.: **"Tests / verification recommended before you rely on this in production."**
+
+## 2. Test steps (concrete)
+Numbered list tailored to this repo, for example:
+- `npm run lint` — optional: `npx tsc --noEmit`
+- Any project script that applies (`npm run verify:booking-pipeline`, etc.)
+- **Manual**: URLs to open, user flows (sign in as Line Holder, Profile → Set up payouts, Accept booking), and what “success” looks like
+
+Keep steps **actionable** and **ordered**.
+
+## 3. Yes / no confirmation (one question)
+Close with **exactly one** yes/no question, for example:
+- **"Reply yes if you want me to run `npm run lint` (and `tsc` if applicable) in the terminal next; reply no to skip."**
+- Or: **"Reply yes when you’ve run the manual steps above and want a follow-up; reply no if you’re done for now."**
+
+Pick the question that best matches whether automated commands are still needed or only human verification.
+
+Do **not** skip the notification and steps when the user asked for a “full” fix or deployment-related work.

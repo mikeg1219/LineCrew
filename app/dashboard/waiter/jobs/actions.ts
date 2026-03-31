@@ -2,7 +2,12 @@
 
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
-import { isWaiterAcceptSetupComplete } from "@/lib/waiter-profile-complete";
+import { syncStripeConnectFromStripeForUser } from "@/lib/stripe-account-sync";
+import {
+  isStripeConnectPayoutReady,
+  isWaiterAcceptSetupComplete,
+  type WaiterAcceptGateRow,
+} from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -148,16 +153,17 @@ export async function updateWaiterJobStatusAction(
   }
 
   if (nextStatus === "pending_confirmation") {
+    await syncStripeConnectFromStripeForUser(supabase, user.id);
     const { data: waiterProfile } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!waiterProfile?.stripe_account_id) {
+    if (!isStripeConnectPayoutReady(waiterProfile as WaiterAcceptGateRow)) {
       return {
         error:
-          "Set up payouts on your dashboard (Stripe) before you can complete a booking.",
+          "Finish Stripe payout setup (identity and bank) and wait until payouts are enabled — then you can mark the booking complete.",
       };
     }
 

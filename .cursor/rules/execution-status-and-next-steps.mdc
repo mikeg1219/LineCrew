@@ -1,0 +1,17 @@
+---
+description: After finishing work — execution status, next steps (or explicit none)
+alwaysApply: true
+---
+
+# Execution status and next steps
+
+When a **process or task finishes** (implementation, deploy script, investigation, multi-step fix, etc.), end with:
+
+## 1. Execution status
+A short **outcome** line, e.g. **Completed:** what was done; or **Blocked / Partial:** what failed and what succeeded.
+
+## 2. Next steps
+- Numbered **next steps** when there is something the user or environment should do (deploy, env vars, SQL, manual browser test, Stripe dashboard).
+- If there is **nothing** left to do for this task, state exactly: **No next steps.**
+
+Do not omit the next-steps section — always include either concrete steps or **No next steps.**

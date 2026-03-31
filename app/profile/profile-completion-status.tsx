@@ -1,5 +1,10 @@
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isCustomerProfileComplete } from "@/lib/customer-profile-complete";
-import { isWaiterProfileComplete } from "@/lib/waiter-profile-complete";
+import {
+  isStripeConnectPayoutReady,
+  isWaiterAcceptSetupComplete,
+  type WaiterAcceptGateRow,
+} from "@/lib/waiter-profile-complete";
 
 type CustomerProps = {
   role: "customer";
@@ -18,6 +23,11 @@ type WaiterProps = {
   servingCodes: string[];
   onboardingCompleted: boolean | null;
   emailVerifiedAt: string | null;
+  /** Supabase Auth — same source as middleware / accept-job gate */
+  authEmailConfirmedAt: string | null;
+  stripeAccountId: string | null;
+  stripeDetailsSubmitted: boolean | null;
+  stripePayoutsEnabled: boolean | null;
 };
 
 export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
@@ -59,7 +69,7 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
   }
 
   const p = props;
-  const row = {
+  const gate: WaiterAcceptGateRow = {
     first_name: p.firstName,
     avatar_url: p.avatarPath,
     phone: p.phone,
@@ -67,8 +77,16 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
     serving_airports: p.servingCodes,
     onboarding_completed: p.onboardingCompleted,
     email_verified_at: p.emailVerifiedAt,
+    stripe_account_id: p.stripeAccountId,
+    stripe_details_submitted: p.stripeDetailsSubmitted,
+    stripe_payouts_enabled: p.stripePayoutsEnabled,
   };
-  const full = isWaiterProfileComplete(row);
+  const authUser = { email_confirmed_at: p.authEmailConfirmedAt };
+  const full = isWaiterAcceptSetupComplete(gate, authUser);
+  const emailOk = isEmailVerifiedForApp(
+    { email_verified_at: p.emailVerifiedAt },
+    authUser
+  );
 
   return (
     <div
@@ -101,9 +119,10 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
             ok={p.onboardingCompleted === true}
             label="Save profile to confirm onboarding (auto when core fields are done)"
           />
+          <Check ok={emailOk} label="Email verified" />
           <Check
-            ok={Boolean(p.emailVerifiedAt)}
-            label="Email verified"
+            ok={isStripeConnectPayoutReady(gate)}
+            label="Payouts ready (Stripe onboarding + bank)"
           />
         </ul>
       )}

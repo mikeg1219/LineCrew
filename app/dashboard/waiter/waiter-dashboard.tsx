@@ -106,7 +106,17 @@ export default async function WaiterDashboardPage() {
           {servingCount === 0 && <span className="ml-2 text-amber-800">— select airports to see open bookings.</span>}
         </p>
 
-        <WaiterPayoutSetup stripeAccountId={profile?.stripe_account_id ?? null} />
+        <WaiterPayoutSetup
+          stripeAccountId={profile?.stripe_account_id ?? null}
+          stripeDetailsSubmitted={
+            (profile as { stripe_details_submitted?: boolean | null } | null)
+              ?.stripe_details_submitted ?? null
+          }
+          stripePayoutsEnabled={
+            (profile as { stripe_payouts_enabled?: boolean | null } | null)
+              ?.stripe_payouts_enabled ?? null
+          }
+        />
 
         <section className="mt-12">
           <h2 className="text-lg font-semibold text-slate-900">Your active bookings</h2>

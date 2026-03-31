@@ -267,15 +267,27 @@ async function handleAccountUpdated(
   admin: ReturnType<typeof createAdminClient>,
   account: Stripe.Account
 ) {
+  if (!account.id) return;
+
+  const detailsSubmitted = account.details_submitted === true;
+  const payoutsEnabled = account.payouts_enabled === true;
+  const patch = {
+    stripe_account_id: account.id,
+    stripe_details_submitted: detailsSubmitted,
+    stripe_payouts_enabled: payoutsEnabled,
+  };
+
   const userId = account.metadata?.supabase_user_id;
-  if (userId && account.id) {
-    await admin
-      .from("profiles")
-      .update({ stripe_account_id: account.id })
-      .eq("id", userId);
-  } else if (process.env.NODE_ENV === "development") {
-    console.warn("[stripe/webhook] account.updated: missing supabase_user_id or id", {
-      account_id: account.id,
-    });
+  if (userId) {
+    await admin.from("profiles").update(patch).eq("id", userId);
+    return;
+  }
+
+  const { error } = await admin
+    .from("profiles")
+    .update(patch)
+    .eq("stripe_account_id", account.id);
+  if (error && process.env.NODE_ENV === "development") {
+    console.warn("[stripe/webhook] account.updated: no row for account", account.id);
   }
 }

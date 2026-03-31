@@ -1,0 +1,14 @@
+---
+description: One yes/no confirmation, then fully execute (commands, code, tests)
+alwaysApply: true
+---
+
+# Auto-execute after confirmation
+
+When the user asks for implementation, fixes, debugging, deploy, or any work that involves tools (terminal, edits, tests):
+
+1. **Confirm once** — Ask a single clear yes/no (e.g. “Proceed with implementation and run commands?”), **unless** they already confirmed in the same message (e.g. “yes”, “go ahead”, “do it”, “run it”).
+2. **On yes** (or explicit same-message approval) — Execute the full request: make edits, run installs/lint/tsc/build as needed, run tests when relevant, without asking again for each step.
+3. **On no** — Stop or only explain; do not run destructive or irreversible actions without renewed approval.
+
+Keep confirmations **one round** before execution; avoid repeated micro-prompts after they’ve said yes.

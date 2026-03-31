@@ -4,10 +4,23 @@ import { WaiterPayoutConnectForm } from "@/app/dashboard/waiter/waiter-payout-co
 
 export function WaiterPayoutSetup({
   stripeAccountId,
+  stripeDetailsSubmitted,
+  stripePayoutsEnabled,
+  returnTo = "/dashboard/waiter",
 }: {
   stripeAccountId: string | null;
+  /** When null/undefined, UI assumes legacy DB (only account id tracked). */
+  stripeDetailsSubmitted?: boolean | null;
+  stripePayoutsEnabled?: boolean | null;
+  returnTo?: "/dashboard/waiter" | "/dashboard/profile";
 }) {
-  const incomplete = !stripeAccountId;
+  const hasSchema =
+    stripeDetailsSubmitted !== undefined && stripePayoutsEnabled !== undefined;
+  const payoutReady =
+    Boolean(stripeAccountId?.trim()) &&
+    (!hasSchema ||
+      (stripeDetailsSubmitted === true && stripePayoutsEnabled === true));
+  const incomplete = !payoutReady;
 
   return (
     <div
@@ -23,22 +36,42 @@ export function WaiterPayoutSetup({
       <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-[15px]">
         Connect your bank through Stripe so earnings can be sent to you after
         handoffs. You receive 80% of the listed price; LineCrew keeps a 20%
-        platform fee. Payouts must be connected before you can receive money for
-        completed bookings.
+        platform fee. You must finish Stripe onboarding (identity + bank) and
+        have payouts enabled before accepting jobs or receiving transfers.
       </p>
-      {stripeAccountId ? (
-        <p className="mt-3 text-sm font-medium text-emerald-800">
-          Stripe account connected. You can reopen onboarding to update your
-          details anytime.
+      {!stripeAccountId?.trim() ? (
+        <p className="mt-3 text-sm font-medium text-amber-900">
+          Payout setup isn&apos;t started — connect below to create your Stripe
+          account and add bank details.
+        </p>
+      ) : hasSchema && stripeDetailsSubmitted !== true ? (
+        <p className="mt-3 text-sm font-medium text-amber-900">
+          Finish Stripe onboarding (identity and bank details). Use the button
+          below to continue where you left off.
+        </p>
+      ) : hasSchema && stripePayoutsEnabled !== true ? (
+        <p className="mt-3 text-sm font-medium text-amber-900">
+          Stripe is still verifying your bank or identity — payouts are not
+          enabled yet. Complete any outstanding steps in Stripe, or use the
+          button below to update your information.
         </p>
       ) : (
-        <p className="mt-3 text-sm font-medium text-amber-900">
-          Payout setup isn&apos;t complete yet — connect below so you&apos;re
-          ready to receive earnings when bookings finish.
+        <p className="mt-3 text-sm font-medium text-emerald-800">
+          Payout setup looks good — Stripe reports payouts enabled. You can
+          reopen onboarding to update your details anytime.
         </p>
       )}
       <div className="mt-6">
         <WaiterPayoutConnectForm
+          returnTo={returnTo}
+          label={
+            payoutReady
+              ? "Update bank details"
+              : stripeAccountId?.trim()
+                ? "Continue payout setup"
+                : "Set up payouts"
+          }
+          pendingLabel="Opening Stripe…"
           buttonClassName={
             incomplete
               ? "min-h-[52px] w-full rounded-xl bg-slate-900 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60 sm:min-h-[48px] sm:w-auto"
