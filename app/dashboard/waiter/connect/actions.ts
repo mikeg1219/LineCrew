@@ -18,8 +18,8 @@ function stripeAccountLinkType(
 ): "account_onboarding" | "account_update" {
   const id = profile?.stripe_account_id;
   if (typeof id !== "string" || !id.trim()) return "account_onboarding";
-  const ds = profile.stripe_details_submitted;
-  const pe = profile.stripe_payouts_enabled;
+  const ds = profile?.stripe_details_submitted;
+  const pe = profile?.stripe_payouts_enabled;
   if (ds === undefined && pe === undefined) return "account_onboarding";
   if (ds === true && pe === true) return "account_update";
   return "account_onboarding";

@@ -33,9 +33,13 @@ const COUNT_ACTIVE_STATUSES = [
 export default async function WaiterDashboardPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ connect?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const sp = await (searchParams ?? Promise.resolve({}));
+  const sp =
+    (await (searchParams ?? Promise.resolve({}))) as Record<
+      string,
+      string | string[] | undefined
+    >;
   const supabase = await createClient();
   const {
     data: { user },

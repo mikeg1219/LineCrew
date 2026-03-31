@@ -81,7 +81,9 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
     stripe_details_submitted: p.stripeDetailsSubmitted,
     stripe_payouts_enabled: p.stripePayoutsEnabled,
   };
-  const authUser = { email_confirmed_at: p.authEmailConfirmedAt };
+  const authUser = {
+    email_confirmed_at: p.authEmailConfirmedAt ?? undefined,
+  };
   const full = isWaiterAcceptSetupComplete(gate, authUser);
   const emailOk = isEmailVerifiedForApp(
     { email_verified_at: p.emailVerifiedAt },
