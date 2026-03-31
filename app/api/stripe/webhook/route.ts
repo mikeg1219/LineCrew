@@ -65,6 +65,7 @@ export async function POST(req: Request) {
   devLogStripeEvent(event);
 
   const admin = createAdminClient();
+  const stripe = getStripe();
 
   try {
     switch (event.type) {
@@ -72,6 +73,13 @@ export async function POST(req: Request) {
         await handlePaymentIntentSucceeded(
           admin,
           event.data.object as Stripe.PaymentIntent
+        );
+        break;
+      case "checkout.session.completed":
+        await handleCheckoutSessionCompleted(
+          admin,
+          stripe,
+          event.data.object as Stripe.Checkout.Session
         );
         break;
       case "payment_intent.payment_failed":
@@ -182,6 +190,21 @@ async function handlePaymentIntentSucceeded(
     if (error.code === "23505") return;
     throw error;
   }
+}
+
+async function handleCheckoutSessionCompleted(
+  admin: ReturnType<typeof createAdminClient>,
+  stripe: Stripe,
+  session: Stripe.Checkout.Session
+) {
+  const piRef = session.payment_intent;
+  const piId = typeof piRef === "string" ? piRef : piRef?.id ?? null;
+  if (!piId) {
+    console.warn("checkout.session.completed: missing payment_intent", session.id);
+    return;
+  }
+  const pi = await stripe.paymentIntents.retrieve(piId);
+  await handlePaymentIntentSucceeded(admin, pi);
 }
 
 async function handleAccountUpdated(
