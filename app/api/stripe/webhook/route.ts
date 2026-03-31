@@ -8,6 +8,21 @@ export const runtime = "nodejs";
 /** Vercel serverless timeout (Stripe webhook can wait on DB). */
 export const maxDuration = 60;
 
+function readMeta(
+  ...sources: Array<Record<string, string | null | undefined> | null | undefined>
+) {
+  const out: Record<string, string> = {};
+  for (const src of sources) {
+    if (!src) continue;
+    for (const [k, v] of Object.entries(src)) {
+      if (typeof v === "string" && v.trim() !== "" && !out[k]) {
+        out[k] = v;
+      }
+    }
+  }
+  return out;
+}
+
 /** Dev-only: event type/id and non-sensitive metadata keys — never log secrets or full payloads. */
 function devLogStripeEvent(event: Stripe.Event): void {
   if (process.env.NODE_ENV !== "development") return;
@@ -120,11 +135,12 @@ function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
 
 async function handlePaymentIntentSucceeded(
   admin: ReturnType<typeof createAdminClient>,
-  pi: Stripe.PaymentIntent
+  pi: Stripe.PaymentIntent,
+  metadataOverride?: Record<string, string | null | undefined> | null
 ) {
   if (pi.status !== "succeeded") return;
 
-  const md = pi.metadata;
+  const md = readMeta(pi.metadata, metadataOverride);
   const customerId = md.customer_id;
   if (!customerId) {
     console.warn("payment_intent.succeeded: missing customer_id", pi.id);
@@ -204,7 +220,7 @@ async function handleCheckoutSessionCompleted(
     return;
   }
   const pi = await stripe.paymentIntents.retrieve(piId);
-  await handlePaymentIntentSucceeded(admin, pi);
+  await handlePaymentIntentSucceeded(admin, pi, session.metadata);
 }
 
 async function handleAccountUpdated(

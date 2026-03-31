@@ -5,6 +5,21 @@ import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
+function readMeta(
+  ...sources: Array<Record<string, string | null | undefined> | null | undefined>
+) {
+  const out: Record<string, string> = {};
+  for (const src of sources) {
+    if (!src) continue;
+    for (const [k, v] of Object.entries(src)) {
+      if (typeof v === "string" && v.trim() !== "" && !out[k]) {
+        out[k] = v;
+      }
+    }
+  }
+  return out;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const sessionId = searchParams.get("session_id");
@@ -32,7 +47,7 @@ export async function GET(req: Request) {
   }
 
   const pi = await stripe.paymentIntents.retrieve(piId);
-  const md = pi.metadata ?? {};
+  const md = readMeta(pi.metadata, session.metadata);
 
   if (md.customer_id !== user.id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
