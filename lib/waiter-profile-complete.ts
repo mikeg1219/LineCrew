@@ -23,7 +23,7 @@ export type WaiterAcceptGateRow = WaiterProfileGateRow & {
   stripe_payouts_enabled?: boolean | null;
 };
 
-function stripePayoutBypassEnabled(): boolean {
+export function isStripePayoutBypassEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS === "true";
 }
 
@@ -32,7 +32,7 @@ function stripePayoutBypassEnabled(): boolean {
  * If `stripe_details_submitted` / `stripe_payouts_enabled` are absent (pre-migration), only `stripe_account_id` is required.
  */
 export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
-  if (stripePayoutBypassEnabled()) return true;
+  if (isStripePayoutBypassEnabled()) return true;
   if (!String(p.stripe_account_id ?? "").trim()) return false;
   const ds = p.stripe_details_submitted;
   const pe = p.stripe_payouts_enabled;
@@ -43,7 +43,7 @@ export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
 }
 
 export function stripeConnectPayoutShortfallMessage(p: WaiterAcceptGateRow): string {
-  if (stripePayoutBypassEnabled()) {
+  if (isStripePayoutBypassEnabled()) {
     return "";
   }
   if (!String(p.stripe_account_id ?? "").trim()) {

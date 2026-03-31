@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
+  isStripePayoutBypassEnabled,
   isStripeConnectPayoutReady,
   isWaiterAcceptSetupComplete,
   waiterAcceptSetupShortfallMessage,
@@ -120,6 +121,7 @@ export default async function WaiterDashboardPage({
       ? isWaiterAcceptSetupComplete(profile, user)
       : false;
   const acceptSetupSummary = waiterAcceptSetupShortfallMessage(profile, user);
+  const payoutBypass = isStripePayoutBypassEnabled();
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
@@ -199,11 +201,18 @@ export default async function WaiterDashboardPage({
         </div>
       </div>
 
-      <WaiterPayoutSetup
-        stripeAccountId={profile?.stripe_account_id ?? null}
-        stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
-        stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
-      />
+      {payoutBypass ? (
+        <div className="mt-7 rounded-2xl border border-amber-200/90 bg-amber-50/80 p-5 text-sm text-amber-900 sm:mt-8 sm:p-6">
+          Test mode: payout gating is bypassed (`NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS=true`).
+          You can continue booking-flow testing without Stripe Connect registration.
+        </div>
+      ) : (
+        <WaiterPayoutSetup
+          stripeAccountId={profile?.stripe_account_id ?? null}
+          stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
+          stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
+        />
+      )}
 
       <div className="mt-7 rounded-2xl border border-slate-200/80 bg-white px-4 py-5 shadow-sm sm:mt-8 sm:px-6 sm:py-5">
         <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">
