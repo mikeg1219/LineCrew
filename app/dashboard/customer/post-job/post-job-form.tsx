@@ -3,10 +3,11 @@
 import { AirportCombobox } from "@/app/dashboard/customer/post-job/airport-combobox";
 import { TerminalSelect } from "@/app/dashboard/customer/post-job/terminal-select";
 import { postJobAction, type PostJobState } from "@/app/dashboard/customer/post-job/actions";
+import { ESTIMATED_WAIT_OPTIONS, LINE_TYPE_GROUPS } from "@/lib/jobs/options";
 import {
-  ESTIMATED_WAIT_OPTIONS,
-  LINE_TYPE_GROUPS,
-} from "@/lib/jobs/options";
+  PAYMENT_METHOD_LABEL,
+  type PaymentMethodCode,
+} from "@/lib/payment-methods";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
@@ -42,6 +43,8 @@ export function PostJobForm() {
   const [urgencyType, setUrgencyType] = useState<string>("asap");
   const [offeredPrice, setOfferedPrice] = useState(DEFAULT_OFFER);
   const [overageRate, setOverageRate] = useState("10");
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethodCode>("stripe_card");
 
   const offerNum = parseFloat(offeredPrice);
   const offerValid = !Number.isNaN(offerNum) && offerNum >= 10;
@@ -379,6 +382,60 @@ export function PostJobForm() {
               The fee is deducted from your payment before payout to your Line Holder.
             </p>
           </div>
+
+          {/* Test-only payment method selector (does not change Stripe flow yet) */}
+          {process.env.NODE_ENV !== "production" && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:p-5">
+              <label className={labelClass}>
+                Payment method (test planning)
+              </label>
+              <p className={hintClass}>
+                All options currently charge through Stripe in test mode. This field
+                lets us mark which method you intend to use (e.g. Apple Pay, PayPal,
+                Zelle) so we can validate flows before native app launch.
+              </p>
+              <select
+                name="payment_method_code"
+                value={paymentMethod}
+                onChange={(e) =>
+                  setPaymentMethod(e.target.value as PaymentMethodCode)
+                }
+                className={`${inputClass} mt-2 max-w-md`}
+              >
+                <optgroup label="Stripe (card & wallets)">
+                  <option value="stripe_card">
+                    {PAYMENT_METHOD_LABEL.stripe_card}
+                  </option>
+                  <option value="stripe_apple_pay">
+                    {PAYMENT_METHOD_LABEL.stripe_apple_pay}
+                  </option>
+                  <option value="stripe_google_pay">
+                    {PAYMENT_METHOD_LABEL.stripe_google_pay}
+                  </option>
+                  <option value="stripe_link">
+                    {PAYMENT_METHOD_LABEL.stripe_link}
+                  </option>
+                  <option value="stripe_wallet_qr">
+                    {PAYMENT_METHOD_LABEL.stripe_wallet_qr}
+                  </option>
+                </optgroup>
+                <optgroup label="External / P2P (manual in test)">
+                  <option value="external_paypal">
+                    {PAYMENT_METHOD_LABEL.external_paypal}
+                  </option>
+                  <option value="external_cash_app">
+                    {PAYMENT_METHOD_LABEL.external_cash_app}
+                  </option>
+                  <option value="external_zelle">
+                    {PAYMENT_METHOD_LABEL.external_zelle}
+                  </option>
+                  <option value="external_other">
+                    {PAYMENT_METHOD_LABEL.external_other}
+                  </option>
+                </optgroup>
+              </select>
+            </div>
+          )}
 
           {state?.error && (
             <p

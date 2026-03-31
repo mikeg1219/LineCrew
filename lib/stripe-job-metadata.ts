@@ -12,6 +12,7 @@ export type JobCheckoutMetadata = {
   overage_rate: string;
   offered_price: string;
   overage_agreed: string;
+  payment_method_code?: string;
 };
 
 export function buildJobPaymentMetadata(input: {
@@ -25,6 +26,7 @@ export function buildJobPaymentMetadata(input: {
   overageRate: number;
   offeredPrice: number;
   overageAgreed: boolean;
+  paymentMethodCode?: string | null;
 }): JobCheckoutMetadata {
   const description =
     input.description.trim().length > MAX_META
@@ -42,5 +44,6 @@ export function buildJobPaymentMetadata(input: {
     overage_rate: input.overageRate.toFixed(2),
     offered_price: input.offeredPrice.toFixed(2),
     overage_agreed: input.overageAgreed ? "true" : "false",
+    payment_method_code: input.paymentMethodCode ?? undefined,
   };
 }

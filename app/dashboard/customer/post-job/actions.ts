@@ -46,6 +46,9 @@ export async function postJobAction(
   const airline = String(formData.get("airline") ?? "").trim();
   const flight_number = String(formData.get("flight_number") ?? "").trim();
   const exact_location = String(formData.get("exact_location") ?? "").trim();
+  const payment_method_code_raw = String(
+    formData.get("payment_method_code") ?? ""
+  ).trim();
 
   const urgencyLabels: Record<string, string> = {
     asap: "ASAP (within 15 minutes)",
@@ -138,6 +141,8 @@ export async function postJobAction(
     overageRate: overage_rate,
     offeredPrice: offered_price,
     overageAgreed: true,
+    paymentMethodCode:
+      payment_method_code_raw || "stripe_card",
   });
 
   const base = appBaseUrl();
