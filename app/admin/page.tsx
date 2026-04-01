@@ -642,6 +642,7 @@ export default async function AdminPage() {
                   <th className="px-3 py-2">Category</th>
                   <th className="px-3 py-2">Requests</th>
                   <th className="px-3 py-2">Accepted</th>
+                  <th className="px-3 py-2">% Accepted</th>
                   <th className="px-3 py-2">Waiter Preferred</th>
                   <th className="px-3 py-2">Gap</th>
                 </tr>
@@ -649,6 +650,10 @@ export default async function AdminPage() {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {preferenceVsAccepted.map((row) => {
                   const gap = row.preferred - row.accepted;
+                  const acceptedPct =
+                    row.requested > 0
+                      ? `${Math.round((row.accepted / row.requested) * 100)}%`
+                      : "0%";
                   return (
                     <tr key={row.category}>
                       <td className="px-3 py-2 font-medium text-slate-900">
@@ -656,6 +661,7 @@ export default async function AdminPage() {
                       </td>
                       <td className="px-3 py-2">{row.requested}</td>
                       <td className="px-3 py-2">{row.accepted}</td>
+                      <td className="px-3 py-2">{acceptedPct}</td>
                       <td className="px-3 py-2">{row.preferred}</td>
                       <td
                         className={`px-3 py-2 font-semibold ${
