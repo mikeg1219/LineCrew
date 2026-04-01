@@ -4,11 +4,19 @@ export type JobStatus =
   | "at_airport"
   | "in_line"
   | "near_front"
+  | "customer_on_the_way"
+  | "ready_for_handoff"
+  | "qr_generated"
+  | "qr_scanned"
+  | "awaiting_dual_confirmation"
   | "pending_confirmation"
   | "completed"
+  | "issue_flagged"
   | "cancelled"
   | "disputed"
   | "refunded";
+
+export type HandoffMethod = "qr" | "code" | null;
 
 export type Job = {
   id: string;
@@ -32,4 +40,18 @@ export type Job = {
   completed_at?: string | null;
   cancelled_at?: string | null;
   cancellation_reason?: string | null;
+  handoff_method?: HandoffMethod;
+  handoff_qr_token?: string | null;
+  handoff_qr_expires_at?: string | null;
+  handoff_code?: string | null;
+  worker_ready_at?: string | null;
+  customer_arrived_at?: string | null;
+  qr_scanned_at?: string | null;
+  worker_confirmed_at?: string | null;
+  customer_confirmed_at?: string | null;
+  completion_location?: string | null;
+  proximity_passed?: boolean | null;
+  handoff_issue_flag?: boolean | null;
+  handoff_issue_reason?: string | null;
+  handoff_notes?: string | null;
 };

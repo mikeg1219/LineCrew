@@ -71,13 +71,16 @@ export async function GET(request: NextRequest) {
 
     const { data: staleConfirm } = await admin
       .from("jobs")
-      .select("id")
-      .eq("status", "pending_confirmation")
-      .not("completed_at", "is", null)
-      .lt("completed_at", confirmCutoff);
+      .select("id, status, completed_at, qr_scanned_at")
+      .in("status", ["pending_confirmation", "awaiting_dual_confirmation"])
+      .or(`completed_at.lt.${confirmCutoff},qr_scanned_at.lt.${confirmCutoff}`);
 
     for (const job of staleConfirm ?? []) {
-      const r = await finalizeJobPayout(admin, job.id, "pending_confirmation");
+      const fromStatus =
+        job.status === "awaiting_dual_confirmation"
+          ? "awaiting_dual_confirmation"
+          : "pending_confirmation";
+      const r = await finalizeJobPayout(admin, job.id, fromStatus);
       if (r.ok) {
         results.autoCompleted += 1;
       } else {

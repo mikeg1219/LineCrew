@@ -84,6 +84,43 @@ export function getCustomerHandoffGuidance(
         tone: "urgent",
         highlightLocation: true,
       };
+    case "customer_on_the_way":
+      return {
+        heading: "You’re on the way",
+        instruction: "Tap I’m here when you can visually identify your Line Holder.",
+        actions: [
+          { label: "I’m here", href: "#booking-handoff-guidance", emphasis: true },
+          { label: "Contact", href: "#booking-line-holder-contact" },
+        ],
+        tone: "urgent",
+        highlightLocation: true,
+      };
+    case "ready_for_handoff":
+    case "qr_generated":
+      return {
+        heading: "Scan QR or use fallback code",
+        instruction:
+          "Verify identity in person, then complete QR/code plus proximity check.",
+        actions: [
+          { label: "Scan QR to complete", href: "#booking-handoff-guidance", emphasis: true },
+          { label: "Report issue", href: "#booking-more-actions" },
+        ],
+        tone: "urgent",
+        highlightLocation: true,
+      };
+    case "qr_scanned":
+    case "awaiting_dual_confirmation":
+      return {
+        heading: "Confirm transfer now",
+        instruction:
+          "Tap that you received your place in line to release payment safely.",
+        actions: [
+          { label: "Confirm handoff", href: "#booking-confirm-handoff", emphasis: true },
+          { label: "Report issue", href: "#booking-more-actions" },
+        ],
+        tone: "urgent",
+        highlightLocation: false,
+      };
     case "pending_confirmation":
       return {
         heading: "Take over now",
@@ -95,6 +132,33 @@ export function getCustomerHandoffGuidance(
         ],
         tone: "urgent",
         highlightLocation: true,
+      };
+    case "customer_on_the_way":
+    case "ready_for_handoff":
+    case "qr_generated":
+      return {
+        heading: "Show QR and verify identity",
+        instruction:
+          "Use your LineCrew handoff panel to show QR, fallback code, and confirm proximity.",
+        actions: [
+          { label: "Open handoff panel", href: "#booking-line-holder-actions", emphasis: true },
+          { label: "Contact", href: "#booking-customer-contact" },
+        ],
+        tone: "urgent",
+        highlightLocation: true,
+      };
+    case "qr_scanned":
+    case "awaiting_dual_confirmation":
+      return {
+        heading: "Await both confirmations",
+        instruction:
+          "Ask the customer to confirm received place. You must confirm transfer too.",
+        actions: [
+          { label: "Open handoff panel", href: "#booking-line-holder-actions", emphasis: true },
+          { label: "Contact", href: "#booking-customer-contact" },
+        ],
+        tone: "urgent",
+        highlightLocation: false,
       };
     case "completed":
       return {
@@ -117,6 +181,7 @@ export function getCustomerHandoffGuidance(
         highlightLocation: false,
       };
     case "disputed":
+    case "issue_flagged":
       return {
         heading: "Under review",
         instruction: "We’re reviewing this booking. Check back for updates.",
@@ -256,10 +321,15 @@ export function getCustomerStickyActions(
         { label: "Details", href: "#booking-details" },
       ];
     case "near_front":
+    case "customer_on_the_way":
+    case "ready_for_handoff":
+    case "qr_generated":
       return [
         { label: "I’m on my way", href: "#booking-details", emphasis: true },
         { label: "Contact", href: "#booking-line-holder-contact" },
       ];
+    case "qr_scanned":
+    case "awaiting_dual_confirmation":
     case "pending_confirmation":
       return [
         {
@@ -274,6 +344,7 @@ export function getCustomerStickyActions(
     case "completed":
     case "cancelled":
     case "disputed":
+    case "issue_flagged":
     case "refunded":
       return [
         { label: "Details", href: "#booking-details", emphasis: true },
@@ -303,6 +374,11 @@ export function getLineHolderStickyActions(status: JobStatus): GuidanceAction[] 
         { label: "Contact", href: "#booking-customer-contact" },
       ];
     case "near_front":
+    case "customer_on_the_way":
+    case "ready_for_handoff":
+    case "qr_generated":
+    case "qr_scanned":
+    case "awaiting_dual_confirmation":
       return [
         { label: "Ready for handoff", href: "#booking-line-holder-actions", emphasis: true },
         { label: "Contact", href: "#booking-customer-contact" },
@@ -315,6 +391,7 @@ export function getLineHolderStickyActions(status: JobStatus): GuidanceAction[] 
     case "completed":
     case "cancelled":
     case "disputed":
+    case "issue_flagged":
     case "refunded":
       return [
         { label: "Details", href: "#booking-details-waiter", emphasis: true },

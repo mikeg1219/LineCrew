@@ -10,7 +10,10 @@ const PLATFORM_FEE = 0.2;
 export async function finalizeJobPayout(
   supabase: SupabaseClient,
   jobId: string,
-  fromStatus: "pending_confirmation" | "disputed"
+  fromStatus:
+    | "pending_confirmation"
+    | "awaiting_dual_confirmation"
+    | "disputed"
 ): Promise<
   { ok: true; transferId: string } | { ok: false; error: string }
 > {

@@ -57,7 +57,12 @@ export function getBookingProgressState(status: JobStatus): BookingProgressState
     case "near_front":
       idx = 3;
       break;
+    case "customer_on_the_way":
+    case "ready_for_handoff":
+    case "qr_generated":
+    case "qr_scanned":
     case "pending_confirmation":
+    case "awaiting_dual_confirmation":
       idx = 4;
       break;
     default:
@@ -99,6 +104,11 @@ export function buildBookingTimelineEvents(job: Job): TimelineEvent[] {
   if (
     st === "in_line" ||
     st === "near_front" ||
+    st === "customer_on_the_way" ||
+    st === "ready_for_handoff" ||
+    st === "qr_generated" ||
+    st === "qr_scanned" ||
+    st === "awaiting_dual_confirmation" ||
     st === "pending_confirmation" ||
     st === "completed"
   ) {
@@ -111,7 +121,16 @@ export function buildBookingTimelineEvents(job: Job): TimelineEvent[] {
     });
   }
 
-  if (st === "near_front" || st === "pending_confirmation" || st === "completed") {
+  if (
+    st === "near_front" ||
+    st === "customer_on_the_way" ||
+    st === "ready_for_handoff" ||
+    st === "qr_generated" ||
+    st === "qr_scanned" ||
+    st === "awaiting_dual_confirmation" ||
+    st === "pending_confirmation" ||
+    st === "completed"
+  ) {
     events.push({
       id: "near_front",
       title: "Near the front",
@@ -121,12 +140,15 @@ export function buildBookingTimelineEvents(job: Job): TimelineEvent[] {
     });
   }
 
-  if (st === "pending_confirmation" && job.completed_at) {
+  if (
+    (st === "pending_confirmation" || st === "awaiting_dual_confirmation") &&
+    (job.completed_at || job.qr_scanned_at)
+  ) {
     events.push({
       id: "lh_complete",
-      title: "Line Holder marked complete",
-      detail: "Confirm or dispute within the window shown on this page.",
-      timestamp: job.completed_at,
+      title: "Handoff verification complete",
+      detail: "Confirm transfer on both phones to release payment.",
+      timestamp: job.qr_scanned_at ?? job.completed_at ?? null,
       tone: "highlight",
     });
   }
@@ -157,6 +179,16 @@ export function buildBookingTimelineEvents(job: Job): TimelineEvent[] {
       title: "Issue reported",
       detail: "Our team is reviewing your case.",
       timestamp: job.completed_at ?? job.cancelled_at ?? null,
+      tone: "default",
+    });
+  }
+
+  if (st === "issue_flagged") {
+    events.push({
+      id: "issue_flagged",
+      title: "Issue flagged",
+      detail: "Support has been notified to review this handoff.",
+      timestamp: job.qr_scanned_at ?? job.completed_at ?? job.cancelled_at ?? null,
       tone: "default",
     });
   }

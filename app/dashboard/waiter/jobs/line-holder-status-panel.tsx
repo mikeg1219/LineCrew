@@ -29,9 +29,34 @@ const STEPS: { nextStatus: JobStatus; label: string; hint?: string }[] = [
     hint: "Almost time for the customer to step in",
   },
   {
+    nextStatus: "customer_on_the_way",
+    label: "Customer on the way",
+    hint: "Trigger arrival phase and handoff prep",
+  },
+  {
+    nextStatus: "ready_for_handoff",
+    label: "Ready for handoff",
+    hint: "Both parties should be at the same location",
+  },
+  {
+    nextStatus: "qr_generated",
+    label: "Generate handoff QR",
+    hint: "Create short-lived QR + fallback code",
+  },
+  {
+    nextStatus: "qr_scanned",
+    label: "QR/code verified",
+    hint: "After customer scan/code + proximity pass",
+  },
+  {
+    nextStatus: "awaiting_dual_confirmation",
+    label: "Await dual confirmation",
+    hint: "Both customer and line holder confirm transfer",
+  },
+  {
     nextStatus: "pending_confirmation",
-    label: "Complete booking",
-    hint: "Ready for handoff — customer confirms on their phone",
+    label: "Finalize completion",
+    hint: "Legacy completion fallback step",
   },
 ];
 
@@ -69,6 +94,9 @@ export function LineHolderStatusPanel({
   }
 
   if (currentStatus === "pending_confirmation") {
+    return null;
+  }
+  if (currentStatus === "awaiting_dual_confirmation") {
     return null;
   }
 

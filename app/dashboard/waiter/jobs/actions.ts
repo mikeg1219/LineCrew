@@ -18,6 +18,12 @@ const ACTIVE_ACCEPT_STATUSES = [
   "at_airport",
   "in_line",
   "near_front",
+  "customer_on_the_way",
+  "ready_for_handoff",
+  "qr_generated",
+  "qr_scanned",
+  "awaiting_dual_confirmation",
+  "pending_confirmation",
 ] as const;
 
 export async function acceptJobAction(
@@ -106,6 +112,11 @@ const PROGRESS_STATUSES: JobStatus[] = [
   "at_airport",
   "in_line",
   "near_front",
+  "customer_on_the_way",
+  "ready_for_handoff",
+  "qr_generated",
+  "qr_scanned",
+  "awaiting_dual_confirmation",
   "pending_confirmation",
 ];
 

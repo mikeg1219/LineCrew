@@ -1,4 +1,5 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { WaiterHandoffPanel } from "@/app/dashboard/handoff/waiter-handoff-panel";
 import { LineHolderHandoffGuidanceCard } from "@/app/dashboard/waiter/jobs/line-holder-handoff-guidance";
 import { LineHolderStatusPanel } from "@/app/dashboard/waiter/jobs/line-holder-status-panel";
 import { ProviderBookingDetailsCard } from "@/app/dashboard/waiter/jobs/provider-booking-details-card";
@@ -31,6 +32,7 @@ function airportLabel(code: string) {
 const TERMINAL = new Set<JobStatus>([
   "completed",
   "cancelled",
+  "issue_flagged",
   "disputed",
   "refunded",
 ]);
@@ -240,6 +242,11 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
               Waiting on the customer — no status buttons right now.
             </p>
           )}
+          {status === "awaiting_dual_confirmation" && (
+            <p className="mt-2 text-sm text-slate-600">
+              QR verified. Waiting for both sides to confirm transfer.
+            </p>
+          )}
           {TERMINAL.has(status) && (
             <p className="mt-2 text-sm text-slate-600">
               This booking is closed — no further updates.
@@ -258,7 +265,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
           )}
         </div>
         <div className="pt-6">
-          {status === "pending_confirmation" ? (
+          {status === "pending_confirmation" || status === "awaiting_dual_confirmation" ? (
             <div>
               <p className="text-base font-semibold text-slate-900">
                 Awaiting customer confirmation
@@ -268,6 +275,15 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
                 confirm or dispute. You&apos;ll be paid after they confirm or
                 after the window in LineCrew policy if they don&apos;t respond.
               </p>
+              <div className="mt-4">
+                <WaiterHandoffPanel
+                  jobId={job.id}
+                  status={status}
+                  handoffToken={job.handoff_qr_token}
+                  handoffCode={job.handoff_code}
+                  handoffQrExpiresAt={job.handoff_qr_expires_at}
+                />
+              </div>
             </div>
           ) : TERMINAL.has(status) ? (
             <div className="space-y-5">
@@ -294,12 +310,27 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
               </button>
             </div>
           ) : (
-            <LineHolderStatusPanel
-              jobId={job.id}
-              currentStatus={status}
-              acceptSetupReady={canAcceptJobs}
-              acceptSetupHint={acceptSetupHint}
-            />
+            <div className="space-y-4">
+              <LineHolderStatusPanel
+                jobId={job.id}
+                currentStatus={status}
+                acceptSetupReady={canAcceptJobs}
+                acceptSetupHint={acceptSetupHint}
+              />
+              {(status === "near_front" ||
+                status === "customer_on_the_way" ||
+                status === "ready_for_handoff" ||
+                status === "qr_generated" ||
+                status === "qr_scanned") && (
+                <WaiterHandoffPanel
+                  jobId={job.id}
+                  status={status}
+                  handoffToken={job.handoff_qr_token}
+                  handoffCode={job.handoff_code}
+                  handoffQrExpiresAt={job.handoff_qr_expires_at}
+                />
+              )}
+            </div>
           )}
         </div>
       </section>

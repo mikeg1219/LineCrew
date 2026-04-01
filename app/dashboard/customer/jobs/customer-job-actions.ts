@@ -15,6 +15,7 @@ const KILL_FEE_CENTS = 500;
 const NON_CANCEL: JobStatus[] = [
   "completed",
   "cancelled",
+  "issue_flagged",
   "disputed",
   "refunded",
 ];
@@ -41,11 +42,20 @@ export async function confirmJobCompletionAction(
   if (!job || job.customer_id !== user.id) {
     return { error: "Not your booking." };
   }
-  if (job.status !== "pending_confirmation") {
+  if (
+    job.status !== "pending_confirmation" &&
+    job.status !== "awaiting_dual_confirmation"
+  ) {
     return { error: "This booking is not waiting for confirmation." };
   }
 
-  const result = await finalizeJobPayout(supabase, jobId, "pending_confirmation");
+  const result = await finalizeJobPayout(
+    supabase,
+    jobId,
+    (job.status as JobStatus) === "awaiting_dual_confirmation"
+      ? "awaiting_dual_confirmation"
+      : "pending_confirmation"
+  );
   if (!result.ok) {
     return { error: result.error };
   }
@@ -77,7 +87,10 @@ export async function disputeJobAction(
   if (!job || job.customer_id !== user.id) {
     return { error: "Not your booking." };
   }
-  if (job.status !== "pending_confirmation") {
+  if (
+    job.status !== "pending_confirmation" &&
+    job.status !== "awaiting_dual_confirmation"
+  ) {
     return {
       error:
         "You can only dispute after the Line Holder marks the booking complete.",
@@ -88,7 +101,7 @@ export async function disputeJobAction(
     .from("jobs")
     .update({ status: "disputed" })
     .eq("id", jobId)
-    .eq("status", "pending_confirmation");
+    .in("status", ["pending_confirmation", "awaiting_dual_confirmation"]);
 
   if (error) return { error: error.message };
 

@@ -1,5 +1,6 @@
 import { BookingActivityTimeline } from "@/app/dashboard/customer/jobs/booking-activity-timeline";
 import { BookingTrackingLive } from "@/app/dashboard/customer/jobs/booking-tracking-live";
+import { CustomerHandoffPanel } from "@/app/dashboard/handoff/customer-handoff-panel";
 import {
   BookingLineHolderCard,
   BookingLineHolderPendingCard,
@@ -34,6 +35,7 @@ function airportLabel(code: string) {
 const TERMINAL = new Set<JobStatus>([
   "completed",
   "cancelled",
+  "issue_flagged",
   "disputed",
   "refunded",
 ]);
@@ -44,6 +46,11 @@ const LIVE_TRACKING = new Set<JobStatus>([
   "at_airport",
   "in_line",
   "near_front",
+  "customer_on_the_way",
+  "ready_for_handoff",
+  "qr_generated",
+  "qr_scanned",
+  "awaiting_dual_confirmation",
   "pending_confirmation",
 ]);
 
@@ -160,7 +167,8 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
   const showLiveStrip = LIVE_TRACKING.has(status);
 
   const hasConfirmHandoff =
-    status === "pending_confirmation" && Boolean(job.completed_at);
+    (status === "pending_confirmation" || status === "awaiting_dual_confirmation") &&
+    Boolean(job.completed_at || job.qr_scanned_at);
   const stickyActions = getCustomerStickyActions(status, hasConfirmHandoff);
 
   const handoffUrgent =
@@ -265,11 +273,28 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         airportLabelText={airportLabel(job.airport)}
       />
 
-      {status === "pending_confirmation" && job.completed_at && (
+      {(status === "near_front" ||
+        status === "customer_on_the_way" ||
+        status === "ready_for_handoff" ||
+        status === "qr_generated" ||
+        status === "qr_scanned" ||
+        status === "awaiting_dual_confirmation") && (
+        <div className="mt-6">
+          <CustomerHandoffPanel
+            jobId={job.id}
+            status={status}
+            handoffToken={job.handoff_qr_token}
+            handoffCode={job.handoff_code}
+          />
+        </div>
+      )}
+
+      {(status === "pending_confirmation" || status === "awaiting_dual_confirmation") &&
+        (job.completed_at || job.qr_scanned_at) && (
         <div id="booking-confirm-handoff" className="scroll-mt-28 mt-6">
           <CompletionConfirmationPanel
             jobId={job.id}
-            completedAt={job.completed_at}
+            completedAt={job.completed_at ?? job.qr_scanned_at ?? job.created_at}
           />
         </div>
       )}
