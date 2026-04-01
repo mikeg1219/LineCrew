@@ -43,6 +43,8 @@ export const BOOKING_CATEGORIES = [
 ] as const;
 export type BookingCategory = (typeof BOOKING_CATEGORIES)[number];
 
+const LINE_TYPE_TO_CATEGORY = new Map<LineType, BookingCategory>();
+
 /** Grouped display labels for the post-job line type select (values unchanged). */
 export const LINE_TYPE_GROUPS: {
   heading: string;
@@ -188,6 +190,23 @@ export const LINE_TYPE_GROUPS_BY_CATEGORY: Record<
     },
   ],
 };
+
+for (const [category, groups] of Object.entries(
+  LINE_TYPE_GROUPS_BY_CATEGORY
+) as [BookingCategory, { heading: string; items: { value: LineType }[] }[]][]) {
+  for (const group of groups) {
+    for (const item of group.items) {
+      LINE_TYPE_TO_CATEGORY.set(item.value, category);
+    }
+  }
+}
+
+export function getBookingCategoryForLineType(
+  lineType: string
+): BookingCategory {
+  const hit = LINE_TYPE_TO_CATEGORY.get(lineType as LineType);
+  return hit ?? "Other / Custom Request";
+}
 export const ESTIMATED_WAIT_OPTIONS = [
   "15 min",
   "30 min",

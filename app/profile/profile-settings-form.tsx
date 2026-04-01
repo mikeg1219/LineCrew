@@ -12,6 +12,7 @@ import {
   type ManualPayoutMethod,
   waiterCoreFieldsComplete,
 } from "@/lib/waiter-profile-complete";
+import { BOOKING_CATEGORIES, type BookingCategory } from "@/lib/jobs/options";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -202,6 +203,7 @@ export function ProfileSettingsForm({
   const [bio, setBio] = useState("");
   const [homeAirport, setHomeAirport] = useState("");
   const [servingAirportsText, setServingAirportsText] = useState("");
+  const [waiterPreferredCategories, setWaiterPreferredCategories] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
   const [profileCompleted, setProfileCompleted] = useState<boolean | null>(null);
   const [emailVerifiedAt, setEmailVerifiedAt] = useState<string | null>(null);
@@ -266,6 +268,10 @@ export function ProfileSettingsForm({
         setBio(p.bio ?? "");
         setHomeAirport(p.home_airport ?? "");
         setServingAirportsText((p.serving_airports ?? []).join(", "));
+        setWaiterPreferredCategories(
+          (p as { preferred_categories?: string[] | null }).preferred_categories ??
+            [...BOOKING_CATEGORIES]
+        );
         setIsAvailable(p.is_available !== false);
         setProfileCompleted(p.profile_completed ?? null);
         setEmailVerifiedAt(p.email_verified_at ?? null);
@@ -530,6 +536,7 @@ export function ProfileSettingsForm({
       bio,
       homeAirport,
       servingAirportsText,
+      waiterPreferredCategories,
       isAvailable,
       avatarStoragePath,
       waiterManualPayoutPreference: buildManualPayoutPreference(
@@ -1051,19 +1058,23 @@ export function ProfileSettingsForm({
                 Category matching is rolling out. Select defaults you want to receive first.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  "Airports",
-                  "Concerts & Festivals",
-                  "Amusement Parks",
-                  "Retail Drops",
-                  "DMV & Services",
-                  "Restaurants",
-                ].map((category) => (
+                {BOOKING_CATEGORIES.map((category: BookingCategory) => (
                   <label
                     key={category}
                     className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
                   >
-                    <input type="checkbox" className="h-4 w-4" defaultChecked />
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={waiterPreferredCategories.includes(category)}
+                      onChange={(e) =>
+                        setWaiterPreferredCategories((prev) =>
+                          e.target.checked
+                            ? [...new Set([...prev, category])]
+                            : prev.filter((c) => c !== category)
+                        )
+                      }
+                    />
                     {category}
                   </label>
                 ))}

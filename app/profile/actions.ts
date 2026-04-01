@@ -6,6 +6,7 @@ import { buildProfileSettingsSupabasePayload } from "@/lib/profile-settings-payl
 import type { UserRole } from "@/lib/types";
 import { isValidE164ForStorage, normalizePhoneE164 } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
+import { BOOKING_CATEGORIES } from "@/lib/jobs/options";
 
 export type SaveProfileSettingsInput = {
   firstName: string;
@@ -18,6 +19,7 @@ export type SaveProfileSettingsInput = {
   bio: string;
   homeAirport: string;
   servingAirportsText: string;
+  waiterPreferredCategories: string[];
   isAvailable: boolean;
   avatarStoragePath: string | null;
   waiterManualPayoutPreference?: string | null;
@@ -111,6 +113,8 @@ export async function saveProfileSettingsAction(
     .map((s) => s.trim().toUpperCase())
     .filter(Boolean);
   const unique = [...new Set(parts)];
+  const preferredCategories = [...new Set(input.waiterPreferredCategories)]
+    .filter((c): c is string => (BOOKING_CATEGORIES as readonly string[]).includes(c));
 
   const payload = sanitizePayload(
     buildProfileSettingsSupabasePayload(
@@ -124,6 +128,7 @@ export async function saveProfileSettingsAction(
         bio: input.bio.trim() || null,
         home_airport: input.homeAirport.trim() || null,
         serving_airports: unique,
+        preferred_categories: preferredCategories,
         is_available: input.isAvailable,
         contact_preference: input.waiterManualPayoutPreference ?? null,
         onboarding_completed: Boolean(
@@ -148,12 +153,28 @@ export async function saveProfileSettingsAction(
     phoneLen: typeof payload.phone === "string" ? payload.phone.length : 0,
     payloadPreview: payload,
   });
-payload.updated_at = new Date().toISOString();
-  const { data: updatedRows, error } = await clientForUpdate
+  payload.updated_at = new Date().toISOString();
+  let { data: updatedRows, error } = await clientForUpdate
     .from("profiles")
     .update(payload)
     .eq("id", user.id)
     .select("id");
+
+  if (error && typeof payload.preferred_categories !== "undefined") {
+    const msg = (error.message ?? "").toLowerCase();
+    const details = (error.details ?? "").toLowerCase();
+    const missingPreferredCategories =
+      msg.includes("preferred_categories") || details.includes("preferred_categories");
+    if (missingPreferredCategories) {
+      const retryPayload = { ...payload };
+      delete retryPayload.preferred_categories;
+      ({ data: updatedRows, error } = await clientForUpdate
+        .from("profiles")
+        .update(retryPayload)
+        .eq("id", user.id)
+        .select("id"));
+    }
+  }
 
 if (error) {
     console.error("[profile/save] supabase_update", {

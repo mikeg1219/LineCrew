@@ -18,6 +18,7 @@ export type Profile = {
   stripe_details_submitted?: boolean | null;
   stripe_payouts_enabled?: boolean | null;
   serving_airports?: string[] | null;
+  preferred_categories?: string[] | null;
   preferred_airport?: string | null;
   traveler_notes?: string | null;
   contact_preference?: string | null;

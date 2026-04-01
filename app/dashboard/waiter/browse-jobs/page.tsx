@@ -1,6 +1,7 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
+import { getBookingCategoryForLineType } from "@/lib/jobs/options";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
   isWaiterAcceptSetupComplete,
@@ -65,6 +66,9 @@ export default async function BrowseJobsPage() {
   const serving =
     (profile as { serving_airports?: string[] | null }).serving_airports ??
     [];
+  const preferredCategories =
+    (profile as { preferred_categories?: string[] | null }).preferred_categories ??
+    [];
 
   let list: Job[] = [];
   let error: { message: string } | null = null;
@@ -76,7 +80,13 @@ export default async function BrowseJobsPage() {
       .eq("status", "open")
       .in("airport", serving)
       .order("created_at", { ascending: false });
-    list = (res.data ?? []) as Job[];
+    const fetched = (res.data ?? []) as Job[];
+    list =
+      preferredCategories.length === 0
+        ? fetched
+        : fetched.filter((j) =>
+            preferredCategories.includes(getBookingCategoryForLineType(j.line_type))
+          );
     error = res.error;
   }
 
@@ -138,7 +148,8 @@ export default async function BrowseJobsPage() {
 
       {!error && serving.length > 0 && list.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-          No open bookings in your service areas right now. Check back soon.
+          No open bookings match your current service areas and category preferences.
+          Check back soon or update preferences in Profile.
         </div>
       )}
 
