@@ -3,6 +3,11 @@ import { OwnerDashboardControls } from "@/app/admin/owner-dashboard-controls";
 import { OwnerOperationsMap } from "@/app/admin/owner-operations-map";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isAdminEmail } from "@/lib/admin-config";
+import {
+  BOOKING_CATEGORIES,
+  getBookingCategoryForLineType,
+  type BookingCategory,
+} from "@/lib/jobs/options";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -168,7 +173,7 @@ export default async function AdminPage() {
   const { data: waiterProfiles } = await admin
     .from("profiles")
     .select(
-      "id, first_name, last_name, full_name, display_name, average_rating, jobs_completed, is_available, serving_airports"
+      "id, first_name, last_name, full_name, display_name, average_rating, jobs_completed, is_available, serving_airports, preferred_categories"
     )
     .eq("role", "waiter")
     .limit(300);
@@ -201,37 +206,13 @@ export default async function AdminPage() {
   const activeToday = activeJobs ?? 0;
   const unfulfilledToday = staleOpenCount;
 
-  const lineTypeToCategory = (lineType: string): "Airport" | "DMV" | "Events" => {
-    const normalized = lineType.toLowerCase();
-    if (
-      normalized.includes("dmv") ||
-      normalized.includes("government") ||
-      normalized.includes("passport")
-    ) {
-      return "DMV";
-    }
-    if (
-      normalized.includes("event") ||
-      normalized.includes("concert") ||
-      normalized.includes("theme park") ||
-      normalized.includes("retail")
-    ) {
-      return "Events";
-    }
-    return "Airport";
-  };
-
-  const requestCountsByCategory: Record<"Airport" | "DMV" | "Events", number> = {
-    Airport: 0,
-    DMV: 0,
-    Events: 0,
-  };
+  const requestCountsByCategory = new Map<BookingCategory, number>();
   const requestCountsByAirport = new Map<string, number>();
-  const acceptedByCategory: Record<"Airport" | "DMV" | "Events", number> = {
-    Airport: 0,
-    DMV: 0,
-    Events: 0,
-  };
+  const acceptedByCategory = new Map<BookingCategory, number>();
+  for (const c of BOOKING_CATEGORIES) {
+    requestCountsByCategory.set(c, 0);
+    acceptedByCategory.set(c, 0);
+  }
   const requestsByDay = new Map<string, number>();
   const revenueByDay = new Map<string, number>();
   for (let i = 6; i >= 0; i -= 1) {
@@ -243,12 +224,18 @@ export default async function AdminPage() {
   }
 
   for (const job of recentMonthJobs ?? []) {
-    const category = lineTypeToCategory(job.line_type ?? "");
-    requestCountsByCategory[category] += 1;
+    const category = getBookingCategoryForLineType(job.line_type ?? "");
+    requestCountsByCategory.set(
+      category,
+      (requestCountsByCategory.get(category) ?? 0) + 1
+    );
     const airport = (job.airport ?? "Unknown").toUpperCase();
     requestCountsByAirport.set(airport, (requestCountsByAirport.get(airport) ?? 0) + 1);
     if (job.status !== "open") {
-      acceptedByCategory[category] += 1;
+      acceptedByCategory.set(
+        category,
+        (acceptedByCategory.get(category) ?? 0) + 1
+      );
     }
     const dayKey = new Date(job.created_at).toISOString().slice(0, 10);
     if (requestsByDay.has(dayKey)) {
@@ -404,16 +391,49 @@ export default async function AdminPage() {
     Array.from(availableWaitersByAirport.keys()).filter((k) => !airportToCoord[k]).length +
     Array.from(unfulfilledByAirport.keys()).filter((k) => !airportToCoord[k]).length;
 
-  const categoryDemand = (["Airport", "DMV", "Events"] as const).map((name) => {
-    const requests = requestCountsByCategory[name];
+  const topCategories = [
+    "Airports",
+    "DMV & Government Services",
+    "Concerts & Festivals",
+    "Retail Drops / Product Launches",
+    "Amusement Parks",
+    "Restaurants",
+    "Sporting Events",
+    "Conventions & Expos",
+    "Tourist Attractions",
+    "Pop-Ups / Brand Activations",
+    "Other / Custom Request",
+  ] as const;
+
+  const categoryDemand = topCategories.map((name) => {
+    const requests = requestCountsByCategory.get(name) ?? 0;
     const supply = Math.max(
       0,
       waiters.filter((w) =>
-        (w.serving_airports ?? []).length > 0 || name !== "Airport"
+        (w.serving_airports ?? []).length > 0 || name !== "Airports"
       ).length - busyWaiters
     );
     return { name, requests, supply };
   });
+
+  const waiterPrefCounts = new Map<BookingCategory, number>();
+  for (const c of BOOKING_CATEGORIES) waiterPrefCounts.set(c, 0);
+  for (const w of waiters) {
+    const prefs =
+      (w as { preferred_categories?: string[] | null }).preferred_categories ?? [];
+    for (const p of prefs) {
+      if ((BOOKING_CATEGORIES as readonly string[]).includes(p)) {
+        const cat = p as BookingCategory;
+        waiterPrefCounts.set(cat, (waiterPrefCounts.get(cat) ?? 0) + 1);
+      }
+    }
+  }
+  const preferenceVsAccepted = BOOKING_CATEGORIES.map((category) => ({
+    category,
+    preferred: waiterPrefCounts.get(category) ?? 0,
+    accepted: acceptedByCategory.get(category) ?? 0,
+    requested: requestCountsByCategory.get(category) ?? 0,
+  }));
 
   const locationDemand = Array.from(locationTotals.entries())
     .map(([name, requests]) => ({ name, requests }))
@@ -608,6 +628,47 @@ export default async function AdminPage() {
             </div>
           </Card>
         </section>
+
+        <Card title="Preference vs Accepted Categories">
+          <p className="mb-3 text-sm text-slate-600">
+            Compare where line holders prefer to work versus where accepted jobs are occurring.
+          </p>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-3 py-2">Category</th>
+                  <th className="px-3 py-2">Requests</th>
+                  <th className="px-3 py-2">Accepted</th>
+                  <th className="px-3 py-2">Waiter Preferred</th>
+                  <th className="px-3 py-2">Gap</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {preferenceVsAccepted.map((row) => {
+                  const gap = row.preferred - row.accepted;
+                  return (
+                    <tr key={row.category}>
+                      <td className="px-3 py-2 font-medium text-slate-900">
+                        {row.category}
+                      </td>
+                      <td className="px-3 py-2">{row.requested}</td>
+                      <td className="px-3 py-2">{row.accepted}</td>
+                      <td className="px-3 py-2">{row.preferred}</td>
+                      <td
+                        className={`px-3 py-2 font-semibold ${
+                          gap < 0 ? "text-red-700" : "text-emerald-700"
+                        }`}
+                      >
+                        {gap}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Card>
 
         <section className="grid gap-6 xl:grid-cols-3">
           <Card title="Alerts & Issues">
