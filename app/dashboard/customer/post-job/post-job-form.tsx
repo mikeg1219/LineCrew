@@ -313,7 +313,7 @@ export function PostJobForm() {
               ${RECOMMENDED_MIN}–${RECOMMENDED_MAX}
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-600">
-              Based on airport, line type, and current demand
+              Based on category, location, line type, and current demand
             </p>
             <p className="mt-3 text-xs font-medium text-blue-800">
               Higher offers get faster acceptance

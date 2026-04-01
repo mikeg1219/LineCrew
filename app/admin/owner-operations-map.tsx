@@ -100,7 +100,7 @@ export function OwnerOperationsMap({
             {selected.type} count <span className="font-semibold">{selected.count}</span>
           </p>
         ) : (
-          <p>Click a marker to see airport details.</p>
+          <p>Click a marker to see location details.</p>
         )}
       </div>
     </div>

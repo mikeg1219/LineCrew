@@ -84,7 +84,7 @@ export default async function DashboardProfilePage({
           {role === "customer"
             ? "Your account, photo, and preferences for line requests and bookings."
             : role === "waiter"
-              ? "Your account, photo, and airports for accepting bookings."
+              ? "Your account, photo, service areas, and settings for accepting bookings."
               : "Manage how you show up across LineCrew."}
         </p>
       </header>

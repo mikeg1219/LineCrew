@@ -73,7 +73,7 @@ export async function acceptJobAction(
   if (!isWaiterAcceptSetupComplete(profile, user)) {
     return {
       error:
-        "Finish setup before accepting: verify your email, complete profile and airports, finish onboarding, and connect payouts on your dashboard.",
+        "Finish setup before accepting: verify your email, complete profile and service areas, finish onboarding, and connect payouts on your dashboard.",
     };
   }
 
@@ -124,7 +124,7 @@ export async function acceptJobAction(
   const customerPhone = await getCustomerPhone(data.customer_id);
   await sendSms(
     customerPhone,
-    `Great news! A Line Holder has accepted your booking at ${data.airport} (${data.line_type}). They are on their way. Track your job in the SaveMySpot app.`
+    `Great news! A Line Holder has accepted your booking at ${data.airport} (${data.line_type}). They are on their way. Track your booking in the LineCrew app.`
   );
 
   redirect(`/dashboard/waiter/jobs/${jobId}`);
@@ -139,9 +139,9 @@ const PROGRESS_STATUSES: JobStatus[] = [
 ];
 
 const STATUS_CUSTOMER_SMS: Record<string, string> = {
-  at_airport: "Your Line Holder has arrived at the airport and is heading to the security line.",
-  in_line: "Your Line Holder is now in the security line holding your spot.",
-  near_front: "HEAD TO SECURITY NOW! Your Line Holder is near the front of the line. Don't miss your spot!",
+  at_airport: "Your Line Holder has arrived at the location and is heading to the queue.",
+  in_line: "Your Line Holder is now in line holding your spot.",
+  near_front: "HEAD TO THE LOCATION NOW! Your Line Holder is near the front of the line. Don't miss your spot!",
   pending_confirmation: "Your Line Holder has completed the handoff. Please open the app and confirm to release their payment.",
 };
 

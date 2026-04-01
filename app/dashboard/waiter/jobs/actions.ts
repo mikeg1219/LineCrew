@@ -51,7 +51,7 @@ export async function acceptJobAction(
   if (!isWaiterAcceptSetupComplete(profile, user)) {
     return {
       error:
-        "Finish setup before accepting: verify your email, complete profile and airports, finish onboarding, and connect payouts on your dashboard.",
+        "Finish setup before accepting: verify your email, complete profile and service areas, finish onboarding, and connect payouts on your dashboard.",
     };
   }
 

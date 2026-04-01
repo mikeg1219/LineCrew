@@ -94,7 +94,7 @@ export default async function WaiterDashboardPage() {
             Browse bookings
           </Link>
           <Link href="/dashboard/waiter/airports" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
-            Edit my airports
+            Edit my service areas
           </Link>
           <Link href="/dashboard/profile" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50">
             Edit profile
@@ -103,7 +103,7 @@ export default async function WaiterDashboardPage() {
 
         <p className="mt-4 text-sm text-slate-600">
           Active bookings (max 2): <span className="font-semibold text-slate-900">{activeJobCount ?? 0} / 2</span>
-          {servingCount === 0 && <span className="ml-2 text-amber-800">— select airports to see open bookings.</span>}
+          {servingCount === 0 && <span className="ml-2 text-amber-800">— set service areas to see open bookings.</span>}
         </p>
 
         <WaiterPayoutSetup

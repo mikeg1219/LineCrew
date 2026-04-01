@@ -107,7 +107,7 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
       </p>
       <p className="mt-1 text-sm leading-relaxed opacity-90">
         {full
-          ? "You can accept bookings that match your airports."
+          ? "You can accept bookings that match your service areas."
           : "Complete the checklist so travelers can trust you and you can accept jobs."}
       </p>
       {!full && (
@@ -118,7 +118,7 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
           <Check ok={Boolean(p.bio.trim())} label="Bio" />
           <Check
             ok={p.servingCodes.length > 0}
-            label="At least one airport served"
+            label="At least one service area"
           />
           <Check
             ok={p.onboardingCompleted === true}

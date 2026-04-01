@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LineCrew — Airport line marketplace",
+  title: "LineCrew — On-demand line holding marketplace",
   description:
-    "Hire a Line Holder to hold your place in airport lines, or earn by waiting for Customers.",
+    "Book trusted Line Holders for airports, events, retail drops, services, and other high-wait situations.",
   icons: {
     icon: "/linecrew-logo.png",
     shortcut: "/linecrew-logo.png",

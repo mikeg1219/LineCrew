@@ -122,14 +122,14 @@ export default async function BrowseJobsPage() {
 
       {!error && serving.length === 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-8 text-center text-amber-950">
-          <p className="font-medium">Select which airports you serve</p>
+          <p className="font-medium">Select your service areas</p>
           <p className="mt-2 text-sm text-amber-900/90">
             Go to{" "}
             <Link
               href="/dashboard/waiter/airports"
               className="font-semibold underline"
             >
-              Edit my airports
+              Edit my service areas
             </Link>{" "}
             to see open bookings.
           </p>
@@ -138,7 +138,7 @@ export default async function BrowseJobsPage() {
 
       {!error && serving.length > 0 && list.length === 0 && (
         <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">
-          No open bookings at your airports right now. Check back soon.
+          No open bookings in your service areas right now. Check back soon.
         </div>
       )}
 
@@ -165,7 +165,7 @@ export default async function BrowseJobsPage() {
                 </span>
               </p>
               <p className="mt-3 line-clamp-2 text-sm text-slate-500">
-                Terminal {job.terminal}
+                Location {job.terminal}
                 {job.description ? ` · ${job.description}` : ""}
               </p>
               <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
