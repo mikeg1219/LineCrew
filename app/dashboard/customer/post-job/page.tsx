@@ -107,9 +107,10 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           Book a request
         </h1>
         <p className="text-[15px] leading-relaxed text-slate-600 sm:text-base">
-          Tell Line Holders where and what queue you need covered. You&apos;ll pay
-          upfront when you post; LineCrew holds the payment until the booking is
-          completed, then pays your Line Holder (minus a 20% platform fee).
+          Tell Line Holders where and what queue you need covered across
+          airports, events, attractions, retail drops, and services. You&apos;ll pay
+          upfront when you post, and LineCrew releases payment only after
+          completion.
         </p>
         <p className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3.5 text-sm leading-relaxed text-slate-700 sm:px-5">
           <span className="font-semibold text-slate-900">Cancellation:</span>{" "}

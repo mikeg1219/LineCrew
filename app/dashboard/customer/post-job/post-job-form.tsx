@@ -55,7 +55,7 @@ export function PostJobForm() {
     ESTIMATED_WAIT_OPTIONS[0] ?? ""
   );
   const [bookingCategory, setBookingCategory] =
-    useState<BookingCategory>("Airports");
+    useState<BookingCategory>("Concerts & Festivals");
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodCode>("stripe_card");
   const lineTypeGroups = LINE_TYPE_GROUPS_BY_CATEGORY[bookingCategory];
@@ -63,7 +63,6 @@ export function PostJobForm() {
 
   const offerNum = parseFloat(offeredPrice);
   const offerValid = !Number.isNaN(offerNum) && offerNum >= 10;
-  const platformFee = offerValid ? offerNum * 0.2 : 0;
 
   return (
     <form
@@ -336,9 +335,8 @@ export function PostJobForm() {
               className={inputClass}
             />
             <p className={hintClass}>
-              Minimum $10.00. Your card is charged this amount at checkout; the
-              platform keeps 20% and the rest goes to your Line Holder after the booking
-              is completed.
+              Minimum $10.00. Your card is charged this amount at checkout and
+              held securely until the booking is completed.
             </p>
           </div>
 
@@ -425,12 +423,6 @@ export function PostJobForm() {
                   {offerValid ? `$${offerNum.toFixed(2)}` : "—"}
                 </dd>
               </div>
-              <div className="flex items-baseline justify-between gap-4">
-                <dt className="text-slate-600">Platform fee (20%)</dt>
-                <dd className="tabular-nums font-medium text-slate-900">
-                  {offerValid ? `$${platformFee.toFixed(2)}` : "—"}
-                </dd>
-              </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-slate-200/80 pt-3">
                 <dt className="font-semibold text-slate-900">Total charged</dt>
                 <dd className="tabular-nums text-base font-semibold text-blue-700">
@@ -439,7 +431,8 @@ export function PostJobForm() {
               </div>
             </dl>
             <p className="mt-4 text-xs leading-relaxed text-slate-500">
-              The fee is deducted from your payment before payout to your Line Holder.
+              Any applicable service fees are already included in your checkout
+              total.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
               No Stripe account signup is required. Pay as guest in Stripe Checkout

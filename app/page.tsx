@@ -7,11 +7,16 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <div className="relative flex min-h-[min(90vh,900px)] flex-1 flex-col overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/airport-bg.jpg')" }}
+          className="absolute inset-0"
+          style={{
+            background:
+              "linear-gradient(135deg, #1E4FAF 0%, #17A7B8 55%, #67C45A 100%)",
+          }}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/40" />
-        <header className="relative z-10 border-b border-white/10 bg-black/20">
+        <div className="absolute -left-28 top-20 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+        <div className="absolute -right-20 bottom-14 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.18),transparent_42%),radial-gradient(circle_at_80%_65%,rgba(255,255,255,0.14),transparent_38%)]" />
+        <header className="relative z-10 border-b border-white/20 bg-white/10 backdrop-blur-sm">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Image
               src="/linecrew-logo.png"
@@ -32,7 +37,7 @@ export default function Home() {
         </header>
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24">
           <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-            Save time. Keep your spot.
+            Save your spot. Keep your day moving.
           </h1>
           <p className="mb-10 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
             LineCrew.ai helps you book trusted line holders for concerts,
@@ -42,13 +47,13 @@ export default function Home() {
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Link
               href="/auth?intent=customer"
-              className="rounded-xl bg-amber-400 px-8 py-4 text-center text-sm font-bold text-black shadow-sm transition hover:bg-amber-300 sm:text-base"
+              className="rounded-[14px] bg-white px-8 py-4 text-center text-sm font-bold text-[#1E4FAF] shadow-[0_16px_40px_rgba(30,79,175,0.12)] transition hover:bg-slate-100 sm:text-base"
             >
               Book a Line Holder
             </Link>
             <Link
               href="/auth?intent=waiter"
-              className="rounded-xl border-2 border-white/30 bg-white/10 px-8 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/15 sm:text-base"
+              className="rounded-[14px] border border-white/40 bg-white/10 px-8 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 sm:text-base"
             >
               Become a Line Holder
             </Link>
@@ -85,8 +90,8 @@ export default function Home() {
             Browse categories
           </h2>
           <p className="mx-auto mt-3 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-            Airports are still core, and now LineCrew supports events, retail
-            drops, attractions, and services.
+            LineCrew supports events, attractions, retail drops, airports, and
+            everyday service queues.
           </p>
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {MARKETPLACE_CATEGORIES.map((c) => (

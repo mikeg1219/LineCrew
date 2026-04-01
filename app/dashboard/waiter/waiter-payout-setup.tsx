@@ -59,9 +59,9 @@ export function WaiterPayoutSetup({
       </h2>
       <p className="mt-3 text-sm leading-relaxed text-slate-600 sm:text-[15px]">
         Connect your bank through Stripe so earnings can be sent to you after
-        handoffs. You receive 80% of the listed price; LineCrew keeps a 20%
-        platform fee. You must finish Stripe onboarding (identity + bank) and
-        have payouts enabled before accepting jobs or receiving transfers.
+        handoffs. A platform service fee is applied at checkout. You must finish
+        Stripe onboarding (identity + bank) and have payouts enabled before
+        accepting jobs or receiving transfers.
       </p>
       <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
         <p>
