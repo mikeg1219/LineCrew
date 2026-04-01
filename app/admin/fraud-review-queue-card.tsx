@@ -75,7 +75,13 @@ function badge(createdAt: string): { label: string; className: string } {
   return { label: "Within SLA", className: "bg-emerald-100 text-emerald-800" };
 }
 
-export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
+export function FraudReviewQueueCard({
+  rows,
+  nowIso,
+}: {
+  rows: FraudRow[];
+  nowIso: string;
+}) {
   const [unreviewedOnly, setUnreviewedOnly] = useState(() => {
     if (typeof window === "undefined") return true;
     try {
@@ -128,6 +134,39 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
     });
   }, [rows, unreviewedOnly, escalatedOnly, lowConfidenceOnly]);
 
+  const kpis = useMemo(() => {
+    const now = new Date(nowIso).getTime();
+    const startOfToday = new Date(nowIso);
+    startOfToday.setHours(0, 0, 0, 0);
+    const startMs = startOfToday.getTime();
+
+    const openEscalations = rows.filter(
+      (r) => Boolean(r.handoff_escalated_at) && !r.handoff_reviewed_at
+    ).length;
+    const reviewedToday = rows.filter((r) => {
+      if (!r.handoff_reviewed_at) return false;
+      const t = new Date(r.handoff_reviewed_at).getTime();
+      return Number.isFinite(t) && t >= startMs;
+    }).length;
+    const confidenceValues = rows
+      .map((r) => r.handoff_confidence_score)
+      .filter((v): v is number => typeof v === "number");
+    const avgConfidence =
+      confidenceValues.length > 0
+        ? Math.round(
+            confidenceValues.reduce((sum, v) => sum + v, 0) / confidenceValues.length
+          )
+        : 0;
+    const breachCount = rows.filter((r) => {
+      const base = r.handoff_escalated_at ?? r.created_at;
+      const ageMs = now - new Date(base).getTime();
+      const hours = Math.floor(ageMs / (1000 * 60 * 60));
+      return hours >= 24 && !r.handoff_reviewed_at;
+    }).length;
+
+    return { openEscalations, reviewedToday, avgConfidence, breachCount };
+  }, [rows, nowIso]);
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paged = useMemo(() => {
@@ -137,6 +176,33 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
 
   return (
     <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Open escalations
+          </p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.openEscalations}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Reviewed today
+          </p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.reviewedToday}</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            Avg confidence
+          </p>
+          <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.avgConfidence}/100</p>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            SLA breaches
+          </p>
+          <p className="mt-1 text-xl font-semibold text-red-700">{kpis.breachCount}</p>
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"

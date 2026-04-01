@@ -817,7 +817,7 @@ export default async function AdminPage() {
             </p>
           )}
           {fraudReviewRows && fraudReviewRows.length > 0 && (
-            <FraudReviewQueueCard rows={fraudReviewRows} />
+            <FraudReviewQueueCard rows={fraudReviewRows} nowIso={now.toISOString()} />
           )}
         </Card>
 
