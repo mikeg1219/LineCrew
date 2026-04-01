@@ -26,6 +26,7 @@ export function HandoffAuditPanel({ job }: { job: Job }) {
         <Chip label="Customer arrived" value={formatTs(job.customer_arrived_at)} />
         <Chip label="QR expires" value={formatTs(job.handoff_qr_expires_at)} />
         <Chip label="QR scanned" value={formatTs(job.qr_scanned_at)} />
+        <Chip label="QR used at" value={formatTs(job.handoff_qr_used_at)} />
         <Chip label="Worker confirmed" value={formatTs(job.worker_confirmed_at)} />
         <Chip label="Customer confirmed" value={formatTs(job.customer_confirmed_at)} />
         <Chip
@@ -39,6 +40,18 @@ export function HandoffAuditPanel({ job }: { job: Job }) {
         <Chip
           label="Completion location"
           value={job.completion_location ?? "—"}
+        />
+        <Chip
+          label="Verify attempts"
+          value={String(job.handoff_verification_attempts ?? 0)}
+        />
+        <Chip
+          label="Confidence score"
+          value={
+            job.handoff_confidence_score != null
+              ? `${job.handoff_confidence_score}/100`
+              : "—"
+          }
         />
       </div>
       {job.handoff_issue_flag && (

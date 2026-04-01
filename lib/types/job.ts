@@ -42,8 +42,13 @@ export type Job = {
   cancellation_reason?: string | null;
   handoff_method?: HandoffMethod;
   handoff_qr_token?: string | null;
+  handoff_qr_token_hash?: string | null;
   handoff_qr_expires_at?: string | null;
   handoff_code?: string | null;
+  handoff_code_hash?: string | null;
+  handoff_qr_used_at?: string | null;
+  handoff_verification_attempts?: number | null;
+  handoff_confidence_score?: number | null;
   worker_ready_at?: string | null;
   customer_arrived_at?: string | null;
   qr_scanned_at?: string | null;

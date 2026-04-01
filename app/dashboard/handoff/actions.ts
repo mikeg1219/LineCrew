@@ -8,6 +8,11 @@ import {
   parseLatLon,
   computeDistanceMeters,
 } from "@/lib/handoff";
+import {
+  buildHandoffConfidenceScore,
+  hashHandoffSecret,
+  verifyHandoffSecret,
+} from "@/lib/handoff-security";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
 import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/lib/types/job";
@@ -144,6 +149,8 @@ export async function generateHandoffQrAction(
 
   const token = generateHandoffQrToken(jobId);
   const code = generateHandoffCode();
+  const tokenHash = hashHandoffSecret(token);
+  const codeHash = hashHandoffSecret(code);
   const expires = new Date(Date.now() + HANDOFF_QR_TTL_SECONDS * 1000).toISOString();
   const lat = parseLatLon(formData.get("lat"));
   const lng = parseLatLon(formData.get("lng"));
@@ -155,8 +162,13 @@ export async function generateHandoffQrAction(
       status: "qr_generated",
       handoff_method: "qr",
       handoff_qr_token: token,
+      handoff_qr_token_hash: tokenHash,
       handoff_qr_expires_at: expires,
       handoff_code: code,
+      handoff_code_hash: codeHash,
+      handoff_qr_used_at: null,
+      handoff_verification_attempts: 0,
+      handoff_confidence_score: null,
       completion_location: completionLocation,
     })
     .eq("id", jobId);
@@ -188,17 +200,38 @@ export async function customerVerifyHandoffAction(
 
   const now = Date.now();
   const expiresAt = job.handoff_qr_expires_at ? new Date(job.handoff_qr_expires_at).getTime() : 0;
+  const verificationAttempts = Number(job.handoff_verification_attempts ?? 0);
+  if (job.handoff_qr_used_at) {
+    return { error: "This QR/code is already used. Ask for a fresh handoff code." };
+  }
+  if (verificationAttempts >= 6) {
+    return {
+      error:
+        "Too many failed handoff attempts. Generate a new QR/code before retrying.",
+    };
+  }
+  let verifiedMethod: "qr" | "code" | null = null;
   if (token) {
-    if (!job.handoff_qr_token || token !== job.handoff_qr_token) {
+    if (!verifyHandoffSecret(token, job.handoff_qr_token_hash)) {
+      await supabase
+        .from("jobs")
+        .update({ handoff_verification_attempts: verificationAttempts + 1 })
+        .eq("id", jobId);
       return { error: "Invalid QR token." };
     }
     if (!expiresAt || now > expiresAt) {
       return { error: "QR has expired. Ask for a new code." };
     }
+    verifiedMethod = "qr";
   } else if (code) {
-    if (!job.handoff_code || code !== job.handoff_code) {
+    if (!verifyHandoffSecret(code, job.handoff_code_hash)) {
+      await supabase
+        .from("jobs")
+        .update({ handoff_verification_attempts: verificationAttempts + 1 })
+        .eq("id", jobId);
       return { error: "Invalid handoff code." };
     }
+    verifiedMethod = "code";
   } else {
     return { error: "Enter QR token or 4-digit code." };
   }
@@ -216,15 +249,28 @@ export async function customerVerifyHandoffAction(
   if (distance > HANDOFF_PROXIMITY_METERS) {
     return { error: "Too far apart to complete handoff. Move closer and retry." };
   }
+  const confidenceScore = buildHandoffConfidenceScore({
+    method: verifiedMethod ?? "code",
+    distanceMeters: distance,
+    tokenFresh: Boolean(expiresAt && now <= expiresAt),
+    hasBothReadySignals: Boolean(job.worker_ready_at && job.customer_arrived_at),
+  });
 
   const { error } = await supabase
     .from("jobs")
     .update({
       status: "awaiting_dual_confirmation",
-      handoff_method: token ? "qr" : "code",
+      handoff_method: verifiedMethod,
       qr_scanned_at: new Date().toISOString(),
       proximity_passed: true,
       completion_location: `${lat.toFixed(5)},${lng.toFixed(5)}`,
+      handoff_qr_used_at: new Date().toISOString(),
+      handoff_qr_token: null,
+      handoff_qr_token_hash: null,
+      handoff_code: null,
+      handoff_code_hash: null,
+      handoff_confidence_score: confidenceScore,
+      handoff_verification_attempts: verificationAttempts + 1,
     })
     .eq("id", jobId);
   if (error) return { error: error.message };
