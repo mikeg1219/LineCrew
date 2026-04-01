@@ -650,10 +650,15 @@ export default async function AdminPage() {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {preferenceVsAccepted.map((row) => {
                   const gap = row.preferred - row.accepted;
-                  const acceptedPct =
-                    row.requested > 0
-                      ? `${Math.round((row.accepted / row.requested) * 100)}%`
-                      : "0%";
+                  const acceptedPctValue =
+                    row.requested > 0 ? Math.round((row.accepted / row.requested) * 100) : 0;
+                  const acceptedPct = `${acceptedPctValue}%`;
+                  const acceptedPctClass =
+                    acceptedPctValue >= 70
+                      ? "text-emerald-700"
+                      : acceptedPctValue >= 40
+                        ? "text-amber-700"
+                        : "text-red-700";
                   return (
                     <tr key={row.category}>
                       <td className="px-3 py-2 font-medium text-slate-900">
@@ -661,7 +666,9 @@ export default async function AdminPage() {
                       </td>
                       <td className="px-3 py-2">{row.requested}</td>
                       <td className="px-3 py-2">{row.accepted}</td>
-                      <td className="px-3 py-2">{acceptedPct}</td>
+                      <td className={`px-3 py-2 font-semibold ${acceptedPctClass}`}>
+                        {acceptedPct}
+                      </td>
                       <td className="px-3 py-2">{row.preferred}</td>
                       <td
                         className={`px-3 py-2 font-semibold ${
