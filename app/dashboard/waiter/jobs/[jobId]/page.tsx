@@ -1,4 +1,5 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { HandoffAuditPanel } from "@/app/dashboard/handoff/handoff-audit-panel";
 import { WaiterHandoffPanel } from "@/app/dashboard/handoff/waiter-handoff-panel";
 import { HandoffSuccessCard } from "@/app/dashboard/handoff/handoff-success-card";
 import { LineHolderHandoffGuidanceCard } from "@/app/dashboard/waiter/jobs/line-holder-handoff-guidance";
@@ -332,13 +333,16 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
                 status === "ready_for_handoff" ||
                 status === "qr_generated" ||
                 status === "qr_scanned") && (
-                <WaiterHandoffPanel
-                  jobId={job.id}
-                  status={status}
-                  handoffToken={job.handoff_qr_token}
-                  handoffCode={job.handoff_code}
-                  handoffQrExpiresAt={job.handoff_qr_expires_at}
-                />
+                <div className="space-y-4">
+                  <WaiterHandoffPanel
+                    jobId={job.id}
+                    status={status}
+                    handoffToken={job.handoff_qr_token}
+                    handoffCode={job.handoff_code}
+                    handoffQrExpiresAt={job.handoff_qr_expires_at}
+                  />
+                  <HandoffAuditPanel job={job} />
+                </div>
               )}
             </div>
           )}

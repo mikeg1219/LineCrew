@@ -1,6 +1,7 @@
 import { BookingActivityTimeline } from "@/app/dashboard/customer/jobs/booking-activity-timeline";
 import { BookingTrackingLive } from "@/app/dashboard/customer/jobs/booking-tracking-live";
 import { CustomerHandoffPanel } from "@/app/dashboard/handoff/customer-handoff-panel";
+import { HandoffAuditPanel } from "@/app/dashboard/handoff/handoff-audit-panel";
 import { HandoffSuccessCard } from "@/app/dashboard/handoff/handoff-success-card";
 import {
   BookingLineHolderCard,
@@ -287,6 +288,9 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
             handoffToken={job.handoff_qr_token}
             handoffCode={job.handoff_code}
           />
+          <div className="mt-4">
+            <HandoffAuditPanel job={job} />
+          </div>
         </div>
       )}
 
