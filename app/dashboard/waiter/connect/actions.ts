@@ -78,6 +78,18 @@ function stripeAccountLinkType(
   return "account_onboarding";
 }
 
+function stripeAccountLinkTypeForMode(args: {
+  mode: "onboarding" | "update";
+  hasAccountId: boolean;
+  profile: Record<string, unknown> | null | undefined;
+}): "account_onboarding" | "account_update" {
+  const { mode, hasAccountId, profile } = args;
+  if (mode === "update" && hasAccountId) {
+    return "account_update";
+  }
+  return stripeAccountLinkType(profile);
+}
+
 export async function startStripeConnectOnboardingAction(
   _prev: ConnectState,
   formData: FormData
@@ -142,13 +154,20 @@ export async function startStripeConnectOnboardingAction(
 
     const base = appBaseUrl();
     const rawReturn = String(formData.get("returnTo") ?? "").trim();
+    const rawMode = String(formData.get("mode") ?? "onboarding").trim();
+    const mode: "onboarding" | "update" =
+      rawMode === "update" ? "update" : "onboarding";
     const returnPath =
       rawReturn === "/dashboard/profile" || rawReturn === "/dashboard/waiter"
         ? rawReturn
         : "/dashboard/waiter";
-    const linkType = stripeAccountLinkType({
+    const linkType = stripeAccountLinkTypeForMode({
+      mode,
+      hasAccountId: Boolean(accountId?.trim()),
+      profile: {
       ...(profile as Record<string, unknown>),
       stripe_account_id: accountId,
+      },
     });
     const createAccountLink = async (acctId: string) =>
       stripe.accountLinks.create({

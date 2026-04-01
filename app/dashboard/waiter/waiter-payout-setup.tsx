@@ -99,6 +99,7 @@ export function WaiterPayoutSetup({
       <div className="mt-6">
         <WaiterPayoutConnectForm
           returnTo={returnTo}
+          mode="onboarding"
           label={
             payoutReady
               ? stripeAccountId?.trim()
@@ -114,6 +115,13 @@ export function WaiterPayoutSetup({
               ? "min-h-[52px] w-full rounded-xl bg-slate-900 px-6 py-3.5 text-base font-semibold text-white shadow-md shadow-slate-900/10 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60 sm:min-h-[48px] sm:w-auto"
               : "min-h-[44px] rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
           }
+        />
+        <WaiterPayoutConnectForm
+          returnTo={returnTo}
+          mode="update"
+          label="Link bank account (optional)"
+          pendingLabel="Opening bank-link…"
+          buttonClassName="mt-3 min-h-[44px] rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-900 shadow-sm transition hover:bg-blue-100 disabled:opacity-60"
         />
         <button
           type="button"

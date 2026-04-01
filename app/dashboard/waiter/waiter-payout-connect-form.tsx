@@ -12,12 +12,14 @@ export function WaiterPayoutConnectForm({
   buttonClassName,
   label = "Set up payouts",
   pendingLabel = "Redirecting…",
+  mode = "onboarding",
   /** Where to land after Stripe onboarding (server validates allowlist). */
   returnTo = "/dashboard/waiter",
 }: {
   buttonClassName: string;
   label?: string;
   pendingLabel?: string;
+  mode?: "onboarding" | "update";
   returnTo?: "/dashboard/waiter" | "/dashboard/profile";
 }) {
   const [state, formAction, pending] = useActionState(
@@ -29,6 +31,7 @@ export function WaiterPayoutConnectForm({
     <div>
       <form action={formAction}>
         <input type="hidden" name="returnTo" value={returnTo} />
+        <input type="hidden" name="mode" value={mode} />
         <button
           type="submit"
           disabled={pending}
