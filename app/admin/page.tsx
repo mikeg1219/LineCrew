@@ -1,4 +1,4 @@
-import { FraudReviewActionButton } from "@/app/admin/fraud-review-action-button";
+import { FraudReviewQueueCard } from "@/app/admin/fraud-review-queue-card";
 import { JobActionButtons } from "@/app/admin/job-action-buttons";
 import { OwnerDashboardControls } from "@/app/admin/owner-dashboard-controls";
 import { OwnerOperationsMap } from "@/app/admin/owner-operations-map";
@@ -817,104 +817,7 @@ export default async function AdminPage() {
             </p>
           )}
           {fraudReviewRows && fraudReviewRows.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-              <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3">Booking</th>
-                    <th className="px-4 py-3">Risk Signals</th>
-                    <th className="px-4 py-3">People</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">SLA</th>
-                    <th className="px-4 py-3">Review</th>
-                    <th className="px-4 py-3">Created</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {fraudReviewRows.map((j) => {
-                    const score = j.handoff_confidence_score;
-                    const attempts = j.handoff_verification_attempts ?? 0;
-                    const issue = Boolean(j.handoff_issue_flag);
-                    const reviewed = Boolean(j.handoff_reviewed_at);
-                    const sla = disputeSlaBadge(j.handoff_escalated_at ?? j.created_at);
-                    return (
-                      <tr key={`fraud-${j.id}`}>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-700">
-                          {j.id.slice(0, 8)}…
-                          <br />
-                          <span className="text-slate-500">
-                            {j.airport} · {j.line_type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="space-y-1 text-xs">
-                            <p>
-                              Confidence:{" "}
-                              <span
-                                className={`font-semibold ${
-                                  score == null
-                                    ? "text-slate-600"
-                                    : score < 60
-                                      ? "text-red-700"
-                                      : "text-emerald-700"
-                                }`}
-                              >
-                                {score == null ? "—" : `${score}/100`}
-                              </span>
-                            </p>
-                            <p>
-                              Attempts:{" "}
-                              <span
-                                className={`font-semibold ${
-                                  attempts >= 4 ? "text-red-700" : "text-slate-700"
-                                }`}
-                              >
-                                {attempts}
-                              </span>
-                            </p>
-                            <p>
-                              Issue flag:{" "}
-                              <span
-                                className={`font-semibold ${
-                                  issue ? "text-red-700" : "text-slate-700"
-                                }`}
-                              >
-                                {issue ? j.handoff_issue_reason || "Yes" : "No"}
-                              </span>
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-700">
-                          {j.customer_email ?? "—"}
-                          <br />
-                          {j.waiter_email ?? "—"}
-                        </td>
-                        <td className="px-4 py-3 text-xs font-semibold text-slate-700">
-                          {j.status}
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          <span className={`rounded-full px-2 py-1 font-semibold ${sla.className}`}>
-                            {sla.label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-xs">
-                          {reviewed ? (
-                            <span className="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-800">
-                              Reviewed
-                            </span>
-                          ) : (
-                            <FraudReviewActionButton jobId={j.id} />
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-xs text-slate-600">
-                          {new Date(j.created_at).toLocaleString()}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <FraudReviewQueueCard rows={fraudReviewRows} />
           )}
         </Card>
 
