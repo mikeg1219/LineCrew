@@ -1,6 +1,7 @@
 import { BookingActivityTimeline } from "@/app/dashboard/customer/jobs/booking-activity-timeline";
 import { BookingTrackingLive } from "@/app/dashboard/customer/jobs/booking-tracking-live";
 import { CustomerHandoffPanel } from "@/app/dashboard/handoff/customer-handoff-panel";
+import { HandoffSuccessCard } from "@/app/dashboard/handoff/handoff-success-card";
 import {
   BookingLineHolderCard,
   BookingLineHolderPendingCard,
@@ -295,6 +296,17 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           <CompletionConfirmationPanel
             jobId={job.id}
             completedAt={job.completed_at ?? job.qr_scanned_at ?? job.created_at}
+          />
+        </div>
+      )}
+
+      {status === "completed" && (
+        <div className="mt-6">
+          <HandoffSuccessCard
+            role="customer"
+            jobId={job.id}
+            offeredPrice={Number(job.offered_price)}
+            payoutTransferId={job.payout_transfer_id}
           />
         </div>
       )}

@@ -8,6 +8,7 @@ import {
   reportHandoffIssueAction,
   type HandoffActionState,
 } from "@/app/dashboard/handoff/actions";
+import { QrScannerPlaceholder } from "@/app/dashboard/handoff/qr-scanner-placeholder";
 import type { JobStatus } from "@/lib/types/job";
 import { useActionState, useState } from "react";
 
@@ -26,6 +27,8 @@ export function CustomerHandoffPanel({
 }) {
   const [loc, setLoc] = useState<{ lat: string; lng: string } | null>(null);
   const [mode, setMode] = useState<"qr" | "code">("qr");
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [parsedToken, setParsedToken] = useState("");
 
   const [onWayState, onWayAction, onWayPending] = useActionState(customerOnMyWayAction, initial);
   const [arrivedState, arrivedAction, arrivedPending] = useActionState(customerArrivedAction, initial);
@@ -116,12 +119,30 @@ export function CustomerHandoffPanel({
           </button>
         </div>
         {mode === "qr" ? (
-          <input
-            name="handoffToken"
-            defaultValue={handoffToken ?? ""}
-            placeholder="Enter scanned QR token"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          />
+          <>
+            <input
+              name="handoffToken"
+              value={parsedToken || handoffToken || ""}
+              onChange={(e) => setParsedToken(e.target.value)}
+              placeholder="Enter scanned QR token"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setScannerOpen((v) => !v)}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+            >
+              {scannerOpen ? "Hide scanner" : "Open scanner"}
+            </button>
+            {scannerOpen && (
+              <QrScannerPlaceholder
+                onParsed={(token) => {
+                  setParsedToken(token);
+                  setMode("qr");
+                }}
+              />
+            )}
+          </>
         ) : (
           <input
             name="handoffCode"

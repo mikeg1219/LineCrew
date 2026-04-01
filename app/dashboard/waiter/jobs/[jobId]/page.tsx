@@ -1,5 +1,6 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { WaiterHandoffPanel } from "@/app/dashboard/handoff/waiter-handoff-panel";
+import { HandoffSuccessCard } from "@/app/dashboard/handoff/handoff-success-card";
 import { LineHolderHandoffGuidanceCard } from "@/app/dashboard/waiter/jobs/line-holder-handoff-guidance";
 import { LineHolderStatusPanel } from "@/app/dashboard/waiter/jobs/line-holder-status-panel";
 import { ProviderBookingDetailsCard } from "@/app/dashboard/waiter/jobs/provider-booking-details-card";
@@ -215,6 +216,15 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
         exactLocation={exactLocation}
         airportLabelText={airportLabel(job.airport)}
       />
+
+      {status === "completed" && (
+        <HandoffSuccessCard
+          role="waiter"
+          jobId={job.id}
+          offeredPrice={Number(job.offered_price)}
+          payoutTransferId={job.payout_transfer_id}
+        />
+      )}
 
       <ProviderCustomerCard
         job={job}
