@@ -1,6 +1,7 @@
 "use client";
 
 import { signOut } from "@/app/dashboard/actions";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -130,9 +131,16 @@ function AuthenticatedAppHeaderInner({
             <div className="flex min-w-0 items-center gap-2">
               <Link
                 href="/dashboard"
-                className="truncate text-lg font-semibold tracking-tight text-blue-700 transition hover:text-blue-800"
+                className="inline-flex items-center transition hover:opacity-90"
               >
-                LineCrew
+                <Image
+                  src="/linecrew-logo.png"
+                  alt="LineCrew"
+                  width={132}
+                  height={40}
+                  className="h-7 w-auto"
+                  priority
+                />
               </Link>
               {breadcrumbCurrent ? (
                 <>

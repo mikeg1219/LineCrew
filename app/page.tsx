@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -11,9 +12,14 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-black/40" />
         <header className="relative z-10 border-b border-white/10 bg-black/20">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-            <span className="text-xl font-bold tracking-tight text-white">
-              LineCrew
-            </span>
+            <Image
+              src="/linecrew-logo.png"
+              alt="LineCrew"
+              width={180}
+              height={54}
+              className="h-8 w-auto"
+              priority
+            />
             <Link
               href="/auth"
               className="text-sm text-white/80 transition hover:text-white"

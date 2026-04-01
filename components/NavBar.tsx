@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -41,8 +42,8 @@ export function NavBar({ role, avatarUrl, fullName }: Props) {
           <span style={{ display: "block", width: "22px", height: "2px", background: menuOpen ? "#f5b400" : "#fff", transition: "all 0.2s", transform: menuOpen ? "rotate(-45deg) translate(5px, -5px)" : "none" }} />
         </button>
 
-        <Link href="/" style={{ color: "#fff", fontFamily: "Georgia, serif", fontSize: "18px", fontWeight: "bold", textDecoration: "none" }}>
-          SaveMySpot
+        <Link href="/" style={{ textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+          <Image src="/linecrew-logo.png" alt="LineCrew" width={132} height={40} style={{ height: "28px", width: "auto" }} />
         </Link>
 
         <Link href="/dashboard/profile" style={{ textDecoration: "none" }}>

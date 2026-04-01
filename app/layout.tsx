@@ -16,6 +16,11 @@ export const metadata: Metadata = {
   title: "LineCrew — Airport line marketplace",
   description:
     "Hire a Line Holder to hold your place in airport lines, or earn by waiting for Customers.",
+  icons: {
+    icon: "/linecrew-logo.png",
+    shortcut: "/linecrew-logo.png",
+    apple: "/linecrew-logo.png",
+  },
 };
 
 export default function RootLayout({
