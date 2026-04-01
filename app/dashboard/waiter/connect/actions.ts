@@ -215,6 +215,16 @@ export async function startStripeConnectOnboardingAction(
       link = await createAccountLink(accountId);
     }
 
+    // Lightweight server-side analytics marker (visible in Vercel logs).
+    console.info("[analytics][waiter_connect_click]", {
+      userId: user.id,
+      mode,
+      linkType,
+      accountId,
+      returnPath,
+      timestamp: new Date().toISOString(),
+    });
+
     redirect(link.url);
     return null;
   } catch (e) {
