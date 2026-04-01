@@ -296,7 +296,9 @@ export function ProfileSettingsForm({
         ) {
           const needsSync =
             detailsSubmitted == null || payoutsEnabled == null;
-          if (stripeSyncForce || needsSync) {
+          const stillIncomplete =
+            detailsSubmitted !== true || payoutsEnabled !== true;
+          if (stripeSyncForce || needsSync || stillIncomplete) {
             const r = await refreshStripeConnectStatusAction({
               force: stripeSyncForce,
             });
