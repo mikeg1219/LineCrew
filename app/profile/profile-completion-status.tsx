@@ -1,6 +1,7 @@
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isCustomerProfileComplete } from "@/lib/customer-profile-complete";
 import {
+  isManualPayoutReady,
   isStripeConnectPayoutReady,
   isWaiterAcceptSetupComplete,
   type WaiterAcceptGateRow,
@@ -28,6 +29,7 @@ type WaiterProps = {
   stripeAccountId: string | null;
   stripeDetailsSubmitted: boolean | null;
   stripePayoutsEnabled: boolean | null;
+  contactPreference?: string | null;
 };
 
 export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
@@ -80,6 +82,7 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
     stripe_account_id: p.stripeAccountId,
     stripe_details_submitted: p.stripeDetailsSubmitted,
     stripe_payouts_enabled: p.stripePayoutsEnabled,
+    contact_preference: p.contactPreference ?? null,
   };
   const authUser = {
     email_confirmed_at: p.authEmailConfirmedAt ?? undefined,
@@ -124,7 +127,11 @@ export function ProfileCompletionStatus(props: CustomerProps | WaiterProps) {
           <Check ok={emailOk} label="Email verified" />
           <Check
             ok={isStripeConnectPayoutReady(gate)}
-            label="Payouts ready (Stripe onboarding + bank)"
+            label={
+              isManualPayoutReady(gate)
+                ? "Payouts ready (manual payout method saved)"
+                : "Payouts ready (Stripe onboarding + bank)"
+            }
           />
         </ul>
       )}

@@ -10,6 +10,7 @@ import {
   isStripePayoutBypassEnabled,
   isStripeConnectPayoutReady,
   isWaiterAcceptSetupComplete,
+  parseManualPayoutPreference,
   waiterAcceptSetupShortfallMessage,
   waiterProfileBasicsAndOnboardingComplete,
 } from "@/lib/waiter-profile-complete";
@@ -122,6 +123,9 @@ export default async function WaiterDashboardPage({
       : false;
   const acceptSetupSummary = waiterAcceptSetupShortfallMessage(profile, user);
   const payoutBypass = isStripePayoutBypassEnabled();
+  const manualPayout = parseManualPayoutPreference(
+    (profile as { contact_preference?: string | null }).contact_preference ?? null
+  );
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
@@ -211,6 +215,12 @@ export default async function WaiterDashboardPage({
           stripeAccountId={profile?.stripe_account_id ?? null}
           stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
           stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
+          manualPayoutReady={manualPayout !== null}
+          manualPayoutSummary={
+            manualPayout
+              ? `${manualPayout.method.replace("_", " ")}: ${manualPayout.handle}`
+              : null
+          }
         />
       )}
 

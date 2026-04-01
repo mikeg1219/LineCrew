@@ -19,6 +19,7 @@ export type ProfileSettingsWaiter = ProfileSettingsShared & {
   home_airport: string | null;
   serving_airports: string[];
   is_available: boolean;
+  contact_preference: string | null;
   onboarding_completed: boolean;
 };
 
@@ -43,6 +44,7 @@ export function buildProfileSettingsSupabasePayload(
     | "home_airport"
     | "serving_airports"
     | "is_available"
+    | "contact_preference"
     | "onboarding_completed"
   >
 ): ProfileSettingsSupabasePayload {

@@ -8,12 +8,16 @@ export function WaiterPayoutSetup({
   stripeAccountId,
   stripeDetailsSubmitted,
   stripePayoutsEnabled,
+  manualPayoutReady = false,
+  manualPayoutSummary = null,
   returnTo = "/dashboard/waiter",
 }: {
   stripeAccountId: string | null;
   /** When null/undefined, UI assumes legacy DB (only account id tracked). */
   stripeDetailsSubmitted?: boolean | null;
   stripePayoutsEnabled?: boolean | null;
+  manualPayoutReady?: boolean;
+  manualPayoutSummary?: string | null;
   returnTo?: "/dashboard/waiter" | "/dashboard/profile";
 }) {
   const router = useRouter();
@@ -36,9 +40,10 @@ export function WaiterPayoutSetup({
   const hasSchema =
     stripeDetailsSubmitted !== undefined && stripePayoutsEnabled !== undefined;
   const payoutReady =
-    Boolean(stripeAccountId?.trim()) &&
-    (!hasSchema ||
-      (stripeDetailsSubmitted === true && stripePayoutsEnabled === true));
+    manualPayoutReady ||
+    (Boolean(stripeAccountId?.trim()) &&
+      (!hasSchema ||
+        (stripeDetailsSubmitted === true && stripePayoutsEnabled === true)));
   const incomplete = !payoutReady;
 
   return (
@@ -58,7 +63,11 @@ export function WaiterPayoutSetup({
         platform fee. You must finish Stripe onboarding (identity + bank) and
         have payouts enabled before accepting jobs or receiving transfers.
       </p>
-      {!stripeAccountId?.trim() ? (
+      {manualPayoutReady ? (
+        <p className="mt-3 text-sm font-medium text-emerald-800">
+          Manual payout is configured{manualPayoutSummary ? ` (${manualPayoutSummary})` : ""}. You can accept bookings now. Stripe setup is optional if you want automatic payouts later.
+        </p>
+      ) : !stripeAccountId?.trim() ? (
         <p className="mt-3 text-sm font-medium text-amber-900">
           Payout setup isn&apos;t started — connect below to create your Stripe
           account and add bank details.
@@ -85,7 +94,9 @@ export function WaiterPayoutSetup({
           returnTo={returnTo}
           label={
             payoutReady
-              ? "Update bank details"
+              ? stripeAccountId?.trim()
+                ? "Update bank details"
+                : "Set up Stripe (optional)"
               : stripeAccountId?.trim()
                 ? "Continue payout setup"
                 : "Set up payouts"

@@ -6,7 +6,12 @@ import {
   syncEmailVerifiedFromAuth,
 } from "@/lib/ensure-profile";
 import type { Profile, UserRole } from "@/lib/types";
-import { waiterCoreFieldsComplete } from "@/lib/waiter-profile-complete";
+import {
+  buildManualPayoutPreference,
+  parseManualPayoutPreference,
+  type ManualPayoutMethod,
+  waiterCoreFieldsComplete,
+} from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -213,6 +218,10 @@ export function ProfileSettingsForm({
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean | null>(
     null
   );
+  const [manualPayoutMethod, setManualPayoutMethod] = useState<
+    ManualPayoutMethod | ""
+  >("");
+  const [manualPayoutHandle, setManualPayoutHandle] = useState("");
 
   const phoneE164ForCompletion = useMemo(() => {
     const r = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
@@ -270,6 +279,11 @@ export function ProfileSettingsForm({
             .stripe_payouts_enabled ?? null
         );
         setOnboardingCompleted(p.onboarding_completed ?? null);
+        const manualPayout = parseManualPayoutPreference(
+          (p as { contact_preference?: string | null }).contact_preference ?? null
+        );
+        setManualPayoutMethod(manualPayout?.method ?? "");
+        setManualPayoutHandle(manualPayout?.handle ?? "");
         const path = p.avatar_url ?? null;
         setAvatarStoragePath(path);
         if (path) {
@@ -518,6 +532,10 @@ export function ProfileSettingsForm({
       servingAirportsText,
       isAvailable,
       avatarStoragePath,
+      waiterManualPayoutPreference: buildManualPayoutPreference(
+        manualPayoutMethod,
+        manualPayoutHandle
+      ),
     });
 
     if (!result.ok) {
@@ -657,6 +675,10 @@ export function ProfileSettingsForm({
           stripeAccountId={stripeAccountId}
           stripeDetailsSubmitted={stripeDetailsSubmitted}
           stripePayoutsEnabled={stripePayoutsEnabled}
+          contactPreference={buildManualPayoutPreference(
+            manualPayoutMethod,
+            manualPayoutHandle
+          )}
         />
       )}
 
@@ -1023,6 +1045,53 @@ export function ProfileSettingsForm({
                 placeholder="Comma-separated codes, e.g. LAX, SFO, SAN"
               />
             </div>
+            <div>
+              <label htmlFor="manual_payout_method" className={labelClass}>
+                Manual payout method (optional, no Stripe required)
+              </label>
+              <p className="mb-1.5 text-xs text-slate-500 sm:text-[13px]">
+                Choose this if you want off-platform payouts for gig workers (Zelle, Cash App, PayPal, Venmo, etc.).
+              </p>
+              <select
+                id="manual_payout_method"
+                value={manualPayoutMethod}
+                onChange={(e) =>
+                  setManualPayoutMethod(e.target.value as ManualPayoutMethod | "")
+                }
+                className={inputClass}
+              >
+                <option value="">No manual payout method</option>
+                <option value="zelle">Zelle</option>
+                <option value="cash_app">Cash App</option>
+                <option value="paypal">PayPal</option>
+                <option value="venmo">Venmo</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            {manualPayoutMethod ? (
+              <div>
+                <label htmlFor="manual_payout_handle" className={labelClass}>
+                  Manual payout handle
+                </label>
+                <input
+                  id="manual_payout_handle"
+                  value={manualPayoutHandle}
+                  onChange={(e) => setManualPayoutHandle(e.target.value)}
+                  className={inputClass}
+                  placeholder={
+                    manualPayoutMethod === "zelle"
+                      ? "Email or phone for Zelle"
+                      : manualPayoutMethod === "cash_app"
+                        ? "Cash App tag (e.g. $yourtag)"
+                        : manualPayoutMethod === "paypal"
+                          ? "PayPal email"
+                          : manualPayoutMethod === "venmo"
+                            ? "Venmo username"
+                            : "Payout instructions"
+                  }
+                />
+              </div>
+            ) : null}
             <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-800">
               <input
                 type="checkbox"
@@ -1081,6 +1150,14 @@ export function ProfileSettingsForm({
         stripeAccountId={stripeAccountId}
         stripeDetailsSubmitted={stripeDetailsSubmitted}
         stripePayoutsEnabled={stripePayoutsEnabled}
+        manualPayoutReady={
+          buildManualPayoutPreference(manualPayoutMethod, manualPayoutHandle) != null
+        }
+        manualPayoutSummary={
+          manualPayoutMethod && manualPayoutHandle.trim()
+            ? `${manualPayoutMethod.replace("_", " ")}: ${manualPayoutHandle.trim()}`
+            : null
+        }
         returnTo="/dashboard/profile"
       />
     )}

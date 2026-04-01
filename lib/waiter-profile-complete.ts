@@ -13,6 +13,7 @@ export type WaiterProfileGateRow = ProfileNameFields & {
   serving_airports?: string[] | null;
   onboarding_completed?: boolean | null;
   email_verified_at?: string | null;
+  contact_preference?: string | null;
 };
 
 /** Profile row including Stripe for accept / earning gates */
@@ -27,12 +28,52 @@ export function isStripePayoutBypassEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS === "true";
 }
 
+const MANUAL_PAYOUT_PREFIX = "manual_payout:";
+
+export type ManualPayoutMethod =
+  | "zelle"
+  | "cash_app"
+  | "paypal"
+  | "venmo"
+  | "other";
+
+export function parseManualPayoutPreference(
+  contactPreference: string | null | undefined
+): { method: ManualPayoutMethod; handle: string } | null {
+  const raw = String(contactPreference ?? "").trim();
+  if (!raw.startsWith(MANUAL_PAYOUT_PREFIX)) return null;
+  const body = raw.slice(MANUAL_PAYOUT_PREFIX.length);
+  const idx = body.indexOf(":");
+  if (idx < 1) return null;
+  const method = body.slice(0, idx).trim() as ManualPayoutMethod;
+  const handle = body.slice(idx + 1).trim();
+  if (!handle) return null;
+  if (!["zelle", "cash_app", "paypal", "venmo", "other"].includes(method)) {
+    return null;
+  }
+  return { method, handle };
+}
+
+export function buildManualPayoutPreference(
+  method: ManualPayoutMethod | "",
+  handle: string
+): string | null {
+  const h = handle.trim();
+  if (!method || !h) return null;
+  return `${MANUAL_PAYOUT_PREFIX}${method}:${h}`;
+}
+
+export function isManualPayoutReady(p: WaiterAcceptGateRow): boolean {
+  return parseManualPayoutPreference(p.contact_preference) !== null;
+}
+
 /**
  * True when Stripe reports onboarding done and payouts enabled (can receive transfers).
  * If `stripe_details_submitted` / `stripe_payouts_enabled` are absent (pre-migration), only `stripe_account_id` is required.
  */
 export function isStripeConnectPayoutReady(p: WaiterAcceptGateRow): boolean {
   if (isStripePayoutBypassEnabled()) return true;
+  if (isManualPayoutReady(p)) return true;
   if (!String(p.stripe_account_id ?? "").trim()) return false;
   const ds = p.stripe_details_submitted;
   const pe = p.stripe_payouts_enabled;
@@ -46,8 +87,9 @@ export function stripeConnectPayoutShortfallMessage(p: WaiterAcceptGateRow): str
   if (isStripePayoutBypassEnabled()) {
     return "";
   }
+  if (isManualPayoutReady(p)) return "";
   if (!String(p.stripe_account_id ?? "").trim()) {
-    return "Connect payouts on your dashboard before accepting bookings.";
+    return "Connect payouts on your dashboard or add a manual payout method in Profile before accepting bookings.";
   }
   const ds = p.stripe_details_submitted;
   const pe = p.stripe_payouts_enabled;
@@ -55,7 +97,7 @@ export function stripeConnectPayoutShortfallMessage(p: WaiterAcceptGateRow): str
     return "";
   }
   if (ds !== true) {
-    return "Finish Stripe payout onboarding (identity and bank details) on your dashboard before accepting bookings.";
+    return "Finish Stripe payout onboarding (identity and bank details) or use manual payout in Profile before accepting bookings.";
   }
   if (pe !== true) {
     return "Stripe payouts are not enabled yet — complete bank verification in payout setup before accepting bookings.";

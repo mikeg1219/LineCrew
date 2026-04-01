@@ -20,6 +20,7 @@ export type SaveProfileSettingsInput = {
   servingAirportsText: string;
   isAvailable: boolean;
   avatarStoragePath: string | null;
+  waiterManualPayoutPreference?: string | null;
 };
 
 export type SaveProfileSettingsResult =
@@ -124,6 +125,7 @@ export async function saveProfileSettingsAction(
         home_airport: input.homeAirport.trim() || null,
         serving_airports: unique,
         is_available: input.isAvailable,
+        contact_preference: input.waiterManualPayoutPreference ?? null,
         onboarding_completed: Boolean(
           fn &&
             ph &&
