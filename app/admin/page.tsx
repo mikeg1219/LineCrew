@@ -61,7 +61,7 @@ export default async function AdminPage() {
     )
     .or("handoff_issue_flag.eq.true,handoff_confidence_score.lt.60,handoff_verification_attempts.gte.4")
     .order("created_at", { ascending: false })
-    .limit(12);
+    .limit(200);
 
   const { count: totalUsers } = await admin
     .from("profiles")

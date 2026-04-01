@@ -1,7 +1,7 @@
 "use client";
 
 import { FraudReviewActionButton } from "@/app/admin/fraud-review-action-button";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type FraudRow = {
   id: string;
@@ -76,9 +76,48 @@ function badge(createdAt: string): { label: string; className: string } {
 }
 
 export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
-  const [unreviewedOnly, setUnreviewedOnly] = useState(true);
-  const [escalatedOnly, setEscalatedOnly] = useState(false);
-  const [lowConfidenceOnly, setLowConfidenceOnly] = useState(false);
+  const [unreviewedOnly, setUnreviewedOnly] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const raw = localStorage.getItem("linecrew_fraud_filter_preset");
+      if (!raw) return true;
+      const p = JSON.parse(raw) as { unreviewedOnly?: boolean };
+      return p.unreviewedOnly ?? true;
+    } catch {
+      return true;
+    }
+  });
+  const [escalatedOnly, setEscalatedOnly] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = localStorage.getItem("linecrew_fraud_filter_preset");
+      if (!raw) return false;
+      const p = JSON.parse(raw) as { escalatedOnly?: boolean };
+      return p.escalatedOnly ?? false;
+    } catch {
+      return false;
+    }
+  });
+  const [lowConfidenceOnly, setLowConfidenceOnly] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const raw = localStorage.getItem("linecrew_fraud_filter_preset");
+      if (!raw) return false;
+      const p = JSON.parse(raw) as { lowConfidenceOnly?: boolean };
+      return p.lowConfidenceOnly ?? false;
+    } catch {
+      return false;
+    }
+  });
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 8;
+
+  useEffect(() => {
+    localStorage.setItem(
+      "linecrew_fraud_filter_preset",
+      JSON.stringify({ unreviewedOnly, escalatedOnly, lowConfidenceOnly })
+    );
+  }, [unreviewedOnly, escalatedOnly, lowConfidenceOnly]);
 
   const filtered = useMemo(() => {
     return rows.filter((r) => {
@@ -89,12 +128,22 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
     });
   }, [rows, unreviewedOnly, escalatedOnly, lowConfidenceOnly]);
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paged = useMemo(() => {
+    const start = (safePage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, safePage]);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
-          onClick={() => setUnreviewedOnly((v) => !v)}
+          onClick={() => {
+            setUnreviewedOnly((v) => !v);
+            setPage(1);
+          }}
           className={`rounded-full px-3 py-1 text-xs font-semibold ${
             unreviewedOnly ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
           }`}
@@ -103,7 +152,10 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
         </button>
         <button
           type="button"
-          onClick={() => setEscalatedOnly((v) => !v)}
+          onClick={() => {
+            setEscalatedOnly((v) => !v);
+            setPage(1);
+          }}
           className={`rounded-full px-3 py-1 text-xs font-semibold ${
             escalatedOnly ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
           }`}
@@ -112,7 +164,10 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
         </button>
         <button
           type="button"
-          onClick={() => setLowConfidenceOnly((v) => !v)}
+          onClick={() => {
+            setLowConfidenceOnly((v) => !v);
+            setPage(1);
+          }}
           className={`rounded-full px-3 py-1 text-xs font-semibold ${
             lowConfidenceOnly ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-700"
           }`}
@@ -130,6 +185,19 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
           className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700"
         >
           Export CSV
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const url = new URL("/api/admin/fraud-review-export", window.location.origin);
+            url.searchParams.set("unreviewedOnly", String(unreviewedOnly));
+            url.searchParams.set("escalatedOnly", String(escalatedOnly));
+            url.searchParams.set("lowConfidenceOnly", String(lowConfidenceOnly));
+            window.open(url.toString(), "_blank");
+          }}
+          className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800"
+        >
+          Export all matching (server)
         </button>
       </div>
 
@@ -152,7 +220,7 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((j) => {
+              {paged.map((j) => {
                 const score = j.handoff_confidence_score;
                 const attempts = j.handoff_verification_attempts ?? 0;
                 const issue = Boolean(j.handoff_issue_flag);
@@ -231,6 +299,31 @@ export function FraudReviewQueueCard({ rows }: { rows: FraudRow[] }) {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between text-xs text-slate-600">
+          <span>
+            Page {safePage} of {totalPages} ({filtered.length} results)
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="rounded border border-slate-300 bg-white px-2 py-1 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>
