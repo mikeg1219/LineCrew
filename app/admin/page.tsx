@@ -200,14 +200,6 @@ export default async function AdminPage() {
   const activeToday = activeJobs ?? 0;
   const unfulfilledToday = staleOpenCount;
 
-  const mapPoints = [
-    { label: "MCO Active", top: "24%", left: "62%", type: "active" },
-    { label: "ATL Active", top: "36%", left: "70%", type: "active" },
-    { label: "MCO Available", top: "30%", left: "58%", type: "available" },
-    { label: "Orlando Event Wait", top: "48%", left: "60%", type: "unfulfilled" },
-    { label: "JFK Available", top: "22%", left: "78%", type: "available" },
-  ] as const;
-
   const lineTypeToCategory = (lineType: string): "Airport" | "DMV" | "Events" => {
     const normalized = lineType.toLowerCase();
     if (
@@ -282,6 +274,24 @@ export default async function AdminPage() {
     CLT: "Charlotte",
   };
 
+  const airportToCoord: Record<string, { lat: number; lon: number }> = {
+    MCO: { lat: 28.4312, lon: -81.3081 },
+    ATL: { lat: 33.6407, lon: -84.4277 },
+    JFK: { lat: 40.6413, lon: -73.7781 },
+    LAX: { lat: 33.9416, lon: -118.4085 },
+    ORD: { lat: 41.9742, lon: -87.9073 },
+    DFW: { lat: 32.8998, lon: -97.0403 },
+    MIA: { lat: 25.7959, lon: -80.287 },
+    SEA: { lat: 47.4502, lon: -122.3088 },
+    DEN: { lat: 39.8561, lon: -104.6737 },
+    CLT: { lat: 35.2144, lon: -80.9473 },
+    LAS: { lat: 36.084, lon: -115.1537 },
+    EWR: { lat: 40.6895, lon: -74.1745 },
+    BOS: { lat: 42.3656, lon: -71.0096 },
+    IAH: { lat: 29.9902, lon: -95.3368 },
+    PHX: { lat: 33.4342, lon: -112.0116 },
+  };
+
   const locationTotals = new Map<string, number>();
   for (const [airport, count] of requestCountsByAirport.entries()) {
     const city = airportToCity[airport] ?? airport;
@@ -289,6 +299,7 @@ export default async function AdminPage() {
   }
 
   const waiters = waiterProfiles ?? [];
+  const recentJobsSafe = recentMonthJobs ?? [];
   const activeWaiterIds = new Set(
     (recentMonthJobs ?? [])
       .filter((job) =>
@@ -301,6 +312,92 @@ export default async function AdminPage() {
   );
   const availableWaiters = waiters.filter((w) => w.is_available !== false).length;
   const busyWaiters = waiters.filter((w) => activeWaiterIds.has(w.id)).length;
+
+  const activeStatuses = new Set([
+    "accepted",
+    "at_airport",
+    "in_line",
+    "near_front",
+    "pending_confirmation",
+  ]);
+  const activeJobsByAirport = new Map<string, number>();
+  const unfulfilledByAirport = new Map<string, number>();
+  for (const job of recentJobsSafe) {
+    const airport = (job.airport ?? "").toUpperCase();
+    if (!airport) continue;
+    if (activeStatuses.has(job.status)) {
+      activeJobsByAirport.set(airport, (activeJobsByAirport.get(airport) ?? 0) + 1);
+    }
+    if (job.status === "open") {
+      const created = new Date(job.created_at).getTime();
+      if (Number.isFinite(created) && now.getTime() - created > 15 * 60 * 1000) {
+        unfulfilledByAirport.set(airport, (unfulfilledByAirport.get(airport) ?? 0) + 1);
+      }
+    }
+  }
+
+  const availableWaitersByAirport = new Map<string, number>();
+  for (const w of waiters) {
+    if (w.is_available === false) continue;
+    for (const airport of (w.serving_airports ?? []).filter(Boolean)) {
+      const code = airport.toUpperCase();
+      availableWaitersByAirport.set(code, (availableWaitersByAirport.get(code) ?? 0) + 1);
+    }
+  }
+
+  type MapMarker = {
+    key: string;
+    label: string;
+    type: "active" | "available" | "unfulfilled";
+    top: string;
+    left: string;
+  };
+
+  const toMapPosition = (airport: string): { top: string; left: string } | null => {
+    const c = airportToCoord[airport];
+    if (!c) return null;
+    const minLon = -125;
+    const maxLon = -66;
+    const minLat = 24;
+    const maxLat = 50;
+    const left = ((c.lon - minLon) / (maxLon - minLon)) * 100;
+    const top = (1 - (c.lat - minLat) / (maxLat - minLat)) * 100;
+    return {
+      left: `${Math.max(6, Math.min(94, left)).toFixed(1)}%`,
+      top: `${Math.max(8, Math.min(90, top)).toFixed(1)}%`,
+    };
+  };
+
+  const buildMarkers = (
+    source: Map<string, number>,
+    type: "active" | "available" | "unfulfilled",
+    prefix: string
+  ): MapMarker[] =>
+    Array.from(source.entries())
+      .map(([airport, count]) => {
+        const pos = toMapPosition(airport);
+        if (!pos) return null;
+        return {
+          key: `${type}-${airport}`,
+          label: `${prefix}: ${airport} (${count})`,
+          type,
+          top: pos.top,
+          left: pos.left,
+        } satisfies MapMarker;
+      })
+      .filter((m): m is MapMarker => Boolean(m))
+      .slice(0, 30);
+
+  const mapMarkers = [
+    ...buildMarkers(activeJobsByAirport, "active", "Active jobs"),
+    ...buildMarkers(availableWaitersByAirport, "available", "Available"),
+    ...buildMarkers(unfulfilledByAirport, "unfulfilled", "Unfulfilled"),
+  ];
+
+  const unknownAirportCount =
+    Array.from(activeJobsByAirport.keys()).filter((k) => !airportToCoord[k]).length +
+    Array.from(availableWaitersByAirport.keys()).filter((k) => !airportToCoord[k]).length +
+    Array.from(unfulfilledByAirport.keys()).filter((k) => !airportToCoord[k]).length;
 
   const categoryDemand = (["Airport", "DMV", "Events"] as const).map((name) => {
     const requests = requestCountsByCategory[name];
@@ -457,9 +554,9 @@ export default async function AdminPage() {
         <section className="grid gap-6 xl:grid-cols-3">
           <Card title="Live Operations Map" className="xl:col-span-2">
             <div className="relative h-72 rounded-xl bg-slate-900/95 p-4 text-slate-100">
-              {mapPoints.map((point) => (
+              {mapMarkers.map((point) => (
                 <div
-                  key={point.label}
+                  key={point.key}
                   className="absolute"
                   style={{ top: point.top, left: point.left }}
                   title={point.label}
@@ -475,6 +572,10 @@ export default async function AdminPage() {
                   />
                 </div>
               ))}
+              <div className="absolute right-3 top-3 rounded-md bg-slate-800/80 px-2 py-1 text-[11px] text-slate-200">
+                {mapMarkers.length} plotted markers
+                {unknownAirportCount > 0 ? ` · ${unknownAirportCount} unmapped airport codes` : ""}
+              </div>
               <div className="absolute bottom-3 left-3 flex flex-wrap gap-3 text-xs">
                 <LegendDot color="bg-emerald-400" label="Active jobs" />
                 <LegendDot color="bg-cyan-300" label="Available line holders" />
