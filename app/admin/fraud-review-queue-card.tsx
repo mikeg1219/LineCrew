@@ -19,6 +19,22 @@ type FraudRow = {
   created_at: string;
 };
 
+function Sparkline({ values, color }: { values: number[]; color: string }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div className="mt-2 flex h-8 items-end gap-1">
+      {values.map((v, i) => (
+        <div
+          key={`${color}-${i}`}
+          className={`w-full rounded-sm ${color}`}
+          style={{ height: `${Math.max(12, (v / max) * 100)}%` }}
+          title={`${v}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 function toCsv(rows: FraudRow[]): string {
   const header = [
     "job_id",
@@ -167,6 +183,63 @@ export function FraudReviewQueueCard({
     return { openEscalations, reviewedToday, avgConfidence, breachCount };
   }, [rows, nowIso]);
 
+  const trends = useMemo(() => {
+    const now = new Date(nowIso);
+    const days: string[] = [];
+    const openEsc = new Map<string, number>();
+    const reviewed = new Map<string, number>();
+    const confidenceSums = new Map<string, { sum: number; count: number }>();
+    const breaches = new Map<string, number>();
+
+    for (let i = 6; i >= 0; i -= 1) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push(key);
+      openEsc.set(key, 0);
+      reviewed.set(key, 0);
+      confidenceSums.set(key, { sum: 0, count: 0 });
+      breaches.set(key, 0);
+    }
+
+    for (const r of rows) {
+      const createdKey = new Date(r.created_at).toISOString().slice(0, 10);
+      if (days.includes(createdKey)) {
+        if (r.handoff_escalated_at && !r.handoff_reviewed_at) {
+          openEsc.set(createdKey, (openEsc.get(createdKey) ?? 0) + 1);
+        }
+        if ((r.handoff_confidence_score ?? null) != null) {
+          const entry = confidenceSums.get(createdKey) ?? { sum: 0, count: 0 };
+          entry.sum += Number(r.handoff_confidence_score);
+          entry.count += 1;
+          confidenceSums.set(createdKey, entry);
+        }
+        const ageMs = new Date(nowIso).getTime() - new Date(r.created_at).getTime();
+        const hours = Math.floor(ageMs / (1000 * 60 * 60));
+        if (hours >= 24 && !r.handoff_reviewed_at) {
+          breaches.set(createdKey, (breaches.get(createdKey) ?? 0) + 1);
+        }
+      }
+
+      if (r.handoff_reviewed_at) {
+        const reviewedKey = new Date(r.handoff_reviewed_at).toISOString().slice(0, 10);
+        if (days.includes(reviewedKey)) {
+          reviewed.set(reviewedKey, (reviewed.get(reviewedKey) ?? 0) + 1);
+        }
+      }
+    }
+
+    return {
+      openEscalations: days.map((d) => openEsc.get(d) ?? 0),
+      reviewedToday: days.map((d) => reviewed.get(d) ?? 0),
+      avgConfidence: days.map((d) => {
+        const v = confidenceSums.get(d) ?? { sum: 0, count: 0 };
+        return v.count > 0 ? Math.round(v.sum / v.count) : 0;
+      }),
+      breaches: days.map((d) => breaches.get(d) ?? 0),
+    };
+  }, [rows, nowIso]);
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const paged = useMemo(() => {
@@ -182,24 +255,28 @@ export function FraudReviewQueueCard({
             Open escalations
           </p>
           <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.openEscalations}</p>
+          <Sparkline values={trends.openEscalations} color="bg-blue-500" />
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Reviewed today
           </p>
           <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.reviewedToday}</p>
+          <Sparkline values={trends.reviewedToday} color="bg-emerald-500" />
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             Avg confidence
           </p>
           <p className="mt-1 text-xl font-semibold text-slate-900">{kpis.avgConfidence}/100</p>
+          <Sparkline values={trends.avgConfidence} color="bg-violet-500" />
         </div>
         <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
             SLA breaches
           </p>
           <p className="mt-1 text-xl font-semibold text-red-700">{kpis.breachCount}</p>
+          <Sparkline values={trends.breaches} color="bg-red-500" />
         </div>
       </div>
 
