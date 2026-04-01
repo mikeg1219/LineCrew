@@ -51,11 +51,6 @@ export default async function AdminPage() {
     .from("profiles")
     .select("*", { count: "exact", head: true });
 
-  const { count: completedJobs } = await admin
-    .from("jobs")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "completed");
-
   const { count: activeJobs } = await admin
     .from("jobs")
     .select("*", { count: "exact", head: true })
@@ -70,22 +65,125 @@ export default async function AdminPage() {
 
   const { data: completedRows } = await admin
     .from("jobs")
-    .select("offered_price, payout_transfer_id")
+    .select("offered_price, payout_transfer_id, created_at, completed_at")
     .eq("status", "completed");
 
-  let platformRevenue = 0;
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfWeek = new Date(now);
+  startOfWeek.setDate(now.getDate() - 7);
+  const startOfMonth = new Date(now);
+  startOfMonth.setDate(now.getDate() - 30);
+
+  const todayIso = startOfToday.toISOString();
+  const weekIso = startOfWeek.toISOString();
+  const monthIso = startOfMonth.toISOString();
+
+  const { count: totalRequestsTodayCount } = await admin
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .gte("created_at", todayIso);
+
+  const { count: completedTodayCount } = await admin
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "completed")
+    .gte("completed_at", todayIso);
+
+  const { data: openRows } = await admin
+    .from("jobs")
+    .select("id, created_at")
+    .eq("status", "open");
+
+  const staleOpenCount = (openRows ?? []).filter((row) => {
+    const created = new Date(row.created_at).getTime();
+    return Number.isFinite(created) && now.getTime() - created > 15 * 60 * 1000;
+  }).length;
+
+  let revenueToday = 0;
+  let revenueWeek = 0;
+  let revenueMonth = 0;
+  let platformRevenueMonth = 0;
+  let payoutsMonth = 0;
+  let completedCountForAvg = 0;
+  let completionMinutesTotal = 0;
   for (const row of completedRows ?? []) {
+    const offered = Number(row.offered_price) || 0;
+    const completedAt = row.completed_at ? new Date(row.completed_at) : null;
+    const createdAt = row.created_at ? new Date(row.created_at) : null;
+    if (completedAt) {
+      const cIso = completedAt.toISOString();
+      if (cIso >= todayIso) revenueToday += offered;
+      if (cIso >= weekIso) revenueWeek += offered;
+      if (cIso >= monthIso) revenueMonth += offered;
+    }
     if (row.payout_transfer_id) {
-      platformRevenue += Number(row.offered_price) * 0.2;
+      const fee = offered * 0.2;
+      if (completedAt && completedAt.toISOString() >= monthIso) {
+        platformRevenueMonth += fee;
+      }
+      payoutsMonth += offered * 0.8;
+    }
+    if (createdAt && completedAt) {
+      const mins = (completedAt.getTime() - createdAt.getTime()) / (1000 * 60);
+      if (Number.isFinite(mins) && mins >= 0) {
+        completionMinutesTotal += mins;
+        completedCountForAvg += 1;
+      }
     }
   }
 
-  const totalRequestsToday = 42;
-  const completedToday = completedJobs ?? 29;
+  const avgFulfillmentMinutes =
+    completedCountForAvg > 0
+      ? Math.round(completionMinutesTotal / completedCountForAvg)
+      : 0;
+
+  const { count: cancellationsWeekCount } = await admin
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "cancelled")
+    .gte("created_at", weekIso);
+
+  const { count: disputesWeekCount } = await admin
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "disputed")
+    .gte("created_at", weekIso);
+
+  const { data: recentJobs } = await admin
+    .from("jobs")
+    .select("id, status, airport, line_type, offered_price, created_at, completed_at, waiter_email")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  const activityFeed = (recentJobs ?? []).slice(0, 6).map((job) => {
+    const ts = new Date(job.created_at).toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    if (job.status === "completed") {
+      return `Job completed: ${job.airport} ${job.line_type} · $${Number(job.offered_price).toFixed(2)} (${ts})`;
+    }
+    if (job.status === "accepted" || job.status === "at_airport" || job.status === "in_line") {
+      return `Job accepted/in progress: ${job.airport} ${job.line_type} (${ts})`;
+    }
+    if (job.status === "open") {
+      return `Job requested: ${job.airport} ${job.line_type} (${ts})`;
+    }
+    if (job.status === "cancelled") {
+      return `Job cancelled: ${job.airport} ${job.line_type} (${ts})`;
+    }
+    if (job.status === "disputed") {
+      return `Issue opened: disputed booking ${job.id.slice(0, 8)}… (${ts})`;
+    }
+    return `Activity: ${job.status} at ${job.airport} (${ts})`;
+  });
+
+  const totalRequestsToday = totalRequestsTodayCount ?? 0;
+  const completedToday = completedTodayCount ?? 0;
   const activeToday = activeJobs ?? 0;
-  const unfulfilledToday = 7;
-  const revenueToday = 1642.35;
-  const avgFulfillmentMinutes = 31;
+  const unfulfilledToday = staleOpenCount;
 
   const mapPoints = [
     { label: "MCO Active", top: "24%", left: "62%", type: "active" },
@@ -108,21 +206,48 @@ export default async function AdminPage() {
     { name: "Los Angeles", requests: 6 },
   ] as const;
 
-  const alerts = [
-    { level: "high", text: "7 unfulfilled requests in the last hour" },
-    { level: "medium", text: "3 active jobs delayed > 15 minutes" },
-    { level: "high", text: "2 cancellations in Orlando Airport category" },
-    { level: "medium", text: "1 line holder rating dropped below 4.2" },
-  ] as const;
+  const alerts: { level: "high" | "medium"; text: string }[] = [
+    {
+      level: unfulfilledToday > 0 ? "high" : "medium",
+      text:
+        unfulfilledToday > 0
+          ? `${unfulfilledToday} open requests are older than 15 minutes`
+          : "No stale open requests right now",
+    },
+    {
+      level: activeToday >= 12 ? "high" : "medium",
+      text: `${activeToday} active jobs currently in progress`,
+    },
+    {
+      level: (cancellationsWeekCount ?? 0) > 0 ? "high" : "medium",
+      text: `${cancellationsWeekCount ?? 0} cancellations in the last 7 days`,
+    },
+    {
+      level: (disputesWeekCount ?? 0) > 0 ? "high" : "medium",
+      text: `${disputesWeekCount ?? 0} disputes in the last 7 days`,
+    },
+  ];
 
   const revenueBlocks = [
-    { label: "Today", value: "$1,642.35" },
-    { label: "This week", value: "$9,811.20" },
-    { label: "This month", value: "$38,460.90" },
-    { label: "Avg order value", value: "$33.15" },
-    { label: "Platform fees", value: `$${platformRevenue.toFixed(2)}` },
-    { label: "Payouts", value: "$30,768.72" },
-    { label: "Profit margin", value: "21.3%" },
+    { label: "Today", value: `$${revenueToday.toFixed(2)}` },
+    { label: "This week", value: `$${revenueWeek.toFixed(2)}` },
+    { label: "This month", value: `$${revenueMonth.toFixed(2)}` },
+    {
+      label: "Avg order value",
+      value:
+        completedRows && completedRows.length > 0
+          ? `$${(revenueMonth / Math.max(1, completedRows.length)).toFixed(2)}`
+          : "$0.00",
+    },
+    { label: "Platform fees", value: `$${platformRevenueMonth.toFixed(2)}` },
+    { label: "Payouts", value: `$${payoutsMonth.toFixed(2)}` },
+    {
+      label: "Profit margin",
+      value:
+        revenueMonth > 0
+          ? `${((platformRevenueMonth / revenueMonth) * 100).toFixed(1)}%`
+          : "0.0%",
+    },
   ] as const;
 
   const trendSeries = [
@@ -168,14 +293,6 @@ export default async function AdminPage() {
       acceptance: "76%",
       location: "Orlando",
     },
-  ] as const;
-
-  const activityFeed = [
-    "Job requested: MCO TSA PreCheck (2 min ago)",
-    "Job accepted: A. Johnson (3 min ago)",
-    "Job completed: ATL Security line (8 min ago)",
-    "Payout released: $24.00 to R. Patel (11 min ago)",
-    "Category toggled: Events enabled in Orlando (15 min ago)",
   ] as const;
 
   return (
