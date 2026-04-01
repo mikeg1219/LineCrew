@@ -34,6 +34,12 @@ function normalizeStripeConnectError(err: unknown): string {
   return msg || fallback;
 }
 
+function isNoSuchAccountError(err: unknown): boolean {
+  if (!(err instanceof Stripe.errors.StripeError)) return false;
+  const msg = (err.message ?? "").toLowerCase();
+  return msg.includes("no such account");
+}
+
 async function findExistingConnectedAccountId(
   stripe: Stripe,
   userId: string,
@@ -97,6 +103,7 @@ export async function startStripeConnectOnboardingAction(
     }
 
     const stripe = getStripe();
+    const db = createServiceRoleClient() ?? supabase;
     let accountId = profile?.stripe_account_id ?? null;
 
     if (!accountId) {
@@ -123,7 +130,6 @@ export async function startStripeConnectOnboardingAction(
         metadata: { supabase_user_id: user.id },
       });
       accountId = account.id;
-      const db = createServiceRoleClient() ?? supabase;
       const { error: upErr } = await db
         .from("profiles")
         .update({ stripe_account_id: accountId })
@@ -144,12 +150,51 @@ export async function startStripeConnectOnboardingAction(
       ...(profile as Record<string, unknown>),
       stripe_account_id: accountId,
     });
-    const link = await stripe.accountLinks.create({
-      account: accountId,
-      refresh_url: `${base}${returnPath}?connect=refresh`,
-      return_url: `${base}${returnPath}?connect=return`,
-      type: linkType,
-    });
+    const createAccountLink = async (acctId: string) =>
+      stripe.accountLinks.create({
+        account: acctId,
+        refresh_url: `${base}${returnPath}?connect=refresh`,
+        return_url: `${base}${returnPath}?connect=return`,
+        type: linkType,
+      });
+
+    let link: Stripe.AccountLink;
+    try {
+      link = await createAccountLink(accountId);
+    } catch (err) {
+      // Auto-heal stale account IDs saved in profile: retry with a recovered account ID.
+      if (!isNoSuchAccountError(err)) {
+        throw err;
+      }
+
+      const recoveredId =
+        (await findExistingConnectedAccountId(stripe, user.id, user.email)) ?? null;
+      if (recoveredId) {
+        accountId = recoveredId;
+      } else {
+        const account = await stripe.accounts.create({
+          type: "express",
+          country: "US",
+          email: user.email,
+          capabilities: {
+            transfers: { requested: true },
+          },
+          metadata: { supabase_user_id: user.id },
+        });
+        accountId = account.id;
+      }
+
+      const { error: repairErr } = await db
+        .from("profiles")
+        .update({ stripe_account_id: accountId })
+        .eq("id", user.id);
+      if (repairErr) {
+        console.error("[waiter/connect] repair stripe_account_id:", repairErr.message);
+        return { error: repairErr.message };
+      }
+
+      link = await createAccountLink(accountId);
+    }
 
     redirect(link.url);
     return null;
