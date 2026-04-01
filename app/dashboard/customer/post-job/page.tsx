@@ -1,5 +1,6 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { PostJobForm } from "@/app/dashboard/customer/post-job/post-job-form";
+import { LegalLinksInline } from "@/components/legal-links";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -118,6 +119,7 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           <span className="font-semibold">$5</span> cancellation fee applies (paid
           to the Line Holder); the rest is refunded to you.
         </p>
+        <LegalLinksInline />
       </header>
 
       <div className="mb-8 rounded-xl border border-blue-200/90 bg-blue-50/90 px-4 py-3.5 text-center shadow-sm sm:mb-10 sm:px-5 sm:py-4">

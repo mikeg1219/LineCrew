@@ -64,4 +64,8 @@ export type Job = {
   handoff_reviewed_at?: string | null;
   handoff_reviewed_by?: string | null;
   handoff_review_notes?: string | null;
+  booking_terms_acknowledged_at?: string | null;
+  booking_disclaimer_acknowledged_at?: string | null;
+  category_specific_disclaimer_version?: string | null;
+  refund_policy_version?: string | null;
 };

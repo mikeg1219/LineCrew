@@ -223,6 +223,12 @@ async function handlePaymentIntentSucceeded(
     overage_rate: overageRate,
     overage_agreed: md.overage_agreed === "true",
     estimated_wait: estimatedWait,
+    booking_terms_acknowledged_at: md.booking_terms_acknowledged_at ?? null,
+    booking_disclaimer_acknowledged_at:
+      md.booking_disclaimer_acknowledged_at ?? null,
+    category_specific_disclaimer_version:
+      md.category_disclaimer_version ?? null,
+    refund_policy_version: md.refund_policy_version ?? null,
     status: "open",
     stripe_payment_intent_id: pi.id,
   };

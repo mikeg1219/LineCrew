@@ -22,6 +22,9 @@ export type ProfileSettingsWaiter = ProfileSettingsShared & {
   is_available: boolean;
   contact_preference: string | null;
   onboarding_completed: boolean;
+  accepted_worker_agreement_version: string | null;
+  independent_contractor_acknowledged_at: string | null;
+  tax_responsibility_acknowledged_at: string | null;
 };
 
 export type ProfileSettingsSupabasePayload =
@@ -48,6 +51,9 @@ export function buildProfileSettingsSupabasePayload(
     | "is_available"
     | "contact_preference"
     | "onboarding_completed"
+    | "accepted_worker_agreement_version"
+    | "independent_contractor_acknowledged_at"
+    | "tax_responsibility_acknowledged_at"
   >
 ): ProfileSettingsSupabasePayload {
   if (dbRole === "customer") {

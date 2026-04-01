@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GlobalLegalFooter } from "@/components/legal-links";
 import { Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -35,6 +36,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-white text-slate-900">
         {children}
+        <GlobalLegalFooter />
       </body>
     </html>
   );

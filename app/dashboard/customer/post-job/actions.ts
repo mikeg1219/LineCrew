@@ -8,6 +8,7 @@ import {
   ESTIMATED_WAIT_OPTIONS,
   LINE_TYPES,
 } from "@/lib/jobs/options";
+import { POLICY_VERSIONS } from "@/lib/legal";
 import { buildJobPaymentMetadata } from "@/lib/stripe-job-metadata";
 import { getStripe } from "@/lib/stripe";
 import { createClient } from "@/lib/supabase/server";
@@ -153,11 +154,21 @@ export async function postJobAction(
   const overageRaw = formData.get("overage_rate");
   const overageAgreed = formData.get("overage_agreed") === "on";
   const estimated_wait = String(formData.get("estimated_wait") ?? "");
+  const bookingTermsAck = formData.get("booking_terms_ack") === "on";
+  const bookingDisclaimerAck = formData.get("booking_disclaimer_ack") === "on";
+  const categoryDisclaimerVersionRaw = String(
+    formData.get("category_disclaimer_version") ?? ""
+  ).trim();
 
   if (!overageAgreed) {
     return {
       error:
         "You must agree to the extra time rate to post a booking.",
+    };
+  }
+  if (!bookingTermsAck || !bookingDisclaimerAck) {
+    return {
+      error: "Please review and acknowledge the booking legal notices before checkout.",
     };
   }
 
@@ -228,6 +239,13 @@ export async function postJobAction(
     overageAgreed: true,
     paymentMethodCode:
       payment_method_code_raw || "stripe_card",
+    bookingTermsAcknowledgedAt: new Date().toISOString(),
+    bookingDisclaimerAcknowledgedAt: new Date().toISOString(),
+    categoryDisclaimerVersion:
+      categoryDisclaimerVersionRaw ||
+      POLICY_VERSIONS.categoryDisclaimer[booking_category] ||
+      "2026-03-31.default.1",
+    refundPolicyVersion: POLICY_VERSIONS.refund,
   });
 
   const base = appBaseUrl();

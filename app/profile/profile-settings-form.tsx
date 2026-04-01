@@ -44,6 +44,7 @@ import {
   parsePhoneFromStored,
   PHONE_COUNTRIES,
 } from "@/lib/phone";
+import { LEGAL_PATHS, POLICY_VERSIONS } from "@/lib/legal";
 
 export type ProfileHeroFallback = {
   display: string;
@@ -224,6 +225,18 @@ export function ProfileSettingsForm({
     ManualPayoutMethod | ""
   >("");
   const [manualPayoutHandle, setManualPayoutHandle] = useState("");
+  const [acceptedTermsVersion, setAcceptedTermsVersion] = useState<string | null>(
+    null
+  );
+  const [acceptedPrivacyVersion, setAcceptedPrivacyVersion] = useState<
+    string | null
+  >(null);
+  const [acceptedWorkerAgreementVersion, setAcceptedWorkerAgreementVersion] =
+    useState<string | null>(null);
+  const [workerIndependentContractorConfirmed, setWorkerIndependentContractorConfirmed] =
+    useState(false);
+  const [workerTaxResponsibilityConfirmed, setWorkerTaxResponsibilityConfirmed] =
+    useState(false);
 
   const phoneE164ForCompletion = useMemo(() => {
     const r = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
@@ -290,6 +303,30 @@ export function ProfileSettingsForm({
         );
         setManualPayoutMethod(manualPayout?.method ?? "");
         setManualPayoutHandle(manualPayout?.handle ?? "");
+        setAcceptedTermsVersion(
+          (p as { accepted_terms_version?: string | null }).accepted_terms_version ??
+            null
+        );
+        setAcceptedPrivacyVersion(
+          (p as { accepted_privacy_version?: string | null }).accepted_privacy_version ??
+            null
+        );
+        setAcceptedWorkerAgreementVersion(
+          (p as { accepted_worker_agreement_version?: string | null })
+            .accepted_worker_agreement_version ?? null
+        );
+        setWorkerIndependentContractorConfirmed(
+          Boolean(
+            (p as { independent_contractor_acknowledged_at?: string | null })
+              .independent_contractor_acknowledged_at
+          )
+        );
+        setWorkerTaxResponsibilityConfirmed(
+          Boolean(
+            (p as { tax_responsibility_acknowledged_at?: string | null })
+              .tax_responsibility_acknowledged_at
+          )
+        );
         const path = p.avatar_url ?? null;
         setAvatarStoragePath(path);
         if (path) {
@@ -524,6 +561,16 @@ export function ProfileSettingsForm({
       });
       return;
     }
+    if (
+      role === "waiter" &&
+      (!workerIndependentContractorConfirmed || !workerTaxResponsibilityConfirmed)
+    ) {
+      setMessage(
+        "Please confirm the legal acknowledgments in the Line Holder section before saving."
+      );
+      setSaving(false);
+      return;
+    }
 
     const result = await saveProfileSettingsAction({
       firstName: fn,
@@ -543,6 +590,8 @@ export function ProfileSettingsForm({
         manualPayoutMethod,
         manualPayoutHandle
       ),
+      waiterIndependentContractorConfirmed: workerIndependentContractorConfirmed,
+      waiterTaxResponsibilityConfirmed: workerTaxResponsibilityConfirmed,
     });
 
     if (!result.ok) {
@@ -1136,9 +1185,93 @@ export function ProfileSettingsForm({
               />
               Available for booking notifications
             </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+              <p className="text-sm font-semibold text-slate-900">Legal acknowledgments</p>
+              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                Line holders are independent contractors using the LineCrew.ai marketplace.
+              </p>
+              <div className="mt-3 space-y-2">
+                <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={workerIndependentContractorConfirmed}
+                    onChange={(e) =>
+                      setWorkerIndependentContractorConfirmed(e.target.checked)
+                    }
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>I understand I am an independent contractor, not a LineCrew.ai employee.</span>
+                </label>
+                <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={workerTaxResponsibilityConfirmed}
+                    onChange={(e) => setWorkerTaxResponsibilityConfirmed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>I am responsible for venue/law compliance and taxes.</span>
+                </label>
+              </div>
+            </div>
           </div>
         </section>
       )}
+
+      <section className={sectionShell} aria-labelledby="section-legal">
+        <div className="border-b border-slate-100 pb-5">
+          <h2 id="section-legal" className={sectionTitle}>
+            Legal & policies
+          </h2>
+          <p className={sectionDesc}>
+            Review policies and your currently recorded acceptance versions.
+          </p>
+        </div>
+        <div className="mt-6 space-y-2 text-sm text-slate-700">
+          <p>
+            Terms version:{" "}
+            <span className="font-medium">{acceptedTermsVersion ?? "Not recorded"}</span>
+          </p>
+          <p>
+            Privacy version:{" "}
+            <span className="font-medium">{acceptedPrivacyVersion ?? "Not recorded"}</span>
+          </p>
+          {role === "waiter" ? (
+            <p>
+              Line Holder Agreement version:{" "}
+              <span className="font-medium">
+                {acceptedWorkerAgreementVersion ?? "Not recorded"}
+              </span>
+            </p>
+          ) : null}
+          <p className="pt-2 text-xs text-slate-500">
+            Current worker agreement version: {POLICY_VERSIONS.workerAgreement}
+          </p>
+          <p className="pt-1 text-xs leading-relaxed text-slate-600">
+            <Link href={LEGAL_PATHS.terms} className="text-blue-700 hover:text-blue-800">
+              Terms
+            </Link>{" "}
+            ·{" "}
+            <Link href={LEGAL_PATHS.privacy} className="text-blue-700 hover:text-blue-800">
+              Privacy
+            </Link>{" "}
+            ·{" "}
+            <Link href={LEGAL_PATHS.refund} className="text-blue-700 hover:text-blue-800">
+              Refund Policy
+            </Link>{" "}
+            ·{" "}
+            <Link href={LEGAL_PATHS.guidelines} className="text-blue-700 hover:text-blue-800">
+              Community Guidelines
+            </Link>{" "}
+            ·{" "}
+            <Link
+              href={LEGAL_PATHS.workerAgreement}
+              className="text-blue-700 hover:text-blue-800"
+            >
+              Line Holder Agreement
+            </Link>
+          </p>
+        </div>
+      </section>
 
       <section className={sectionShell} aria-labelledby="section-save">
         <div className="border-b border-slate-100 pb-5">

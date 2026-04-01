@@ -6,6 +6,7 @@ import {
   type ResetPasswordState,
 } from "@/app/auth/reset-actions";
 import { parseAuthIntent } from "@/lib/auth-intent";
+import { LegalLinksInline } from "@/components/legal-links";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -87,7 +88,7 @@ function heroSubtext(
       return "Choose Customer or Line Holder, then set a password. We will email you a link to verify before you continue.";
     }
     return role === "customer"
-      ? "Post airport line requests and get matched with a verified Line Holder."
+      ? "Post queue requests and get matched with a trusted independent Line Holder."
       : "Accept nearby bookings, wait in line for travelers, and get paid through LineCrew.";
   }
   if (intent === "customer") {
@@ -423,7 +424,7 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   ✔
                 </span>
                 <span className="min-w-0 flex-1 leading-snug">
-                  Nearby airport booking alerts
+                  Nearby booking alerts
                 </span>
               </li>
               <li className="flex w-full items-start gap-2.5 sm:min-h-[1.375rem] sm:items-center">
@@ -583,8 +584,8 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   </label>
                 </div>
                 <p className="text-xs leading-relaxed text-slate-500">
-                  Customers request line holds; Line Holders fulfill them at the
-                  airport.
+                  Customers request line holds; Line Holders fulfill them across
+                  airports, events, retail drops, and other queues.
                 </p>
               </fieldset>
             )}
@@ -649,6 +650,49 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                   className={inputClass}
                 />
               </div>
+            )}
+
+            {mode === "signup" && (
+              <fieldset className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="accept_terms_privacy"
+                    required
+                    className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                  />
+                  <span>
+                    By creating an account, you agree to the Terms of Service and acknowledge the Privacy Policy.
+                  </span>
+                </label>
+                {roleForUi === "waiter" ? (
+                  <>
+                    <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="ack_independent_contractor"
+                        required
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                      />
+                      <span>
+                        I understand I am an independent contractor, not an employee of LineCrew.ai.
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                      <input
+                        type="checkbox"
+                        name="ack_worker_responsibilities"
+                        required
+                        className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                      />
+                      <span>
+                        I am responsible for conduct, venue rule compliance, local laws, and taxes.
+                      </span>
+                    </label>
+                  </>
+                ) : null}
+                <LegalLinksInline />
+              </fieldset>
             )}
 
             {mode === "signup" && (

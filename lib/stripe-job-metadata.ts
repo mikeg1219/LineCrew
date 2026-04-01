@@ -13,6 +13,10 @@ export type JobCheckoutMetadata = {
   offered_price: string;
   overage_agreed: string;
   payment_method_code?: string;
+  booking_terms_acknowledged_at?: string;
+  booking_disclaimer_acknowledged_at?: string;
+  category_disclaimer_version?: string;
+  refund_policy_version?: string;
 };
 
 export function buildJobPaymentMetadata(input: {
@@ -27,6 +31,10 @@ export function buildJobPaymentMetadata(input: {
   offeredPrice: number;
   overageAgreed: boolean;
   paymentMethodCode?: string | null;
+  bookingTermsAcknowledgedAt?: string | null;
+  bookingDisclaimerAcknowledgedAt?: string | null;
+  categoryDisclaimerVersion?: string | null;
+  refundPolicyVersion?: string | null;
 }): JobCheckoutMetadata {
   const description =
     input.description.trim().length > MAX_META
@@ -45,5 +53,10 @@ export function buildJobPaymentMetadata(input: {
     offered_price: input.offeredPrice.toFixed(2),
     overage_agreed: input.overageAgreed ? "true" : "false",
     payment_method_code: input.paymentMethodCode ?? undefined,
+    booking_terms_acknowledged_at: input.bookingTermsAcknowledgedAt ?? undefined,
+    booking_disclaimer_acknowledged_at:
+      input.bookingDisclaimerAcknowledgedAt ?? undefined,
+    category_disclaimer_version: input.categoryDisclaimerVersion ?? undefined,
+    refund_policy_version: input.refundPolicyVersion ?? undefined,
   };
 }

@@ -13,6 +13,8 @@ import {
   PAYMENT_METHOD_LABEL,
   type PaymentMethodCode,
 } from "@/lib/payment-methods";
+import { POLICY_VERSIONS, categoryDisclaimerCopy } from "@/lib/legal";
+import { LegalLinksInline } from "@/components/legal-links";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
@@ -439,6 +441,46 @@ export function PostJobForm() {
               with card/wallet methods; bank-link options appear in Checkout when
               available for your device and region.
             </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              LineCrew.ai is a marketplace connecting you with independent line holders.
+              Availability and outcomes vary based on venue rules, timing, and third-party conduct.
+            </p>
+          </div>
+
+          <input
+            type="hidden"
+            name="category_disclaimer_version"
+            value={POLICY_VERSIONS.categoryDisclaimer[bookingCategory] ?? "2026-03-31.default.1"}
+          />
+
+          <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+              Booking acknowledgment
+            </p>
+            <p className="mt-2 text-sm text-slate-700">{categoryDisclaimerCopy(bookingCategory)}</p>
+            <div className="mt-3 space-y-2">
+              <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                <input
+                  type="checkbox"
+                  name="booking_disclaimer_ack"
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                />
+                <span>
+                  I understand LineCrew.ai does not guarantee venue access, queue transfer success, or service outcomes.
+                </span>
+              </label>
+              <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
+                <input
+                  type="checkbox"
+                  name="booking_terms_ack"
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                />
+                <span>I understand the assigned line holder is an independent third party.</span>
+              </label>
+            </div>
+            <LegalLinksInline className="mt-3" />
           </div>
 
           {/* Test-only payment method selector (does not change Stripe flow yet) */}

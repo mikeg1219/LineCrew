@@ -5,7 +5,9 @@ import { sendEmailVerificationForNewUser } from "@/lib/email-verification-servic
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeEmail } from "@/lib/password-reset-crypto";
+import { POLICY_VERSIONS } from "@/lib/legal";
 import type { UserRole } from "@/lib/types";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -67,6 +69,26 @@ export async function authAction(
     const roleRaw = formData.get("role");
     const role: UserRole =
       roleRaw === "waiter" || roleRaw === "customer" ? roleRaw : "customer";
+    const acceptedTermsPrivacy = formData.get("accept_terms_privacy") === "on";
+    if (!acceptedTermsPrivacy) {
+      return {
+        error: "You must accept Terms and Privacy to create an account.",
+        mode: authMode,
+      };
+    }
+    const acceptedIndependentContractor =
+      formData.get("ack_independent_contractor") === "on";
+    const acceptedWorkerResponsibilities =
+      formData.get("ack_worker_responsibilities") === "on";
+    if (
+      role === "waiter" &&
+      (!acceptedIndependentContractor || !acceptedWorkerResponsibilities)
+    ) {
+      return {
+        error: "Line Holder onboarding requires independent contractor acknowledgments.",
+        mode: authMode,
+      };
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -103,6 +125,70 @@ export async function authAction(
           "[auth] Could not resolve user id after sign-up (admin client):",
           e
         );
+      }
+    }
+
+    if (userId) {
+      try {
+        const admin = createAdminClient();
+        const h = await headers();
+        const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+        const userAgent = h.get("user-agent") ?? null;
+        const acceptedAt = new Date().toISOString();
+        const acceptanceRows = [
+          {
+            user_id: userId,
+            policy_type: "terms",
+            policy_version: POLICY_VERSIONS.terms,
+            accepted_at: acceptedAt,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            role,
+            acceptance_context: "signup",
+          },
+          {
+            user_id: userId,
+            policy_type: "privacy",
+            policy_version: POLICY_VERSIONS.privacy,
+            accepted_at: acceptedAt,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            role,
+            acceptance_context: "signup",
+          },
+        ];
+        if (role === "waiter") {
+          acceptanceRows.push({
+            user_id: userId,
+            policy_type: "worker_agreement",
+            policy_version: POLICY_VERSIONS.workerAgreement,
+            accepted_at: acceptedAt,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            role,
+            acceptance_context: "worker_onboarding",
+          });
+        }
+        await admin.from("policy_acceptances").insert(acceptanceRows);
+        await admin
+          .from("profiles")
+          .update({
+            accepted_terms_version: POLICY_VERSIONS.terms,
+            accepted_privacy_version: POLICY_VERSIONS.privacy,
+            accepted_terms_at: acceptedAt,
+            accepted_privacy_at: acceptedAt,
+            ...(role === "waiter"
+              ? {
+                  accepted_worker_agreement_version:
+                    POLICY_VERSIONS.workerAgreement,
+                  independent_contractor_acknowledged_at: acceptedAt,
+                  tax_responsibility_acknowledged_at: acceptedAt,
+                }
+              : {}),
+          })
+          .eq("id", userId);
+      } catch (legalErr) {
+        console.error("[auth] legal acceptance write failed", legalErr);
       }
     }
 

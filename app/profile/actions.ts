@@ -7,6 +7,7 @@ import type { UserRole } from "@/lib/types";
 import { isValidE164ForStorage, normalizePhoneE164 } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { BOOKING_CATEGORIES } from "@/lib/jobs/options";
+import { POLICY_VERSIONS } from "@/lib/legal";
 
 export type SaveProfileSettingsInput = {
   firstName: string;
@@ -23,6 +24,8 @@ export type SaveProfileSettingsInput = {
   isAvailable: boolean;
   avatarStoragePath: string | null;
   waiterManualPayoutPreference?: string | null;
+  waiterIndependentContractorConfirmed?: boolean;
+  waiterTaxResponsibilityConfirmed?: boolean;
 };
 
 export type SaveProfileSettingsResult =
@@ -131,6 +134,22 @@ export async function saveProfileSettingsAction(
         preferred_categories: preferredCategories,
         is_available: input.isAvailable,
         contact_preference: input.waiterManualPayoutPreference ?? null,
+        accepted_worker_agreement_version:
+          input.waiterIndependentContractorConfirmed &&
+          input.waiterTaxResponsibilityConfirmed
+            ? POLICY_VERSIONS.workerAgreement
+            : (profileRow as { accepted_worker_agreement_version?: string | null })
+                .accepted_worker_agreement_version ?? null,
+        independent_contractor_acknowledged_at:
+          input.waiterIndependentContractorConfirmed
+            ? new Date().toISOString()
+            : (profileRow as { independent_contractor_acknowledged_at?: string | null })
+                .independent_contractor_acknowledged_at ?? null,
+        tax_responsibility_acknowledged_at:
+          input.waiterTaxResponsibilityConfirmed
+            ? new Date().toISOString()
+            : (profileRow as { tax_responsibility_acknowledged_at?: string | null })
+                .tax_responsibility_acknowledged_at ?? null,
         onboarding_completed: Boolean(
           fn &&
             ph &&
