@@ -1,6 +1,8 @@
 "use client";
 
 import { WaiterPayoutConnectForm } from "@/app/dashboard/waiter/waiter-payout-connect-form";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 
 export function WaiterPayoutSetup({
   stripeAccountId,
@@ -14,6 +16,8 @@ export function WaiterPayoutSetup({
   stripePayoutsEnabled?: boolean | null;
   returnTo?: "/dashboard/waiter" | "/dashboard/profile";
 }) {
+  const router = useRouter();
+  const [isRefreshing, startRefreshTransition] = useTransition();
   const payoutBypass = process.env.NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS === "true";
   if (payoutBypass) {
     return (
@@ -93,6 +97,19 @@ export function WaiterPayoutSetup({
               : "min-h-[44px] rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
           }
         />
+        <button
+          type="button"
+          onClick={() =>
+            startRefreshTransition(() => {
+              router.push(`${returnTo}?connect=refresh`);
+              router.refresh();
+            })
+          }
+          disabled={isRefreshing}
+          className="mt-3 min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          {isRefreshing ? "Refreshing Stripe status..." : "Refresh Stripe status now"}
+        </button>
       </div>
     </div>
   );
