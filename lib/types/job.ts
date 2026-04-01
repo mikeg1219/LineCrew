@@ -49,6 +49,7 @@ export type Job = {
   handoff_qr_used_at?: string | null;
   handoff_verification_attempts?: number | null;
   handoff_confidence_score?: number | null;
+  handoff_nonce?: string | null;
   worker_ready_at?: string | null;
   customer_arrived_at?: string | null;
   qr_scanned_at?: string | null;

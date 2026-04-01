@@ -2,7 +2,6 @@
 
 import {
   generateHandoffCode,
-  generateHandoffQrToken,
   HANDOFF_PROXIMITY_METERS,
   HANDOFF_QR_TTL_SECONDS,
   parseLatLon,
@@ -10,7 +9,10 @@ import {
 } from "@/lib/handoff";
 import {
   buildHandoffConfidenceScore,
+  createSignedHandoffPayload,
+  generateHandoffNonce,
   hashHandoffSecret,
+  verifySignedHandoffPayload,
   verifyHandoffSecret,
 } from "@/lib/handoff-security";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
@@ -147,11 +149,16 @@ export async function generateHandoffQrAction(
     return { error: "Wait until both parties are ready." };
   }
 
-  const token = generateHandoffQrToken(jobId);
+  const nonce = generateHandoffNonce();
   const code = generateHandoffCode();
-  const tokenHash = hashHandoffSecret(token);
-  const codeHash = hashHandoffSecret(code);
   const expires = new Date(Date.now() + HANDOFF_QR_TTL_SECONDS * 1000).toISOString();
+  const signedPayload = createSignedHandoffPayload({
+    jobId,
+    nonce,
+    expiresAtIso: expires,
+  });
+  const signedHash = hashHandoffSecret(signedPayload);
+  const codeHash = hashHandoffSecret(code);
   const lat = parseLatLon(formData.get("lat"));
   const lng = parseLatLon(formData.get("lng"));
   const completionLocation =
@@ -161,11 +168,12 @@ export async function generateHandoffQrAction(
     .update({
       status: "qr_generated",
       handoff_method: "qr",
-      handoff_qr_token: token,
-      handoff_qr_token_hash: tokenHash,
+      handoff_qr_token: signedPayload,
+      handoff_qr_token_hash: signedHash,
       handoff_qr_expires_at: expires,
       handoff_code: code,
       handoff_code_hash: codeHash,
+      handoff_nonce: nonce,
       handoff_qr_used_at: null,
       handoff_verification_attempts: 0,
       handoff_confidence_score: null,
@@ -212,6 +220,21 @@ export async function customerVerifyHandoffAction(
   }
   let verifiedMethod: "qr" | "code" | null = null;
   if (token) {
+    const parsed = verifySignedHandoffPayload(token);
+    if (!parsed.ok) {
+      await supabase
+        .from("jobs")
+        .update({ handoff_verification_attempts: verificationAttempts + 1 })
+        .eq("id", jobId);
+      return { error: "Invalid signed QR payload." };
+    }
+    if (parsed.jobId !== jobId || parsed.nonce !== job.handoff_nonce) {
+      await supabase
+        .from("jobs")
+        .update({ handoff_verification_attempts: verificationAttempts + 1 })
+        .eq("id", jobId);
+      return { error: "QR payload mismatch. Ask for a new QR." };
+    }
     if (!verifyHandoffSecret(token, job.handoff_qr_token_hash)) {
       await supabase
         .from("jobs")
@@ -269,6 +292,7 @@ export async function customerVerifyHandoffAction(
       handoff_qr_token_hash: null,
       handoff_code: null,
       handoff_code_hash: null,
+      handoff_nonce: generateHandoffNonce(),
       handoff_confidence_score: confidenceScore,
       handoff_verification_attempts: verificationAttempts + 1,
     })

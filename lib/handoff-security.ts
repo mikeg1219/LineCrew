@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 function sha256(value: string): Buffer {
   return createHash("sha256").update(value, "utf8").digest();
@@ -33,4 +33,47 @@ export function buildHandoffConfidenceScore(args: {
   else if (args.distanceMeters <= 30) score += 10;
   else if (args.distanceMeters <= 60) score += 5;
   return Math.max(0, Math.min(100, score));
+}
+
+function getSigningSecret(): string {
+  return (
+    process.env.HANDOFF_SIGNING_SECRET ||
+    process.env.STRIPE_WEBHOOK_SECRET ||
+    process.env.STRIPE_SECRET_KEY ||
+    "linecrew-handoff-dev-secret"
+  );
+}
+
+function hmac(input: string): string {
+  return createHmac("sha256", getSigningSecret()).update(input, "utf8").digest("hex");
+}
+
+export function generateHandoffNonce(): string {
+  return randomBytes(8).toString("hex");
+}
+
+export function createSignedHandoffPayload(args: {
+  jobId: string;
+  nonce: string;
+  expiresAtIso: string;
+}): string {
+  const body = `v1|${args.jobId}|${args.nonce}|${args.expiresAtIso}`;
+  const sig = hmac(body);
+  return `${body}|${sig}`;
+}
+
+export function verifySignedHandoffPayload(
+  payload: string
+): { ok: true; jobId: string; nonce: string; expiresAtIso: string } | { ok: false } {
+  const parts = payload.split("|");
+  if (parts.length !== 5) return { ok: false };
+  const [version, jobId, nonce, expiresAtIso, sig] = parts;
+  if (version !== "v1" || !jobId || !nonce || !expiresAtIso || !sig) return { ok: false };
+  const body = `${version}|${jobId}|${nonce}|${expiresAtIso}`;
+  const expected = hmac(body);
+  const a = Buffer.from(sig, "hex");
+  const b = Buffer.from(expected, "hex");
+  if (a.length !== b.length) return { ok: false };
+  if (!timingSafeEqual(a, b)) return { ok: false };
+  return { ok: true, jobId, nonce, expiresAtIso };
 }

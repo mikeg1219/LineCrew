@@ -53,6 +53,15 @@ export default async function AdminPage() {
     .eq("status", "disputed")
     .order("created_at", { ascending: false });
 
+  const { data: fraudReviewRows } = await admin
+    .from("jobs")
+    .select(
+      "id, status, airport, line_type, customer_email, waiter_email, handoff_issue_flag, handoff_issue_reason, handoff_confidence_score, handoff_verification_attempts, created_at, qr_scanned_at"
+    )
+    .or("handoff_issue_flag.eq.true,handoff_confidence_score.lt.60,handoff_verification_attempts.gte.4")
+    .order("created_at", { ascending: false })
+    .limit(12);
+
   const { count: totalUsers } = await admin
     .from("profiles")
     .select("*", { count: "exact", head: true });
@@ -791,6 +800,96 @@ export default async function AdminPage() {
         </Card>
 
         <OwnerDashboardControls />
+
+        <Card title="Fraud Review Queue">
+          {(!fraudReviewRows || fraudReviewRows.length === 0) && (
+            <p className="text-sm text-slate-600">
+              No handoff fraud-review items right now.
+            </p>
+          )}
+          {fraudReviewRows && fraudReviewRows.length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3">Booking</th>
+                    <th className="px-4 py-3">Risk Signals</th>
+                    <th className="px-4 py-3">People</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Created</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {fraudReviewRows.map((j) => {
+                    const score = j.handoff_confidence_score;
+                    const attempts = j.handoff_verification_attempts ?? 0;
+                    const issue = Boolean(j.handoff_issue_flag);
+                    return (
+                      <tr key={`fraud-${j.id}`}>
+                        <td className="px-4 py-3 font-mono text-xs text-slate-700">
+                          {j.id.slice(0, 8)}…
+                          <br />
+                          <span className="text-slate-500">
+                            {j.airport} · {j.line_type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1 text-xs">
+                            <p>
+                              Confidence:{" "}
+                              <span
+                                className={`font-semibold ${
+                                  score == null
+                                    ? "text-slate-600"
+                                    : score < 60
+                                      ? "text-red-700"
+                                      : "text-emerald-700"
+                                }`}
+                              >
+                                {score == null ? "—" : `${score}/100`}
+                              </span>
+                            </p>
+                            <p>
+                              Attempts:{" "}
+                              <span
+                                className={`font-semibold ${
+                                  attempts >= 4 ? "text-red-700" : "text-slate-700"
+                                }`}
+                              >
+                                {attempts}
+                              </span>
+                            </p>
+                            <p>
+                              Issue flag:{" "}
+                              <span
+                                className={`font-semibold ${
+                                  issue ? "text-red-700" : "text-slate-700"
+                                }`}
+                              >
+                                {issue ? j.handoff_issue_reason || "Yes" : "No"}
+                              </span>
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-700">
+                          {j.customer_email ?? "—"}
+                          <br />
+                          {j.waiter_email ?? "—"}
+                        </td>
+                        <td className="px-4 py-3 text-xs font-semibold text-slate-700">
+                          {j.status}
+                        </td>
+                        <td className="px-4 py-3 text-xs text-slate-600">
+                          {new Date(j.created_at).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
 
         <Card title="Disputed bookings">
           {(!disputed || disputed.length === 0) && (
