@@ -683,6 +683,11 @@ export default async function AdminPage() {
               </tbody>
             </table>
           </div>
+          <p className="mt-3 text-xs text-slate-500">
+            % Accepted legend: <span className="font-semibold text-emerald-700">Green ≥ 70%</span>,
+            <span className="font-semibold text-amber-700"> Yellow 40-69%</span>,
+            <span className="font-semibold text-red-700"> Red &lt; 40%</span>
+          </p>
         </Card>
 
         <section className="grid gap-6 xl:grid-cols-3">
