@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { MARKETPLACE_CATEGORIES } from "@/lib/marketplace-categories";
 
 export default function Home() {
   return (
@@ -20,21 +21,23 @@ export default function Home() {
               className="h-8 w-auto"
               priority
             />
-            <Link
-              href="/auth"
-              className="text-sm text-white/80 transition hover:text-white"
-            >
-              Sign in
-            </Link>
+            <nav className="hidden items-center gap-4 text-sm text-white/80 md:flex">
+              <a href="#categories" className="transition hover:text-white">Categories</a>
+              <a href="#how-it-works-heading" className="transition hover:text-white">How It Works</a>
+              <Link href="/dashboard/customer/post-job" className="transition hover:text-white">Book</Link>
+              <Link href="/auth?intent=waiter" className="transition hover:text-white">Become a Line Holder</Link>
+              <Link href="/auth" className="transition hover:text-white">Dashboard</Link>
+            </nav>
           </div>
         </header>
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24">
           <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-            Skip airport lines. We&apos;ll hold your place.
+            Save time. Keep your spot.
           </h1>
           <p className="mb-10 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
-            Book a real person to stand in line for you at check-in, security, or
-            the gate. You show up when it&apos;s your turn.
+            LineCrew.ai helps you book trusted line holders for concerts,
+            amusement parks, product drops, airports, DMV visits, restaurants,
+            and other high-wait situations.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
             <Link
@@ -76,6 +79,32 @@ export default function Home() {
         </main>
       </div>
 
+      <section id="categories" className="border-t border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2 className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            Browse categories
+          </h2>
+          <p className="mx-auto mt-3 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
+            Airports are still core, and now LineCrew supports events, retail
+            drops, attractions, and services.
+          </p>
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {MARKETPLACE_CATEGORIES.map((c) => (
+              <div
+                key={c.id}
+                className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm"
+              >
+                <h3 className="text-base font-semibold text-slate-900">{c.label}</h3>
+                <p className="mt-2 text-sm text-slate-600">{c.description}</p>
+                <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Pricing: {c.pricingModel}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section
         className="border-t border-slate-200 bg-white py-14 sm:py-16"
         aria-labelledby="how-it-works-heading"
@@ -94,7 +123,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-slate-900">Book your request</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Airport, line type, and what you need—takes a minute.
+                Choose category, location, and details in under a minute.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
@@ -103,7 +132,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-slate-900">We hold your place</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                A Line Holder stands in line and keeps you updated.
+                A Line Holder checks in live and keeps you updated.
               </p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
@@ -112,7 +141,7 @@ export default function Home() {
               </div>
               <h3 className="font-semibold text-slate-900">You walk up</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Show up when it&apos;s your turn—swap in, done.
+                Arrive at handoff time, swap in, and keep moving.
               </p>
             </div>
           </div>
@@ -133,14 +162,14 @@ export default function Home() {
           <div className="mt-8 grid gap-6 sm:grid-cols-2 sm:gap-8">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                For travelers (customers)
+                For customers
               </h3>
               <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
                 <li>1. Click “Book a Line Holder” at the top of this page.</li>
                 <li>2. Create your account with email and password.</li>
                 <li>3. Open your email and verify your address.</li>
                 <li>4. Go to Dashboard → Customer and complete your profile.</li>
-                <li>5. Post a booking, choose your payment option, and complete checkout.</li>
+                <li>5. Post a booking by category, choose payment, complete checkout.</li>
               </ol>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -150,7 +179,7 @@ export default function Home() {
               <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
                 <li>1. Click “Become a Line Holder” at the top of this page.</li>
                 <li>2. Create your account and verify your email.</li>
-                <li>3. In Dashboard → Line Holder, finish onboarding (photo, bio, airports).</li>
+                <li>3. In Dashboard → Line Holder, set profile, service areas, and preferred categories.</li>
                 <li>4. Set up payouts when Stripe Connect is ready, or continue in test mode.</li>
                 <li>5. Browse bookings, accept a job, and follow the in‑app steps.</li>
               </ol>
@@ -172,25 +201,25 @@ export default function Home() {
               Why LineCrew
             </h2>
             <p className="mt-4 text-pretty text-sm leading-relaxed text-slate-600 sm:mt-5 sm:text-base sm:leading-relaxed">
-              Built for travelers who want less waiting and more control at the
-              airport.
+              Built for people who want less waiting and more control in any
+              high-demand queue.
             </p>
           </header>
           <ul className="mt-10 grid list-none grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:mt-14 lg:grid-cols-3 lg:gap-8">
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
               <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Skip long airport lines
+                Skip long lines anywhere
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Avoid standing in crowded terminals
+                Events, airports, retail drops, services, and more
               </p>
             </li>
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
               <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Save 30–90 minutes per trip
+                Save 30–90+ minutes per request
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Turn airport downtime into productive time
+                Get your time back without losing your place
               </p>
             </li>
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
@@ -219,13 +248,48 @@ export default function Home() {
             </li>
             <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
               <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Designed for busy travelers
+                Designed for busy schedules
               </h3>
               <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Made for tight schedules and high-stress travel days
+                Built for modern city life and demand spikes
               </p>
             </li>
           </ul>
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 bg-white py-14 sm:py-16">
+        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-2 sm:px-6">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
+            <h2 className="text-xl font-semibold text-slate-900">Popular use cases</h2>
+            <ul className="mt-3 space-y-2 text-sm text-slate-600">
+              <li>Tampa International TSA request</li>
+              <li>Amalie Arena concert merch line</li>
+              <li>Universal attraction queue handoff</li>
+              <li>Nike sneaker release drop line</li>
+              <li>DMV office renewal line</li>
+              <li>Restaurant walk-in waitlist coverage</li>
+            </ul>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
+            <h2 className="text-xl font-semibold text-slate-900">Trust and safety</h2>
+            <ul className="mt-3 space-y-2 text-sm text-slate-600">
+              <li>Live status tracking and check-ins</li>
+              <li>Handoff confirmations</li>
+              <li>Photo verification placeholders</li>
+              <li>Two-way ratings and issue reporting</li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900">FAQ</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Customers do not need Stripe accounts to pay. Line holders can use
+              Stripe payouts or manual payout methods while category support
+              expands across events, retail, services, and travel.
+            </p>
+          </div>
         </div>
       </section>
     </div>

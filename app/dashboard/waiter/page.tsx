@@ -134,7 +134,7 @@ export default async function WaiterDashboardPage({
           Start earning as a Line Holder
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-slate-600 sm:mt-4 sm:text-lg sm:leading-relaxed">
-          Browse available bookings, manage your setup, and get paid after
+          Browse category-based bookings, manage your setup, and get paid after
           completed handoffs.
         </p>
         <p className="mt-4 text-xs text-slate-500 sm:mt-5 sm:text-sm">
@@ -154,7 +154,7 @@ export default async function WaiterDashboardPage({
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             You can browse available bookings anytime. To{" "}
             <span className="font-medium text-slate-800">accept</span> a booking,
-            finish: email verification, profile, airports, onboarding, and payout
+            finish: email verification, profile, service areas, onboarding, and payout
             connection.{" "}
             <span className="text-slate-700">{acceptSetupSummary}</span>
           </p>
@@ -200,7 +200,7 @@ export default async function WaiterDashboardPage({
             href="/dashboard/waiter/airports"
             className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-xl border border-slate-200/90 bg-white px-6 py-3.5 text-base font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 sm:min-h-[48px] sm:w-auto sm:flex-none"
           >
-            Edit my airports
+            Edit my service areas
           </Link>
         </div>
       </div>

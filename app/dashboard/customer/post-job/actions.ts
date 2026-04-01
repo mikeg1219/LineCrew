@@ -4,6 +4,7 @@ import { AIRPORT_CODES } from "@/lib/airports";
 import { isValidTerminalForAirport } from "@/lib/airport-terminals";
 import { appBaseUrl } from "@/lib/app-url";
 import {
+  BOOKING_CATEGORIES,
   ESTIMATED_WAIT_OPTIONS,
   LINE_TYPES,
 } from "@/lib/jobs/options";
@@ -109,6 +110,9 @@ export async function postJobAction(
 
   const airport = String(formData.get("airport") ?? "").trim();
   const terminal = String(formData.get("terminal") ?? "").trim();
+  const booking_category = String(formData.get("booking_category") ?? "").trim();
+  const venue_location = String(formData.get("venue_location") ?? "").trim();
+  const event_queue_name = String(formData.get("event_queue_name") ?? "").trim();
   const line_type = String(formData.get("line_type") ?? "");
   const descriptionRaw = String(formData.get("description") ?? "");
   const urgency_type = String(formData.get("urgency_type") ?? "asap").trim();
@@ -130,6 +134,9 @@ export async function postJobAction(
   }
 
   const lines: string[] = [];
+  if (booking_category) lines.push(`Category: ${booking_category}`);
+  if (event_queue_name) lines.push(`Queue/event: ${event_queue_name}`);
+  if (venue_location) lines.push(`Venue/location: ${venue_location}`);
   lines.push(`When needed: ${urgencyLabels[urgency_type]}`);
   if (urgency_type === "schedule" && urgency_schedule) {
     lines.push(`Scheduled for: ${urgency_schedule}`);
@@ -164,16 +171,24 @@ export async function postJobAction(
     };
   }
 
-  if (!AIRPORT_CODES.has(airport)) {
-    return { error: "Please select a valid airport from the list." };
+  if (!(BOOKING_CATEGORIES as readonly string[]).includes(booking_category)) {
+    return { error: "Please choose a request category." };
   }
-  if (!terminal) {
-    return { error: "Please select a terminal." };
-  }
-  if (!isValidTerminalForAirport(airport, terminal)) {
-    return {
-      error: "Please select a valid terminal for the chosen airport.",
-    };
+  const isAirportCategory = booking_category === "Airports";
+  if (isAirportCategory) {
+    if (!AIRPORT_CODES.has(airport)) {
+      return { error: "Please select a valid airport from the list." };
+    }
+    if (!terminal) {
+      return { error: "Please select a terminal." };
+    }
+    if (!isValidTerminalForAirport(airport, terminal)) {
+      return {
+        error: "Please select a valid terminal for the chosen airport.",
+      };
+    }
+  } else if (!venue_location) {
+    return { error: "Please add a venue or location for this request." };
   }
   if (!(LINE_TYPES as readonly string[]).includes(line_type)) {
     return { error: "Please select a valid line type." };
@@ -203,8 +218,8 @@ export async function postJobAction(
   const meta = buildJobPaymentMetadata({
     customerId: user.id,
     customerEmail: user.email ?? null,
-    airport,
-    terminal,
+    airport: isAirportCategory ? airport : venue_location,
+    terminal: isAirportCategory ? terminal : "General queue",
     lineType: line_type,
     description,
     estimatedWait: estimated_wait,
@@ -229,7 +244,7 @@ export async function postJobAction(
           currency: "usd",
           product_data: {
             name: "LineCrew booking",
-            description: `${airport} · ${line_type}`,
+            description: `${isAirportCategory ? airport : venue_location} · ${line_type}`,
           },
           unit_amount: Math.round(offered_price * 100),
         },

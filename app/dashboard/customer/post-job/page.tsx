@@ -24,7 +24,7 @@ function HowItWorksPanel() {
               Line Holder goes to your line
             </p>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
-              They head to the airport and your spot in the queue.
+              They head to your queue location and hold your place.
             </p>
           </div>
         </li>
@@ -107,9 +107,9 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           Book a request
         </h1>
         <p className="text-[15px] leading-relaxed text-slate-600 sm:text-base">
-          Tell Line Holders where you need someone in line. You&apos;ll pay upfront
-          when you post; LineCrew holds the payment until the booking is completed,
-          then pays your Line Holder (minus a 20% platform fee).
+          Tell Line Holders where and what queue you need covered. You&apos;ll pay
+          upfront when you post; LineCrew holds the payment until the booking is
+          completed, then pays your Line Holder (minus a 20% platform fee).
         </p>
         <p className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3.5 text-sm leading-relaxed text-slate-700 sm:px-5">
           <span className="font-semibold text-slate-900">Cancellation:</span>{" "}

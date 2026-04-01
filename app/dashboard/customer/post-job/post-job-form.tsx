@@ -3,7 +3,12 @@
 import { AirportCombobox } from "@/app/dashboard/customer/post-job/airport-combobox";
 import { TerminalSelect } from "@/app/dashboard/customer/post-job/terminal-select";
 import { postJobAction, type PostJobState } from "@/app/dashboard/customer/post-job/actions";
-import { ESTIMATED_WAIT_OPTIONS, LINE_TYPE_GROUPS } from "@/lib/jobs/options";
+import {
+  BOOKING_CATEGORIES,
+  ESTIMATED_WAIT_OPTIONS,
+  LINE_TYPE_GROUPS_BY_CATEGORY,
+  type BookingCategory,
+} from "@/lib/jobs/options";
 import {
   PAYMENT_METHOD_LABEL,
   type PaymentMethodCode,
@@ -49,8 +54,12 @@ export function PostJobForm() {
   const [estimatedWait, setEstimatedWait] = useState<string>(
     ESTIMATED_WAIT_OPTIONS[0] ?? ""
   );
+  const [bookingCategory, setBookingCategory] =
+    useState<BookingCategory>("Airports");
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodCode>("stripe_card");
+  const lineTypeGroups = LINE_TYPE_GROUPS_BY_CATEGORY[bookingCategory];
+  const isAirportCategory = bookingCategory === "Airports";
 
   const offerNum = parseFloat(offeredPrice);
   const offerValid = !Number.isNaN(offerNum) && offerNum >= 10;
@@ -126,49 +135,87 @@ export function PostJobForm() {
           Location
         </h2>
         <p className="mt-1 text-sm text-slate-600">
-          Airport, terminal, and flight details (if helpful).
+          Choose category, then add venue/location details.
         </p>
         <div className={`${sectionInner} mt-5`}>
           <div>
-            <label htmlFor="airport-search" className={labelClass}>
-              Airport
+            <label htmlFor="booking_category" className={labelClass}>
+              Category
             </label>
-            <AirportCombobox onAirportChange={setAirportCode} />
-            <p className={hintClass}>
-              Type a city name, airport code, or part of the airport name.
-            </p>
+            <select
+              id="booking_category"
+              name="booking_category"
+              value={bookingCategory}
+              onChange={(e) => setBookingCategory(e.target.value as BookingCategory)}
+              className={inputClass}
+            >
+              {BOOKING_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div>
-            <label htmlFor="terminal" className={labelClass}>
-              Terminal
-            </label>
-            <TerminalSelect airportCode={airportCode} />
-          </div>
+          {isAirportCategory ? (
+            <>
+              <div>
+                <label htmlFor="airport-search" className={labelClass}>
+                  Airport
+                </label>
+                <AirportCombobox onAirportChange={setAirportCode} />
+                <p className={hintClass}>
+                  Type a city name, airport code, or part of the airport name.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="terminal" className={labelClass}>
+                  Terminal
+                </label>
+                <TerminalSelect airportCode={airportCode} />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label htmlFor="venue_location" className={labelClass}>
+                Venue / location
+              </label>
+              <input
+                id="venue_location"
+                name="venue_location"
+                type="text"
+                placeholder="Venue name, address, or city"
+                className={inputClass}
+              />
+            </div>
+          )}
 
           <div className="grid gap-5 sm:grid-cols-2 sm:gap-4">
             <div className="min-w-0">
               <label htmlFor="airline" className={labelClass}>
-                Airline
+                {isAirportCategory ? "Airline" : "Venue / organizer"}
               </label>
               <input
                 id="airline"
                 name="airline"
                 type="text"
-                placeholder="e.g. Delta"
+                placeholder={
+                  isAirportCategory ? "e.g. Delta" : "e.g. Live Nation, Disney, Nike"
+                }
                 className={inputClass}
               />
             </div>
             <div className="min-w-0">
-              <label htmlFor="flight_number" className={labelClass}>
-                Flight number{" "}
+              <label htmlFor="event_queue_name" className={labelClass}>
+                Event or queue name{" "}
                 <span className="font-normal text-slate-500">(optional)</span>
               </label>
               <input
-                id="flight_number"
-                name="flight_number"
+                id="event_queue_name"
+                name="event_queue_name"
                 type="text"
-                placeholder="e.g. 2841"
+                placeholder="e.g. TSA PreCheck, GA entry, sneaker drop"
                 className={inputClass}
               />
             </div>
@@ -199,7 +246,7 @@ export function PostJobForm() {
               <option value="" disabled>
                 Select line type
               </option>
-              {LINE_TYPE_GROUPS.map((group) => (
+              {lineTypeGroups.map((group) => (
                 <optgroup key={group.heading} label={group.heading}>
                   {group.items.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -213,13 +260,13 @@ export function PostJobForm() {
 
           <div>
             <label htmlFor="exact_location" className={labelClass}>
-              Exact location
+              Handoff instructions
             </label>
             <input
               id="exact_location"
               name="exact_location"
               type="text"
-              placeholder="Gate B12, Delta counter, near Starbucks"
+              placeholder="Where should handoff happen?"
               className={inputClass}
             />
           </div>

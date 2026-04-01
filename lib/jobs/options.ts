@@ -10,9 +10,38 @@ export const LINE_TYPES = [
   "Taxi / Rideshare Line",
   "Food / Coffee Line",
   "Lounge Entry Waitlist",
+  "Concert Entry (GA / Doors)",
+  "Concert Merch Line",
+  "Festival Gate Entry",
+  "Amusement Park Entry Gate",
+  "Ride / Attraction Queue",
+  "Retail Drop / Product Launch",
+  "Sneaker Release Queue",
+  "DMV Service Line",
+  "Government Office Queue",
+  "Restaurant Walk-In Waitlist",
+  "Sporting Event Entry",
+  "Conventions / Expo Badge Pickup",
+  "Tourist Attraction Entry",
+  "Pop-Up / Brand Activation Line",
   "Other (Describe your line)",
 ] as const;
 export type LineType = (typeof LINE_TYPES)[number];
+
+export const BOOKING_CATEGORIES = [
+  "Airports",
+  "Concerts & Festivals",
+  "Amusement Parks",
+  "Retail Drops / Product Launches",
+  "DMV & Government Services",
+  "Restaurants",
+  "Sporting Events",
+  "Conventions & Expos",
+  "Tourist Attractions",
+  "Pop-Ups / Brand Activations",
+  "Other / Custom Request",
+] as const;
+export type BookingCategory = (typeof BOOKING_CATEGORIES)[number];
 
 /** Grouped display labels for the post-job line type select (values unchanged). */
 export const LINE_TYPE_GROUPS: {
@@ -67,6 +96,98 @@ export const LINE_TYPE_GROUPS: {
     items: [{ value: "Other (Describe your line)", label: "Other" }],
   },
 ];
+
+export const LINE_TYPE_GROUPS_BY_CATEGORY: Record<
+  BookingCategory,
+  { heading: string; items: { value: LineType; label: string }[] }[]
+> = {
+  Airports: LINE_TYPE_GROUPS,
+  "Concerts & Festivals": [
+    {
+      heading: "Concerts & festivals",
+      items: [
+        { value: "Concert Entry (GA / Doors)", label: "Concert Entry (GA / Doors)" },
+        { value: "Concert Merch Line", label: "Concert Merch Line" },
+        { value: "Festival Gate Entry", label: "Festival Gate Entry" },
+      ],
+    },
+  ],
+  "Amusement Parks": [
+    {
+      heading: "Amusement parks",
+      items: [
+        { value: "Amusement Park Entry Gate", label: "Park Entry Gate" },
+        { value: "Ride / Attraction Queue", label: "Ride / Attraction Queue" },
+      ],
+    },
+  ],
+  "Retail Drops / Product Launches": [
+    {
+      heading: "Retail drops",
+      items: [
+        { value: "Retail Drop / Product Launch", label: "Retail Drop / Product Launch" },
+        { value: "Sneaker Release Queue", label: "Sneaker Release Queue" },
+      ],
+    },
+  ],
+  "DMV & Government Services": [
+    {
+      heading: "Government services",
+      items: [
+        { value: "DMV Service Line", label: "DMV Service Line" },
+        { value: "Government Office Queue", label: "Government Office Queue" },
+      ],
+    },
+  ],
+  Restaurants: [
+    {
+      heading: "Restaurants",
+      items: [
+        { value: "Restaurant Walk-In Waitlist", label: "Restaurant Walk-In Waitlist" },
+      ],
+    },
+  ],
+  "Sporting Events": [
+    {
+      heading: "Sports",
+      items: [{ value: "Sporting Event Entry", label: "Sporting Event Entry" }],
+    },
+  ],
+  "Conventions & Expos": [
+    {
+      heading: "Conventions",
+      items: [
+        {
+          value: "Conventions / Expo Badge Pickup",
+          label: "Conventions / Expo Badge Pickup",
+        },
+      ],
+    },
+  ],
+  "Tourist Attractions": [
+    {
+      heading: "Attractions",
+      items: [{ value: "Tourist Attraction Entry", label: "Tourist Attraction Entry" }],
+    },
+  ],
+  "Pop-Ups / Brand Activations": [
+    {
+      heading: "Pop-ups",
+      items: [
+        {
+          value: "Pop-Up / Brand Activation Line",
+          label: "Pop-Up / Brand Activation Line",
+        },
+      ],
+    },
+  ],
+  "Other / Custom Request": [
+    {
+      heading: "Other",
+      items: [{ value: "Other (Describe your line)", label: "Other" }],
+    },
+  ],
+};
 export const ESTIMATED_WAIT_OPTIONS = [
   "15 min",
   "30 min",

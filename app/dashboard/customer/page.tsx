@@ -59,7 +59,8 @@ export default async function CustomerDashboardPage() {
           Book a Line Holder
         </h1>
         <p className="text-base leading-relaxed text-slate-600 sm:text-lg">
-          Reserve someone to hold your place in line at the airport.
+          Reserve someone to hold your place in line across airports, events,
+          retail drops, restaurants, and services.
         </p>
         <p className="text-sm leading-snug text-slate-500">
           Signed in as{" "}
@@ -105,7 +106,7 @@ export default async function CustomerDashboardPage() {
                 Book your request
               </p>
               <p className="mt-1 text-sm leading-relaxed text-slate-600">
-                Airport, line, and timing
+                Category, location, and timing
               </p>
             </div>
           </li>
@@ -148,7 +149,7 @@ export default async function CustomerDashboardPage() {
               No active bookings yet
             </h3>
             <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600 sm:text-base">
-              Book your first request and skip your next airport line.
+              Book your first request and skip your next long line.
             </p>
             <Link
               href="/dashboard/customer/post-job"
@@ -169,7 +170,7 @@ export default async function CustomerDashboardPage() {
                 >
                   <div className="min-w-0 flex-1 space-y-3">
                     <p className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                      {job.airport} Airport — {job.line_type}
+                      {job.airport} — {job.line_type}
                     </p>
                     <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-600">
                       <span>

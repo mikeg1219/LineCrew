@@ -1004,7 +1004,7 @@ export function ProfileSettingsForm({
           <div className="border-b border-slate-100 pb-5">
             <h2 id="section-waiter" className={sectionTitle}>Line Holder</h2>
             <p className={sectionDesc}>
-              Airport coverage and availability for bookings.
+              Service area, category preferences, and availability for bookings.
             </p>
           </div>
           <div className="mt-6 space-y-6">
@@ -1023,7 +1023,7 @@ export function ProfileSettingsForm({
             </div>
             <div>
               <label htmlFor="home_airport" className={labelClass}>
-                Home airport
+                Home base (city or airport)
               </label>
               <input
                 id="home_airport"
@@ -1035,7 +1035,7 @@ export function ProfileSettingsForm({
             </div>
             <div>
               <label htmlFor="serving_airports" className={labelClass}>
-                Airports served
+                Service areas (airport codes or city tags)
               </label>
               <input
                 id="serving_airports"
@@ -1044,6 +1044,30 @@ export function ProfileSettingsForm({
                 className={inputClass}
                 placeholder="Comma-separated codes, e.g. LAX, SFO, SAN"
               />
+            </div>
+            <div>
+              <p className={labelClass}>Preferred request categories</p>
+              <p className="mb-2 text-xs text-slate-500">
+                Category matching is rolling out. Select defaults you want to receive first.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {[
+                  "Airports",
+                  "Concerts & Festivals",
+                  "Amusement Parks",
+                  "Retail Drops",
+                  "DMV & Services",
+                  "Restaurants",
+                ].map((category) => (
+                  <label
+                    key={category}
+                    className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
+                  >
+                    <input type="checkbox" className="h-4 w-4" defaultChecked />
+                    {category}
+                  </label>
+                ))}
+              </div>
             </div>
             <div>
               <label htmlFor="manual_payout_method" className={labelClass}>
