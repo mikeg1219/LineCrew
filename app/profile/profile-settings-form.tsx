@@ -122,6 +122,7 @@ function ProfileHeroCard({
             aria-hidden
           />
           {photoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={photoSrc}
               alt=""
@@ -673,6 +674,7 @@ export function ProfileSettingsForm({
                 <div className="flex shrink-0 items-start gap-4">
                   <div className="relative shrink-0">
                     {heroPhotoSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={heroPhotoSrc}
                         alt="Your profile photo"
@@ -742,6 +744,7 @@ export function ProfileSettingsForm({
               <div className="mt-3 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
                 <div className="relative shrink-0">
                   {heroPhotoSrc ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={heroPhotoSrc}
                       alt="Your profile photo"

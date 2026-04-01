@@ -47,6 +47,7 @@ export function NavBar({ role, avatarUrl, fullName }: Props) {
 
         <Link href="/dashboard/profile" style={{ textDecoration: "none" }}>
           {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="Profile" style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", border: "2px solid #f5b400" }} />
           ) : (
             <div style={{ width: "36px", height: "36px", borderRadius: "50%", background: "#f5b400", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: "bold", color: "#000" }}>

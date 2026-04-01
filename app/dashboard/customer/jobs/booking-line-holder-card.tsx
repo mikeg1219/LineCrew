@@ -59,6 +59,7 @@ export function BookingLineHolderCard({
         <div className="relative shrink-0">
           <span className="absolute -inset-1 rounded-3xl bg-gradient-to-br from-blue-500/20 to-emerald-500/20 blur-sm" aria-hidden />
           {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={avatarUrl}
               alt=""

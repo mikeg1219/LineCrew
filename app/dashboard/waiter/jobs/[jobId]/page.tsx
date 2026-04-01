@@ -133,8 +133,6 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
     !TERMINAL.has(status) && status !== "pending_confirmation";
 
   const { exactLocation } = parseBookingDescription(job.description ?? "");
-  const handoffUrgent =
-    status === "near_front" || status === "pending_confirmation";
 
   return (
     <div className="mx-auto max-w-3xl space-y-7 px-4 pb-24 pt-6 sm:space-y-8 sm:px-5 sm:pb-24 sm:pt-10 md:pb-14">
