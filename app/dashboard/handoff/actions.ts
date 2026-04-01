@@ -21,6 +21,7 @@ import type { JobStatus } from "@/lib/types/job";
 import { revalidatePath } from "next/cache";
 
 export type HandoffActionState = { error: string } | { ok: string } | null;
+const AUTO_ESCALATION_CONFIDENCE_THRESHOLD = 55;
 
 const ACTIVE_HANDOFF: JobStatus[] = [
   "near_front",
@@ -282,7 +283,10 @@ export async function customerVerifyHandoffAction(
   const { error } = await supabase
     .from("jobs")
     .update({
-      status: "awaiting_dual_confirmation",
+      status:
+        confidenceScore <= AUTO_ESCALATION_CONFIDENCE_THRESHOLD
+          ? "issue_flagged"
+          : "awaiting_dual_confirmation",
       handoff_method: verifiedMethod,
       qr_scanned_at: new Date().toISOString(),
       proximity_passed: true,
@@ -295,6 +299,16 @@ export async function customerVerifyHandoffAction(
       handoff_nonce: generateHandoffNonce(),
       handoff_confidence_score: confidenceScore,
       handoff_verification_attempts: verificationAttempts + 1,
+      handoff_escalated_at:
+        confidenceScore <= AUTO_ESCALATION_CONFIDENCE_THRESHOLD
+          ? new Date().toISOString()
+          : null,
+      handoff_issue_flag:
+        confidenceScore <= AUTO_ESCALATION_CONFIDENCE_THRESHOLD ? true : job.handoff_issue_flag,
+      handoff_issue_reason:
+        confidenceScore <= AUTO_ESCALATION_CONFIDENCE_THRESHOLD
+          ? "Auto-escalated: low handoff confidence"
+          : job.handoff_issue_reason,
     })
     .eq("id", jobId);
   if (error) return { error: error.message };

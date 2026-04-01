@@ -95,3 +95,29 @@ export async function adminPayWaiterAction(
   revalidatePath("/admin");
   return null;
 }
+
+export async function adminMarkFraudReviewedAction(
+  _prev: AdminActionState,
+  formData: FormData
+): Promise<AdminActionState> {
+  const jobId = String(formData.get("jobId") ?? "");
+  const notes = String(formData.get("notes") ?? "").trim();
+  if (!jobId) return { error: "Missing booking." };
+
+  const auth = await requireAdmin();
+  if (auth.error || !auth.user) return { error: auth.error ?? "Unauthorized" };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("jobs")
+    .update({
+      handoff_reviewed_at: new Date().toISOString(),
+      handoff_reviewed_by: auth.user.email,
+      handoff_review_notes: notes || null,
+    })
+    .eq("id", jobId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin");
+  return null;
+}

@@ -1,3 +1,4 @@
+import { FraudReviewActionButton } from "@/app/admin/fraud-review-action-button";
 import { JobActionButtons } from "@/app/admin/job-action-buttons";
 import { OwnerDashboardControls } from "@/app/admin/owner-dashboard-controls";
 import { OwnerOperationsMap } from "@/app/admin/owner-operations-map";
@@ -56,7 +57,7 @@ export default async function AdminPage() {
   const { data: fraudReviewRows } = await admin
     .from("jobs")
     .select(
-      "id, status, airport, line_type, customer_email, waiter_email, handoff_issue_flag, handoff_issue_reason, handoff_confidence_score, handoff_verification_attempts, created_at, qr_scanned_at"
+      "id, status, airport, line_type, customer_email, waiter_email, handoff_issue_flag, handoff_issue_reason, handoff_confidence_score, handoff_verification_attempts, handoff_escalated_at, handoff_reviewed_at, created_at, qr_scanned_at"
     )
     .or("handoff_issue_flag.eq.true,handoff_confidence_score.lt.60,handoff_verification_attempts.gte.4")
     .order("created_at", { ascending: false })
@@ -473,6 +474,14 @@ export default async function AdminPage() {
     },
   ];
 
+  const disputeSlaBadge = (createdAt: string) => {
+    const ageMs = now.getTime() - new Date(createdAt).getTime();
+    const hours = Math.floor(ageMs / (1000 * 60 * 60));
+    if (hours >= 24) return { label: "SLA breached", className: "bg-red-100 text-red-800" };
+    if (hours >= 12) return { label: "SLA warning", className: "bg-amber-100 text-amber-800" };
+    return { label: "Within SLA", className: "bg-emerald-100 text-emerald-800" };
+  };
+
   const revenueBlocks = [
     { label: "Today", value: `$${revenueToday.toFixed(2)}` },
     { label: "This week", value: `$${revenueWeek.toFixed(2)}` },
@@ -816,6 +825,8 @@ export default async function AdminPage() {
                     <th className="px-4 py-3">Risk Signals</th>
                     <th className="px-4 py-3">People</th>
                     <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">SLA</th>
+                    <th className="px-4 py-3">Review</th>
                     <th className="px-4 py-3">Created</th>
                   </tr>
                 </thead>
@@ -824,6 +835,8 @@ export default async function AdminPage() {
                     const score = j.handoff_confidence_score;
                     const attempts = j.handoff_verification_attempts ?? 0;
                     const issue = Boolean(j.handoff_issue_flag);
+                    const reviewed = Boolean(j.handoff_reviewed_at);
+                    const sla = disputeSlaBadge(j.handoff_escalated_at ?? j.created_at);
                     return (
                       <tr key={`fraud-${j.id}`}>
                         <td className="px-4 py-3 font-mono text-xs text-slate-700">
@@ -879,6 +892,20 @@ export default async function AdminPage() {
                         <td className="px-4 py-3 text-xs font-semibold text-slate-700">
                           {j.status}
                         </td>
+                        <td className="px-4 py-3 text-xs">
+                          <span className={`rounded-full px-2 py-1 font-semibold ${sla.className}`}>
+                            {sla.label}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-xs">
+                          {reviewed ? (
+                            <span className="rounded-full bg-emerald-100 px-2 py-1 font-semibold text-emerald-800">
+                              Reviewed
+                            </span>
+                          ) : (
+                            <FraudReviewActionButton jobId={j.id} />
+                          )}
+                        </td>
                         <td className="px-4 py-3 text-xs text-slate-600">
                           {new Date(j.created_at).toLocaleString()}
                         </td>
@@ -905,6 +932,7 @@ export default async function AdminPage() {
                     <th className="px-4 py-3">Line Holder</th>
                     <th className="px-4 py-3">Amount</th>
                     <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3">SLA</th>
                     <th className="px-4 py-3">Actions</th>
                   </tr>
                 </thead>
@@ -925,6 +953,16 @@ export default async function AdminPage() {
                       </td>
                       <td className="px-4 py-3 text-slate-600">
                         {new Date(j.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 text-xs">
+                        {(() => {
+                          const sla = disputeSlaBadge(j.created_at);
+                          return (
+                            <span className={`rounded-full px-2 py-1 font-semibold ${sla.className}`}>
+                              {sla.label}
+                            </span>
+                          );
+                        })()}
                       </td>
                       <td className="px-4 py-3">
                         <JobActionButtons jobId={j.id} />

@@ -60,4 +60,8 @@ export type Job = {
   handoff_issue_flag?: boolean | null;
   handoff_issue_reason?: string | null;
   handoff_notes?: string | null;
+  handoff_escalated_at?: string | null;
+  handoff_reviewed_at?: string | null;
+  handoff_reviewed_by?: string | null;
+  handoff_review_notes?: string | null;
 };
