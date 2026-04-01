@@ -1,5 +1,6 @@
 import { JobActionButtons } from "@/app/admin/job-action-buttons";
 import { OwnerDashboardControls } from "@/app/admin/owner-dashboard-controls";
+import { OwnerOperationsMap } from "@/app/admin/owner-operations-map";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isAdminEmail } from "@/lib/admin-config";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -347,7 +348,9 @@ export default async function AdminPage() {
 
   type MapMarker = {
     key: string;
+    airport: string;
     label: string;
+    count: number;
     type: "active" | "available" | "unfulfilled";
     top: string;
     left: string;
@@ -379,7 +382,9 @@ export default async function AdminPage() {
         if (!pos) return null;
         return {
           key: `${type}-${airport}`,
+          airport,
           label: `${prefix}: ${airport} (${count})`,
+          count,
           type,
           top: pos.top,
           left: pos.left,
@@ -553,35 +558,10 @@ export default async function AdminPage() {
 
         <section className="grid gap-6 xl:grid-cols-3">
           <Card title="Live Operations Map" className="xl:col-span-2">
-            <div className="relative h-72 rounded-xl bg-slate-900/95 p-4 text-slate-100">
-              {mapMarkers.map((point) => (
-                <div
-                  key={point.key}
-                  className="absolute"
-                  style={{ top: point.top, left: point.left }}
-                  title={point.label}
-                >
-                  <span
-                    className={`block size-3 rounded-full ring-2 ring-white/70 ${
-                      point.type === "active"
-                        ? "bg-emerald-400"
-                        : point.type === "available"
-                          ? "bg-cyan-300"
-                          : "bg-rose-400"
-                    }`}
-                  />
-                </div>
-              ))}
-              <div className="absolute right-3 top-3 rounded-md bg-slate-800/80 px-2 py-1 text-[11px] text-slate-200">
-                {mapMarkers.length} plotted markers
-                {unknownAirportCount > 0 ? ` · ${unknownAirportCount} unmapped airport codes` : ""}
-              </div>
-              <div className="absolute bottom-3 left-3 flex flex-wrap gap-3 text-xs">
-                <LegendDot color="bg-emerald-400" label="Active jobs" />
-                <LegendDot color="bg-cyan-300" label="Available line holders" />
-                <LegendDot color="bg-rose-400" label="Unfulfilled requests" />
-              </div>
-            </div>
+            <OwnerOperationsMap
+              markers={mapMarkers}
+              unknownAirportCount={unknownAirportCount}
+            />
           </Card>
           <Card title="Demand vs Supply">
             <div className="space-y-4">
@@ -804,15 +784,6 @@ function Card({
       <h2 className="text-base font-semibold text-slate-900">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span className={`size-2 rounded-full ${color}`} />
-      {label}
-    </span>
   );
 }
 
