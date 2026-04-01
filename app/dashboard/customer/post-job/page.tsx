@@ -1,6 +1,7 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { PostJobForm } from "@/app/dashboard/customer/post-job/post-job-form";
 import { LegalLinksInline } from "@/components/legal-links";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -93,6 +94,10 @@ export default async function PostJobPage({ searchParams }: PageProps) {
 
   if (profile.role === "waiter") {
     redirect("/dashboard/waiter");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    redirect("/dashboard/profile?profile_required=1");
   }
 
   return (

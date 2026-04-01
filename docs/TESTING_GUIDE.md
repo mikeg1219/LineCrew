@@ -1,6 +1,6 @@
 # LineCrew – Web & Payments Testing Guide
 
-Last updated: 2026-03-31  
+Last updated: 2026-04-01  
 Environment: Vercel (production alias), Stripe **test mode**
 
 ---
@@ -175,7 +175,27 @@ Use this only in test environments. Before real launch:
 
 ---
 
-## 7. Summary
+## 7. Debug: profile save API (curl-friendly)
+
+For the same server path as **Profile → Save changes**, you can call a small debug route (no UI):
+
+- **Route:** `GET` / `POST` **`/api/dev/profile-save`**
+- **Enabled when** `NODE_ENV=development` **or** `LINECREW_PROFILE_SAVE_DEBUG=1` (e.g. a Vercel preview). Otherwise the route returns **404**.
+- **Auth:** pass your **Supabase session cookies** (same browser session as the app).
+
+### Quick check
+
+1. `GET http://localhost:3000/api/dev/profile-save` — returns a **curl** example and env note.
+2. While signed in, copy the **`Cookie`** header from DevTools (or use **Copy as cURL** on any app request and swap the URL/method).
+3. `POST` with `Content-Type: application/json` and body `{}` (optional JSON overrides any `saveProfileSettingsAction` field).
+
+Success looks like **`{"ok":true}`** with HTTP **200**. Failures return **`ok:false`** (e.g. phone validation) and a non‑200 status when appropriate.
+
+Do **not** set `LINECREW_PROFILE_SAVE_DEBUG` on public production unless you accept that authenticated users could hit this endpoint.
+
+---
+
+## 8. Summary
 
 - **Single payment rail**: All real payments in test mode are handled by Stripe (cards, Apple Pay, Google Pay, Link).
 - **Method tagging**: The booking system records intended payment methods (including PayPal, Cash App, and Zelle) via `payment_method_code`.

@@ -72,6 +72,12 @@ export async function syncStripeConnectFromStripeForUser(
 
 type ProfileRow = Record<string, unknown>;
 
+export type SyncWaiterStripeResult = {
+  profile: ProfileRow;
+  /** Set when a Stripe→DB sync was attempted and failed (e.g. show banner on dashboard). */
+  stripeSyncError: string | null;
+};
+
 /**
  * Refreshes Connect flags when missing or after Stripe redirect (?connect=return).
  * Returns the latest profile row (or the input if no sync ran / failed).
@@ -81,29 +87,44 @@ export async function syncWaiterStripeIfNeeded(
   userId: string,
   profile: ProfileRow,
   opts: { force?: boolean }
-): Promise<ProfileRow> {
+): Promise<SyncWaiterStripeResult> {
+  const noop = (): SyncWaiterStripeResult => ({
+    profile,
+    stripeSyncError: null,
+  });
   try {
-    if (profile.role !== "waiter") return profile;
+    if (profile.role !== "waiter") return noop();
     const accountId = profile.stripe_account_id as string | null | undefined;
-    if (!accountId?.trim()) return profile;
+    if (!accountId?.trim()) return noop();
 
     const force = opts.force ?? false;
-    const needs =
-      profile.stripe_details_submitted == null ||
-      profile.stripe_payouts_enabled == null;
-    if (!force && !needs) return profile;
+    const fullyReady =
+      profile.stripe_details_submitted === true &&
+      profile.stripe_payouts_enabled === true;
+    if (!force && fullyReady) return noop();
 
     const r = await syncStripeConnectFromStripeForUser(supabase, userId);
-    if (!r.ok) return profile;
+    if (!r.ok) {
+      console.error(
+        "[stripe-account-sync] syncWaiterStripeIfNeeded: Stripe→profiles sync failed",
+        { userId, error: r.error, force }
+      );
+      return { profile, stripeSyncError: r.error };
+    }
 
     const { data } = await dbForStripeWrite(supabase)
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
-    return (data ?? profile) as ProfileRow;
+    return {
+      profile: (data ?? profile) as ProfileRow,
+      stripeSyncError: null,
+    };
   } catch (e) {
     console.error("[stripe-account-sync] syncWaiterStripeIfNeeded:", e);
-    return profile;
+    const msg =
+      e instanceof Error ? e.message : "Could not sync Stripe payout status.";
+    return { profile, stripeSyncError: msg };
   }
 }

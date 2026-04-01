@@ -1,8 +1,10 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { ProfileRequiredForBookingsGate } from "@/components/profile-required-for-bookings-gate";
 import {
   CUSTOMER_DASHBOARD_STATUS_LABELS,
   statusBadgeClass,
 } from "@/lib/job-status";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
@@ -39,6 +41,15 @@ export default async function CustomerDashboardPage() {
 
   if (profile.role === "waiter") {
     redirect("/dashboard/waiter");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    return (
+      <ProfileRequiredForBookingsGate
+        role="customer"
+        userEmail={user.email ?? ""}
+      />
+    );
   }
 
   const { data: jobRows } = await supabase

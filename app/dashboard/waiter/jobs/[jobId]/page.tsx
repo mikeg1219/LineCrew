@@ -22,6 +22,7 @@ import {
   waiterAcceptSetupShortfallMessage,
 } from "@/lib/waiter-profile-complete";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -71,6 +72,10 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
 
   if (profile.role !== "waiter") {
     redirect("/dashboard/customer");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    redirect("/dashboard/profile?profile_required=1");
   }
 
   const { data: row, error } = await supabase

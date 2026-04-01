@@ -1,4 +1,5 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { createClient } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/job";
@@ -47,6 +48,10 @@ export default async function JobPostedPage({ params }: PageProps) {
 
   if (profile.role === "waiter") {
     redirect("/dashboard/waiter");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    redirect("/dashboard/profile?profile_required=1");
   }
 
   if (profile.role !== "customer") {

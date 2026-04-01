@@ -1,3 +1,5 @@
+import type { JobPaymentStatus } from "@/lib/payment-status";
+
 export type JobStatus =
   | "open"
   | "accepted"
@@ -35,6 +37,12 @@ export type Job = {
   status: JobStatus;
   created_at: string;
   stripe_payment_intent_id?: string | null;
+  /** Payment lifecycle (separate from booking workflow status). */
+  payment_status?: JobPaymentStatus | string | null;
+  stripe_checkout_session_id?: string | null;
+  stripe_charge_id?: string | null;
+  /** Stripe Dispute id (dp_...) when a chargeback is opened. */
+  stripe_dispute_id?: string | null;
   payout_transfer_id?: string | null;
   accepted_at?: string | null;
   completed_at?: string | null;

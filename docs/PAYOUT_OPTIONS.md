@@ -24,7 +24,26 @@ LineCrew pays Line Holders via **Stripe Connect** transfers to a **bank account*
    - First-time or incomplete: Stripe opens **onboarding** (`account_onboarding`).
    - Already fully onboarded: Stripe opens **bank / profile update** (`account_update`).
 
-5. **After returning** from Stripe, reload **Profile** or **Waiter dashboard** so flags sync (`?connect=return` triggers refresh).
+### Before Stripe opens (each payout button click)
+
+On **Set up payouts** / **Continue payout setup**, the server action **`startStripeConnectOnboardingAction`** (`app/dashboard/waiter/connect/actions.ts`) first runs **`syncStripeConnectFromStripeForUser`**: Stripe **`accounts.retrieve`** → updates **`profiles.stripe_details_submitted`** and **`stripe_payouts_enabled`**. Then it creates the **Account Link** using **`account_onboarding`** if **`stripe_details_submitted`** is not yet true, or **`account_update`** once details are submitted (so onboarding is not requested via `account_update` too early).
+
+5. **After returning** from Stripe, the app lands on a URL with a **`connect`** query param. You do **not** need to manually reload if that URL is one of the supported routes below.
+
+### `?connect=return` and `?connect=refresh`
+
+Stripe **Account Links** use `return_url` and `refresh_url` that append this query string. The app treats **`connect=return`** and **`connect=refresh`** the same for syncing: it **forces a Stripe → `profiles` sync** (`stripe_details_submitted`, `stripe_payouts_enabled`) when the page loads.
+
+| Route | Behavior |
+|--------|----------|
+| `/dashboard/profile?connect=return` (or `refresh`) | Same as **`/profile`** — client runs **`refreshStripeConnectStatusAction`** on load. If sync fails, a **red in-page alert** appears; use **Refresh Stripe status now** in Payouts or fix env/DB (see above). |
+| `/profile?connect=return` (or `refresh`) | Same profile UI and sync as **`/dashboard/profile`**. |
+| `/dashboard/waiter?connect=return` (or `refresh`) | Server runs **`syncWaiterStripeIfNeeded`** with **`force: true`**. On failure, a **red banner** appears under the page header. |
+| `/dashboard/waiter/browse-jobs?connect=return` (or `refresh`) | Same server sync with **`force`** when those query params are present. On failure, a banner with links to **dashboard** and **Profile** appears (this page has no Payouts block). |
+
+**Stripe return URL allowlist (server):** onboarding actions allow **`/dashboard/waiter`**, **`/dashboard/profile`**, or **`/profile`** for `return_url` / `refresh_url`. Other paths fall back to **`/dashboard/waiter`** unless you add them to the allowlist in `app/dashboard/waiter/connect/actions.ts`.
+
+**Operational note:** If flags stay **`null`** after onboarding, check **Vercel logs** for `[stripe-account-sync]`, `[stripe-refresh]`, or `[profile/save]`, and confirm **`SUPABASE_SERVICE_ROLE_KEY`** is set so `stripe_*` columns can update under RLS.
 
 ---
 

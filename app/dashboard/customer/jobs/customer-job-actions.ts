@@ -97,6 +97,7 @@ export async function disputeJobAction(
     };
   }
 
+  // In-app dispute: only job `status` changes; payment remains `captured` so admin can resolve / payout if policy allows.
   const { error } = await supabase
     .from("jobs")
     .update({ status: "disputed" })
@@ -215,6 +216,7 @@ export async function cancelJobAction(
       waiter_id: null,
       waiter_email: null,
       accepted_at: null,
+      payment_status: "refunded",
     })
     .eq("id", jobId);
 

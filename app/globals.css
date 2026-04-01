@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
+  --background: #ffffff;
   --foreground: #0f172a;
   --linecrew-blue: #1e4faf;
   --linecrew-teal: #17a7b8;
@@ -17,10 +17,32 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 10% 0%, #eaf4ff 0%, rgba(234, 244, 255, 0) 36%),
-    radial-gradient(circle at 90% 100%, #ecfdf5 0%, rgba(236, 253, 245, 0) 38%),
-    linear-gradient(180deg, #f8fafc 0%, #eef7ff 50%, #f3fcf7 100%);
+  background-color: #ffffff;
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
+}
+
+/* Theme shells — use on layout wrappers; avoid mixing with conflicting page-level bg. */
+@layer utilities {
+  .linecrew-bg-dashboard {
+    background-image: linear-gradient(to bottom, rgb(248 250 252), rgb(255 255 255));
+  }
+  /** Public marketing / legal — blue→teal wash into white */
+  .linecrew-bg-marketing {
+    background-image: linear-gradient(
+      to bottom,
+      rgba(59, 130, 246, 0.12),
+      rgba(45, 212, 191, 0.08),
+      #ffffff
+    );
+  }
+  /** Hero band — stronger gradient for home / auth heroes */
+  .linecrew-bg-hero {
+    background-image: linear-gradient(
+      135deg,
+      rgb(59 130 246) 0%,
+      rgb(20 184 166) 55%,
+      rgb(52 211 153) 100%
+    );
+  }
 }

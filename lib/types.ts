@@ -31,9 +31,13 @@ export type Profile = {
   average_rating?: number | null;
   accepted_terms_version?: string | null;
   accepted_privacy_version?: string | null;
+  accepted_refund_policy_version?: string | null;
+  accepted_guidelines_version?: string | null;
   accepted_worker_agreement_version?: string | null;
   accepted_terms_at?: string | null;
   accepted_privacy_at?: string | null;
+  accepted_refund_policy_at?: string | null;
+  accepted_guidelines_at?: string | null;
   independent_contractor_acknowledged_at?: string | null;
   tax_responsibility_acknowledged_at?: string | null;
 };

@@ -61,11 +61,11 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
 
   return (
     <div className="relative flex min-h-[100dvh] flex-1 flex-col overflow-hidden">
+      <div className="linecrew-bg-hero absolute inset-0" aria-hidden />
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/airport-bg.jpg')" }}
+        className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.2),transparent_50%)]"
+        aria-hidden
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/45" />
       <div className="relative z-10 flex min-h-[100dvh] flex-1 flex-col items-center justify-center px-4 pt-8 pb-[max(2rem,env(safe-area-inset-bottom))] sm:px-5 sm:pt-12 sm:pb-[max(3rem,env(safe-area-inset-bottom))] md:pt-16 md:pb-[max(4rem,env(safe-area-inset-bottom))]">
         <div className="w-full max-w-md">
           <div className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-lg sm:p-8">

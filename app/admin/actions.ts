@@ -67,7 +67,7 @@ export async function adminRefundCustomerAction(
 
   const { error } = await admin
     .from("jobs")
-    .update({ status: "refunded" })
+    .update({ status: "refunded", payment_status: "refunded" })
     .eq("id", jobId);
 
   if (error) return { error: error.message };

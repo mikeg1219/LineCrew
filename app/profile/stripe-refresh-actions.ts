@@ -1,6 +1,6 @@
 "use server";
 
-import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
+import { syncStripeConnectFromStripeForUser } from "@/lib/stripe-account-sync";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -13,8 +13,8 @@ export type RefreshStripeConnectStatusResult =
   | { ok: false; error: string };
 
 /**
- * Runs after profile loads (client) so the dashboard profile RSC never calls Stripe.
- * Call when waiter has a Connect account and flags are missing or ?connect=return|refresh.
+ * Pulls Connect state from Stripe into profiles. Use after onboarding return or manual refresh.
+ * When `force` is true, always re-fetch from Stripe (if a Connect account exists).
  */
 export async function refreshStripeConnectStatusAction(opts: {
   force: boolean;
@@ -40,24 +40,50 @@ export async function refreshStripeConnectStatusAction(opts: {
     return { ok: false, error: "Not a Line Holder account" };
   }
 
-  const updated = await syncWaiterStripeIfNeeded(
-    supabase,
-    user.id,
-    profileRow as Record<string, unknown>,
-    { force: opts.force }
-  );
+  const accountId = profileRow.stripe_account_id as string | null | undefined;
+  if (!accountId?.trim()) {
+    return {
+      ok: false,
+      error:
+        "No Stripe Connect account yet. Use the payout setup button to start.",
+    };
+  }
+
+  const fullyReady =
+    profileRow.stripe_details_submitted === true &&
+    profileRow.stripe_payouts_enabled === true;
+
+  if (!opts.force && fullyReady) {
+    return {
+      ok: true,
+      stripe_details_submitted: profileRow.stripe_details_submitted ?? null,
+      stripe_payouts_enabled: profileRow.stripe_payouts_enabled ?? null,
+    };
+  }
+
+  const syncResult = await syncStripeConnectFromStripeForUser(supabase, user.id);
+  if (!syncResult.ok) {
+    console.error("[stripe-refresh] syncStripeConnectFromStripeForUser failed", {
+      userId: user.id,
+      error: syncResult.error,
+      force: opts.force,
+    });
+    return { ok: false, error: syncResult.error };
+  }
 
   revalidatePath("/dashboard/profile");
+  revalidatePath("/profile");
   revalidatePath("/dashboard/waiter");
 
-  const u = updated as {
-    stripe_details_submitted?: boolean | null;
-    stripe_payouts_enabled?: boolean | null;
-  };
+  const { data: fresh } = await supabase
+    .from("profiles")
+    .select("stripe_details_submitted, stripe_payouts_enabled")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return {
     ok: true,
-    stripe_details_submitted: u.stripe_details_submitted ?? null,
-    stripe_payouts_enabled: u.stripe_payouts_enabled ?? null,
+    stripe_details_submitted: fresh?.stripe_details_submitted ?? null,
+    stripe_payouts_enabled: fresh?.stripe_payouts_enabled ?? null,
   };
 }

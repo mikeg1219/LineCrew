@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LineCrew — Payment &amp; payout process</title>
+  <style>
+    :root { --ink: #0f172a; --muted: #475569; --line: #cbd5e1; --bg: #f8fafc; --accent: #1e4faf; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, Segoe UI, Roboto, sans-serif; color: var(--ink); line-height: 1.5; max-width: 900px; margin: 0 auto; padding: 24px 20px 48px; background: #fff; }
+    h1 { font-size: 1.75rem; margin: 0 0 8px; }
+    .meta { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .pdf-how { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-bottom: 28px; font-size: 0.9rem; }
+    h2 { font-size: 1.2rem; margin: 28px 0 12px; border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
+    h3 { font-size: 1rem; margin: 20px 0 8px; color: var(--muted); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 12px 0; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+    th { background: var(--bg); }
+    ol { padding-left: 1.25rem; }
+    li { margin: 6px 0; }
+    .flow { display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; margin: 16px 0; }
+    .flow .box { flex: 1 1 140px; border: 2px solid var(--accent); border-radius: 8px; padding: 10px 12px; text-align: center; font-size: 0.85rem; background: #fff; }
+    .flow .arrow { align-self: center; font-size: 1.2rem; color: var(--accent); flex: 0 0 auto; }
+    .seq { font-size: 0.85rem; background: var(--bg); border-radius: 8px; padding: 16px; border: 1px solid var(--line); white-space: pre-wrap; font-family: ui-monospace, Consolas, monospace; }
+    @media print {
+      .pdf-how { border: 1px dashed #999; }
+      body { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>LineCrew — Payment &amp; payout process</h1>
+  <p class="meta">Current implementation (codebase). For Stripe Dashboard setup see <code>docs/STRIPE_DASHBOARD_SETUP.md</code>.</p>
+
+  <div class="pdf-how">
+    <strong>Save as PDF:</strong> Open this file in Chrome or Edge → <kbd>Ctrl</kbd>+<kbd>P</kbd> (or Print) → Destination: <strong>Save as PDF</strong> → Save.
+  </div>
+
+  <h2>Actors</h2>
+  <table>
+    <thead><tr><th>Actor</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Customer</td><td>Pays via Stripe Checkout on the platform account.</td></tr>
+      <tr><td>Line Holder</td><td>Receives Connect <strong>transfers</strong> to an Express connected account; optional manual payout in Profile.</td></tr>
+      <tr><td>Platform</td><td>Stripe Connect platform: checkout charges, then transfers to connected accounts after completion rules.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>High-level flow</h2>
+  <div class="flow">
+    <div class="box">Customer<br/>Post job → Checkout</div>
+    <span class="arrow">→</span>
+    <div class="box">Stripe<br/>PaymentIntent paid</div>
+    <span class="arrow">→</span>
+    <div class="box">App<br/>Job created (<code>jobs</code>)</div>
+  </div>
+  <div class="flow">
+    <div class="box">Line Holder<br/>Connect onboarding</div>
+    <span class="arrow">→</span>
+    <div class="box"><code>profiles.stripe_account_id</code></div>
+    <span class="arrow">→</span>
+    <div class="box">Handoff complete<br/>Transfer 80% to Connect</div>
+  </div>
+
+  <h2>1. Customer checkout</h2>
+  <ol>
+    <li>Customer (<code>role: customer</code>) uses Post job.</li>
+    <li><code>postJobAction</code> creates a Stripe Checkout Session (<code>app/dashboard/customer/post-job/actions.ts</code>).</li>
+    <li>Webhook <code>payment_intent.succeeded</code> or <code>checkout.session.completed</code> inserts <code>jobs</code> row (idempotent on PI id).</li>
+    <li><code>app/api/confirm-checkout/route.ts</code> — optional client confirmation path after return from Stripe.</li>
+  </ol>
+
+  <h2>2. Line Holder — Stripe Connect</h2>
+  <ol>
+    <li><code>startStripeConnectOnboardingAction</code> (<code>app/dashboard/waiter/connect/actions.ts</code>) creates Express account if needed and an Account Link.</li>
+    <li>Account Link type: <strong>account_onboarding</strong> until both <code>details_submitted</code> and <code>payouts_enabled</code> are true in DB; then <strong>account_update</strong> for bank changes.</li>
+    <li>User must complete Stripe’s flow including final <strong>Confirm</strong> on Review.</li>
+    <li>Sync: webhook <code>account.updated</code> + manual <strong>Refresh Stripe status</strong> via <code>refreshStripeConnectStatusAction</code> / <code>syncStripeConnectFromStripeForUser</code>.</li>
+  </ol>
+
+  <h2>3. Payout to Line Holder</h2>
+  <ol>
+    <li><code>finalizeJobPayout</code> (<code>lib/stripe-release-payout.ts</code>): <code>stripe.transfers.create</code> for 80% of <code>offered_price</code> (20% platform fee in code).</li>
+    <li>Stores <code>jobs.payout_transfer_id</code>; idempotent.</li>
+  </ol>
+
+  <h2>4. Data (Stripe-related)</h2>
+  <table>
+    <thead><tr><th>Table</th><th>Fields</th></tr></thead>
+    <tbody>
+      <tr><td><code>profiles</code></td><td><code>stripe_account_id</code>, <code>stripe_details_submitted</code>, <code>stripe_payouts_enabled</code>, manual payout fields</td></tr>
+      <tr><td><code>jobs</code></td><td><code>stripe_payment_intent_id</code>, <code>payout_transfer_id</code>, <code>offered_price</code>, <code>waiter_id</code>, <code>status</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Sequence (checkout → job → transfer)</h2>
+  <div class="seq">Customer → LineCrew: Post job + checkout
+LineCrew → Stripe: Checkout Session
+Customer → Stripe: Pay
+Stripe → Webhook: payment_intent.succeeded
+Webhook → DB: insert jobs
+Line Holder: Connect + accept job
+LineCrew → Stripe: transfers.create (when finalizeJobPayout runs)
+DB: job.payout_transfer_id set</div>
+
+  <p style="margin-top: 32px; font-size: 0.85rem; color: var(--muted);">End of document. Source markdown: <code>docs/PAYMENT_PROCESS_FLOW.md</code></p>
+</body>
+</html>

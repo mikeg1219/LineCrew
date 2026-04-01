@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import type { OverageRequest } from "@/lib/types/overage";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -91,6 +92,10 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
 
   if (profile?.role !== "customer") {
     redirect("/dashboard/waiter");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    redirect("/dashboard/profile?profile_required=1");
   }
 
   const { data: row, error } = await supabase

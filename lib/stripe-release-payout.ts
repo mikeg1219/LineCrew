@@ -1,4 +1,5 @@
 import { getStripe } from "@/lib/stripe";
+import { isPaymentCapturedForPayout } from "@/lib/payment-status";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 const PLATFORM_FEE = 0.2;
@@ -41,6 +42,14 @@ export async function finalizeJobPayout(
 
   if (!job.stripe_payment_intent_id || !job.waiter_id) {
     return { ok: false, error: "Booking missing payment or Line Holder." };
+  }
+
+  const payStatus = (job as { payment_status?: string | null }).payment_status;
+  if (payStatus != null && !isPaymentCapturedForPayout(payStatus)) {
+    return {
+      ok: false,
+      error: "Payment is not in a captured state; payout blocked.",
+    };
   }
 
   const { data: profile } = await supabase

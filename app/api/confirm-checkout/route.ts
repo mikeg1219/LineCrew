@@ -1,5 +1,6 @@
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { chargeIdFromPaymentIntent } from "@/lib/stripe-charge";
 import { getStripe } from "@/lib/stripe";
 import { NextResponse } from "next/server";
 
@@ -114,6 +115,9 @@ export async function GET(req: Request) {
     refund_policy_version: md.refund_policy_version ?? null,
     status: "open",
     stripe_payment_intent_id: piId,
+    payment_status: "captured" as const,
+    stripe_checkout_session_id: sessionId,
+    stripe_charge_id: chargeIdFromPaymentIntent(pi),
   };
 
   let { data: newJob, error } = await admin

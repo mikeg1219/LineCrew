@@ -23,6 +23,7 @@ Last updated: 2026-03-31
 
 - **Docs**
   - `docs/TESTING_GUIDE.md` explains current test flows and Stripe wallet setup.
+  - Stripe Connect **return URLs** (`?connect=return` / `?connect=refresh`), forced profile sync, and error banners: [`docs/PAYOUT_OPTIONS.md`](PAYOUT_OPTIONS.md) — open the section **“`?connect=return` and `?connect=refresh`”**.
 
 ---
 
@@ -90,6 +91,7 @@ Last updated: 2026-03-31
      - `stripe_account_id`
      - `stripe_details_submitted`
      - `stripe_payouts_enabled`
+   - After Stripe onboarding, **return URLs** (`?connect=return` / `?connect=refresh`), forced sync, and in-app banners: [`docs/PAYOUT_OPTIONS.md`](PAYOUT_OPTIONS.md) — section **“`?connect=return` and `?connect=refresh`”**.
 
 9. **Confirm jobs table inserts**
    - After a test payment, verify a row is created in `jobs` with:

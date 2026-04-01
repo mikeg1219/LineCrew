@@ -1,5 +1,1 @@
-import { redirect } from "next/navigation";
-
-export default function ProfilePage() {
-  redirect("/dashboard/profile");
-}
+export { default } from "@/app/profile/profile-route-view";

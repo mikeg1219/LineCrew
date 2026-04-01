@@ -15,7 +15,7 @@ import {
 import { BOOKING_CATEGORIES, type BookingCategory } from "@/lib/jobs/options";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -44,7 +44,7 @@ import {
   parsePhoneFromStored,
   PHONE_COUNTRIES,
 } from "@/lib/phone";
-import { LEGAL_PATHS, POLICY_VERSIONS } from "@/lib/legal";
+import { LEGAL_PATHS } from "@/lib/legal";
 
 export type ProfileHeroFallback = {
   display: string;
@@ -76,10 +76,64 @@ function logProfileError(
   });
 }
 
+/** Always logs — pair with server `[profile/save]` logs to debug failed updates. */
+function logProfileSaveFailureClient(meta: {
+  kind?: string;
+  phoneError?: boolean;
+}) {
+  console.error("[profile/save] client: save failed", {
+    ...meta,
+    hint: "Check server/Vercel logs for [profile/save] supabase_update or zero_rows.",
+  });
+}
+
 const SAVE_FAILED_MSG =
   "We couldn't save your profile changes. Please try again.";
+
+/** Server / unknown save failure (bottom of form). */
+const PROFILE_SAVE_ERROR_ID = "profile-save-error";
+
+/** Inline field errors (aria-errormessage targets). */
+const PROFILE_FIELD_ERROR_IDS = {
+  firstName: "profile-error-first-name",
+  bio: "profile-error-bio",
+  homeAirport: "profile-error-home-airport",
+  servingAirports: "profile-error-serving-airports",
+  legal: "profile-error-legal",
+} as const;
+
+const inlineFieldErrorClass = "mt-2 text-sm text-red-600";
+const SAVE_SUCCESS_MSG = "Profile saved successfully";
 const AVATAR_UPLOAD_FAILED_MSG =
   "We couldn't upload your photo. Please try again.";
+
+const AIRPORTS_CATEGORY: BookingCategory = "Airports";
+
+function RequiredAsterisk() {
+  return (
+    <span className="ml-0.5 text-red-500" aria-hidden>
+      *
+    </span>
+  );
+}
+
+/** Which control a save error applies to (for aria-invalid / aria-errormessage). */
+type ProfileSaveFieldError =
+  | "firstName"
+  | "bio"
+  | "homeAirport"
+  | "servingAirports"
+  | "legal"
+  | "generic";
+
+type ProfileSaveFeedback =
+  | null
+  | { status: "success" }
+  | {
+      status: "error";
+      message: string;
+      field?: ProfileSaveFieldError;
+    };
 
 const inputClass =
   "min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:min-h-0 sm:text-sm";
@@ -173,6 +227,10 @@ export function ProfileSettingsForm({
 } = {}) {
   const supabase = createClient();
   const router = useRouter();
+  const pathname = usePathname();
+  /** Match Stripe Connect allowlist — return here after onboarding. */
+  const stripeConnectReturnTo =
+    pathname === "/profile" ? "/profile" : "/dashboard/profile";
   const fileRef = useRef<HTMLInputElement>(null);
   const previewBlobRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -184,7 +242,9 @@ export function ProfileSettingsForm({
     src: string;
     file: File;
   } | null>(null);
+  /** Avatar / crop / storage messages only — not profile form save (see saveFeedback). */
   const [message, setMessage] = useState("");
+  const [saveFeedback, setSaveFeedback] = useState<ProfileSaveFeedback>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
@@ -233,15 +293,31 @@ export function ProfileSettingsForm({
   >(null);
   const [acceptedWorkerAgreementVersion, setAcceptedWorkerAgreementVersion] =
     useState<string | null>(null);
+  const [acceptedRefundPolicyVersion, setAcceptedRefundPolicyVersion] = useState<
+    string | null
+  >(null);
+  const [acceptedGuidelinesVersion, setAcceptedGuidelinesVersion] = useState<
+    string | null
+  >(null);
   const [workerIndependentContractorConfirmed, setWorkerIndependentContractorConfirmed] =
     useState(false);
   const [workerTaxResponsibilityConfirmed, setWorkerTaxResponsibilityConfirmed] =
     useState(false);
+  /** Shown when Stripe→DB sync fails after load (e.g. ?connect=return). */
+  const [stripeConnectSyncError, setStripeConnectSyncError] = useState<
+    string | null
+  >(null);
 
   const phoneE164ForCompletion = useMemo(() => {
     const r = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
     return r.ok && r.e164 ? r.e164 : "";
   }, [phoneCountryId, phoneNationalDigits]);
+
+  /** When checked, Home base + Service areas are required (Line Holder). */
+  const airportsCategorySelected = useMemo(
+    () => waiterPreferredCategories.includes(AIRPORTS_CATEGORY),
+    [waiterPreferredCategories]
+  );
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -315,6 +391,8 @@ export function ProfileSettingsForm({
           (p as { accepted_worker_agreement_version?: string | null })
             .accepted_worker_agreement_version ?? null
         );
+        setAcceptedRefundPolicyVersion(p.accepted_refund_policy_version ?? null);
+        setAcceptedGuidelinesVersion(p.accepted_guidelines_version ?? null);
         setWorkerIndependentContractorConfirmed(
           Boolean(
             (p as { independent_contractor_acknowledged_at?: string | null })
@@ -356,14 +434,29 @@ export function ProfileSettingsForm({
           const stillIncomplete =
             detailsSubmitted !== true || payoutsEnabled !== true;
           if (stripeSyncForce || needsSync || stillIncomplete) {
+            setStripeConnectSyncError(null);
             const r = await refreshStripeConnectStatusAction({
               force: stripeSyncForce,
             });
             if (r.ok) {
               setStripeDetailsSubmitted(r.stripe_details_submitted);
               setStripePayoutsEnabled(r.stripe_payouts_enabled);
+            } else {
+              console.error("[profile] Stripe Connect sync after load failed", {
+                error: r.error,
+                stripeSyncForce,
+              });
+              setStripeConnectSyncError(
+                stripeSyncForce
+                  ? `We couldn't confirm your payout status after returning from Stripe. ${r.error}`
+                  : `Couldn't refresh your Stripe payout status. ${r.error}`
+              );
             }
+          } else {
+            setStripeConnectSyncError(null);
           }
+        } else {
+          setStripeConnectSyncError(null);
         }
       }
       if (!opts?.silent) setLoading(false);
@@ -377,6 +470,14 @@ export function ProfileSettingsForm({
     };
     queueMicrotask(run);
   }, [load]);
+
+  useEffect(() => {
+    if (saveFeedback?.status !== "success") return;
+    const id = window.setTimeout(() => {
+      setSaveFeedback(null);
+    }, 3000);
+    return () => window.clearTimeout(id);
+  }, [saveFeedback]);
 
   useEffect(() => {
     return () => {
@@ -541,6 +642,7 @@ export function ProfileSettingsForm({
 
     setSaving(true);
     setMessage("");
+    setSaveFeedback(null);
     setPhoneError("");
 
     const fn = firstName.trim();
@@ -561,13 +663,51 @@ export function ProfileSettingsForm({
       });
       return;
     }
+    if (!fn) {
+      setSaveFeedback({
+        status: "error",
+        message: "First name is required.",
+      });
+      setSaving(false);
+      return;
+    }
+    if (role === "waiter" && !bio.trim()) {
+      setSaveFeedback({
+        status: "error",
+        message: "Bio is required.",
+      });
+      setSaving(false);
+      return;
+    }
+    if (role === "waiter" && airportsCategorySelected) {
+      if (!homeAirport.trim()) {
+        setSaveFeedback({
+          status: "error",
+          message:
+            "Home base is required when Airports is selected in Preferred request categories.",
+        });
+        setSaving(false);
+        return;
+      }
+      if (!servingAirportsText.trim()) {
+        setSaveFeedback({
+          status: "error",
+          message:
+            "Service areas are required when Airports is selected in Preferred request categories.",
+        });
+        setSaving(false);
+        return;
+      }
+    }
     if (
       role === "waiter" &&
       (!workerIndependentContractorConfirmed || !workerTaxResponsibilityConfirmed)
     ) {
-      setMessage(
-        "Please confirm the legal acknowledgments in the Line Holder section before saving."
-      );
+      setSaveFeedback({
+        status: "error",
+        message:
+          "Please confirm the legal acknowledgments in the Line Holder section before saving.",
+      });
       setSaving(false);
       return;
     }
@@ -601,13 +741,20 @@ export function ProfileSettingsForm({
         logProfileError("profile save action", null, {
           kind: "kind" in result ? result.kind : undefined,
         });
-        setMessage(SAVE_FAILED_MSG);
+        logProfileSaveFailureClient({
+          kind: "kind" in result ? String(result.kind) : undefined,
+        });
+        setSaveFeedback({
+          status: "error",
+          message: SAVE_FAILED_MSG,
+          field: "generic",
+        });
       }
       setSaving(false);
       return;
     }
 
-    setMessage("__saved__");
+    setSaveFeedback({ status: "success" });
     setSaving(false);
     await load({ silent: true });
     router.refresh();
@@ -657,8 +804,8 @@ export function ProfileSettingsForm({
 
   const accountIntro =
     role === "customer"
-      ? "Your email stays read-only. First name, display name, phone, and photo shape how travelers and Line Holders see you."
-      : "Your email stays read-only. First name, display name, phone, and photo shape your Line Holder profile.";
+      ? "Your email stays read-only. First name, display name, and phone shape how travelers and Line Holders see you (photo is above)."
+      : "Your email stays read-only. First name, display name, and phone shape your Line Holder profile (photo is above).";
 
   const heroPhotoSrc =
     previewObjectUrl || avatarPublicUrl || heroFallback?.avatarUrl || null;
@@ -685,6 +832,19 @@ export function ProfileSettingsForm({
 
   const isNanp = getPhoneCountry(phoneCountryId)?.nanp ?? true;
 
+  const profileSaveError =
+    saveFeedback?.status === "error" ? saveFeedback : null;
+  const firstNameSaveInvalid = profileSaveError?.field === "firstName";
+  const bioSaveInvalid = profileSaveError?.field === "bio";
+  const homeAirportSaveInvalid = profileSaveError?.field === "homeAirport";
+  const servingAirportsSaveInvalid =
+    profileSaveError?.field === "servingAirports";
+  const legalAckSaveInvalid = profileSaveError?.field === "legal";
+
+  const showGenericSaveError =
+    saveFeedback?.status === "error" &&
+    (saveFeedback.field === "generic" || saveFeedback.field === undefined);
+
   return (
     <>
     <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-10">
@@ -707,6 +867,23 @@ export function ProfileSettingsForm({
           ← Back to dashboard
         </Link>
       </p>
+
+      {stripeConnectSyncError ? (
+        <div
+          className="mb-6 rounded-xl border border-red-200 bg-red-50/95 px-4 py-3 text-sm leading-relaxed text-red-950 shadow-sm"
+          role="alert"
+        >
+          <p className="font-medium">Payout status didn&apos;t sync</p>
+          <p className="mt-1.5 text-red-900/95">{stripeConnectSyncError}</p>
+          <p className="mt-2 text-xs text-red-800/90">
+            Try{" "}
+            <span className="font-semibold text-red-950">
+              Refresh Stripe status now
+            </span>{" "}
+            in the Payouts section below.
+          </p>
+        </div>
+      ) : null}
 
       {role === "customer" && (
         <ProfileCompletionStatus
@@ -738,87 +915,81 @@ export function ProfileSettingsForm({
         />
       )}
 
-      <section className={sectionShell} aria-labelledby="section-account">
+      <section className={sectionShell} aria-labelledby="section-photo">
         <div className="border-b border-slate-100 pb-5">
-          <h2 id="section-account" className={sectionTitle}>
-            Account
+          <h2 id="section-photo" className={sectionTitle}>
+            Photo
           </h2>
-          <p className={sectionDesc}>{accountIntro}</p>
+          <p className={sectionDesc}>
+            {compactAvatar ? (
+              <>
+                Your photo is shown in the profile header above — only the upload
+                controls are here so it isn&apos;t duplicated. Uploads save when you
+                pick a file. Use{" "}
+                <span className="font-medium text-slate-800">Save changes</span>{" "}
+                below for your name and other profile fields.
+              </>
+            ) : (
+              <>
+                Uploads save when you pick a file. Use{" "}
+                <span className="font-medium text-slate-800">Save changes</span>{" "}
+                below for your name and other profile fields.
+              </>
+            )}
+          </p>
         </div>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6">
           <div>
             <span className={labelClass}>Profile photo</span>
             {compactAvatar ? (
-              <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
-                <div className="flex shrink-0 items-start gap-4">
-                  <div className="relative shrink-0">
-                    {heroPhotoSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={heroPhotoSrc}
-                        alt="Your profile photo"
-                        className="h-20 w-20 rounded-full border-2 border-slate-200/90 object-cover shadow-md ring-2 ring-white sm:h-[72px] sm:w-[72px]"
-                      />
-                    ) : (
-                      <div
-                        className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-slate-200 bg-slate-100 text-xl font-semibold text-slate-600 shadow-inner sm:h-[72px] sm:w-[72px] sm:text-2xl"
-                        aria-hidden
-                      >
-                        {avatarInitial}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="min-w-0 flex-1 space-y-2">
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="sr-only"
-                    onChange={handleAvatarFile}
-                  />
-                  <button
-                    type="button"
-                    disabled={avatarBusy}
-                    aria-busy={avatarBusy}
-                    onClick={() => fileRef.current?.click()}
-                    className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
+              <div className="mt-3 max-w-md space-y-2">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="sr-only"
+                  onChange={handleAvatarFile}
+                />
+                <button
+                  type="button"
+                  disabled={avatarBusy}
+                  aria-busy={avatarBusy}
+                  onClick={() => fileRef.current?.click()}
+                  className="inline-flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 disabled:opacity-60 sm:w-auto"
+                >
+                  {avatarPhase === "preparing"
+                    ? "Preparing…"
+                    : avatarPhase === "uploading"
+                      ? "Uploading…"
+                      : avatarStoragePath
+                        ? "Change photo"
+                        : "Upload photo"}
+                </button>
+                {avatarPhase === "preparing" ? (
+                  <p
+                    className="text-xs font-medium text-blue-800 sm:text-sm"
+                    role="status"
+                    aria-live="polite"
                   >
-                    {avatarPhase === "preparing"
-                      ? "Preparing…"
-                      : avatarPhase === "uploading"
-                        ? "Uploading…"
-                        : avatarStoragePath
-                          ? "Change photo"
-                          : "Upload photo"}
-                  </button>
-                  {avatarPhase === "preparing" ? (
-                    <p
-                      className="text-xs font-medium text-blue-800 sm:text-sm"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      Preparing photo…
-                    </p>
-                  ) : avatarPhase === "uploading" ? (
-                    <p
-                      className="text-xs font-medium text-blue-800 sm:text-sm"
-                      role="status"
-                      aria-live="polite"
-                    >
-                      Uploading photo…
-                    </p>
-                  ) : (
-                    <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
-                      JPG, PNG, WebP, or GIF (originals up to{" "}
-                      {Math.round(AVATAR_MAX_INPUT_BYTES / (1024 * 1024))} MB).
-                      We resize to max {AVATAR_MAX_DIMENSION}px and compress before
-                      upload. Use Save changes for your name and other profile
-                      fields.
-                    </p>
-                  )}
-                </div>
+                    Preparing photo…
+                  </p>
+                ) : avatarPhase === "uploading" ? (
+                  <p
+                    className="text-xs font-medium text-blue-800 sm:text-sm"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    Uploading photo…
+                  </p>
+                ) : (
+                  <p className="text-xs leading-relaxed text-slate-500 sm:text-sm">
+                    JPG, PNG, WebP, or GIF (originals up to{" "}
+                    {Math.round(AVATAR_MAX_INPUT_BYTES / (1024 * 1024))} MB).
+                    We resize to max {AVATAR_MAX_DIMENSION}px and compress before
+                    upload.
+                  </p>
+                )}
               </div>
             ) : (
               <div className="mt-3 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-6">
@@ -883,26 +1054,74 @@ export function ProfileSettingsForm({
                       JPG, PNG, WebP, or GIF (originals up to{" "}
                       {Math.round(AVATAR_MAX_INPUT_BYTES / (1024 * 1024))} MB).
                       We resize to max {AVATAR_MAX_DIMENSION}px and compress before
-                      upload. Use Save changes for name and other fields.
+                      upload.
                     </p>
                   )}
                 </div>
               </div>
             )}
           </div>
+          {message ? (
+            <div
+              className={`mt-4 rounded-xl px-4 py-3 text-sm ${
+                message === "__avatar_saved__"
+                  ? "border border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
+                  : "border border-red-200/80 bg-red-50/90 text-red-800"
+              }`}
+              role="status"
+            >
+              {message === "__avatar_saved__" ? "Photo updated" : message}
+            </div>
+          ) : null}
+        </div>
+      </section>
 
+      <section className={sectionShell} aria-labelledby="section-account">
+        <div className="border-b border-slate-100 pb-5">
+          <h2 id="section-account" className={sectionTitle}>
+            Account
+          </h2>
+          <p className={sectionDesc}>{accountIntro}</p>
+        </div>
+
+        <div className="mt-6 space-y-6">
           <div>
             <label htmlFor="first_name" className={labelClass}>
               First name
+              <RequiredAsterisk />
             </label>
             <input
               id="first_name"
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+                setSaveFeedback((prev) =>
+                  prev?.status === "error" && prev.field === "firstName"
+                    ? null
+                    : prev
+                );
+              }}
               autoComplete="given-name"
               className={inputClass}
               placeholder="Legal or preferred first name"
+              required
+              aria-required
+              aria-invalid={firstNameSaveInvalid || undefined}
+              aria-errormessage={
+                firstNameSaveInvalid
+                  ? PROFILE_FIELD_ERROR_IDS.firstName
+                  : undefined
+              }
             />
+            {firstNameSaveInvalid && profileSaveError ? (
+              <p
+                id={PROFILE_FIELD_ERROR_IDS.firstName}
+                className={inlineFieldErrorClass}
+                role="alert"
+              >
+                {profileSaveError.message}
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor="display_name" className={labelClass}>
@@ -941,6 +1160,7 @@ export function ProfileSettingsForm({
           <div>
             <span className={labelClass} id="phone-label">
               Phone
+              <RequiredAsterisk />
             </span>
             <p className="mb-2 text-xs text-slate-500 sm:text-[13px]">
               Saved in international format (E.164) for SMS and bookings.
@@ -996,8 +1216,10 @@ export function ProfileSettingsForm({
                   }}
                   placeholder={isNanp ? "(555) 123-4567" : "National number"}
                   className={inputClass}
+                  required
+                  aria-required
                   aria-invalid={phoneError ? true : undefined}
-                  aria-describedby={phoneError ? "phone-error" : undefined}
+                  aria-errormessage={phoneError ? "phone-error" : undefined}
                 />
               </div>
             </div>
@@ -1061,50 +1283,59 @@ export function ProfileSettingsForm({
             <h2 id="section-waiter" className={sectionTitle}>Line Holder</h2>
             <p className={sectionDesc}>
               Service area, category preferences, and availability for bookings.
+              Set up Stripe or manual payouts in{" "}
+              <span className="font-medium text-slate-800">
+                How do you want to get paid?
+              </span>{" "}
+              below.
             </p>
           </div>
           <div className="mt-6 space-y-6">
             <div>
               <label htmlFor="bio" className={labelClass}>
                 Bio
+                <RequiredAsterisk />
               </label>
               <textarea
                 id="bio"
                 value={bio}
-                onChange={(e) => setBio(e.target.value)}
+                onChange={(e) => {
+                  setBio(e.target.value);
+                  setSaveFeedback((prev) =>
+                    prev?.status === "error" && prev.field === "bio"
+                      ? null
+                      : prev
+                  );
+                }}
                 rows={4}
                 className={inputClass}
                 placeholder="Short intro for travelers"
+                required
+                aria-required
+                aria-invalid={bioSaveInvalid || undefined}
+                aria-errormessage={
+                  bioSaveInvalid ? PROFILE_FIELD_ERROR_IDS.bio : undefined
+                }
               />
+              {bioSaveInvalid && profileSaveError ? (
+                <p
+                  id={PROFILE_FIELD_ERROR_IDS.bio}
+                  className={inlineFieldErrorClass}
+                  role="alert"
+                >
+                  {profileSaveError.message}
+                </p>
+              ) : null}
             </div>
-            <div>
-              <label htmlFor="home_airport" className={labelClass}>
-                Home base (city or airport)
-              </label>
-              <input
-                id="home_airport"
-                value={homeAirport}
-                onChange={(e) => setHomeAirport(e.target.value)}
-                className={inputClass}
-                placeholder="e.g. SFO"
-              />
-            </div>
-            <div>
-              <label htmlFor="serving_airports" className={labelClass}>
-                Service areas (airport codes or city tags)
-              </label>
-              <input
-                id="serving_airports"
-                value={servingAirportsText}
-                onChange={(e) => setServingAirportsText(e.target.value)}
-                className={inputClass}
-                placeholder="Comma-separated codes, e.g. LAX, SFO, SAN"
-              />
-            </div>
-            <div>
-              <p className={labelClass}>Preferred request categories</p>
-              <p className="mb-2 text-xs text-slate-500">
-                Category matching is rolling out. Select defaults you want to receive first.
+            <fieldset className="min-w-0 border-0 p-0">
+              <legend className={labelClass}>Preferred request categories</legend>
+              <p
+                id="waiter-categories-airports-note"
+                className="mb-2 mt-1.5 text-xs text-slate-500"
+              >
+                Category matching is rolling out. Select defaults you want to receive
+                first. Checking <span className="font-medium text-slate-700">Airports</span>{" "}
+                makes Home base and Service areas required below.
               </p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {BOOKING_CATEGORIES.map((category: BookingCategory) => (
@@ -1128,54 +1359,91 @@ export function ProfileSettingsForm({
                   </label>
                 ))}
               </div>
+            </fieldset>
+            <div>
+              <label htmlFor="home_airport" className={labelClass}>
+                Home base (city or airport)
+                {airportsCategorySelected ? (
+                  <RequiredAsterisk />
+                ) : (
+                  <span className="ml-1 font-normal text-slate-500">(optional)</span>
+                )}
+              </label>
+              <input
+                id="home_airport"
+                value={homeAirport}
+                onChange={(e) => {
+                  setHomeAirport(e.target.value);
+                  setSaveFeedback((prev) =>
+                    prev?.status === "error" && prev.field === "homeAirport"
+                      ? null
+                      : prev
+                  );
+                }}
+                className={inputClass}
+                placeholder="e.g. SFO"
+                required={airportsCategorySelected}
+                aria-required={airportsCategorySelected}
+                aria-describedby="waiter-categories-airports-note"
+                aria-invalid={homeAirportSaveInvalid || undefined}
+                aria-errormessage={
+                  homeAirportSaveInvalid
+                    ? PROFILE_FIELD_ERROR_IDS.homeAirport
+                    : undefined
+                }
+              />
+              {homeAirportSaveInvalid && profileSaveError ? (
+                <p
+                  id={PROFILE_FIELD_ERROR_IDS.homeAirport}
+                  className={inlineFieldErrorClass}
+                  role="alert"
+                >
+                  {profileSaveError.message}
+                </p>
+              ) : null}
             </div>
             <div>
-              <label htmlFor="manual_payout_method" className={labelClass}>
-                Manual payout method (optional, no Stripe required)
+              <label htmlFor="serving_airports" className={labelClass}>
+                Service areas (airport codes or city tags)
+                {airportsCategorySelected ? (
+                  <RequiredAsterisk />
+                ) : (
+                  <span className="ml-1 font-normal text-slate-500">(optional)</span>
+                )}
               </label>
-              <p className="mb-1.5 text-xs text-slate-500 sm:text-[13px]">
-                Choose this if you want off-platform payouts for gig workers (Zelle, Cash App, PayPal, Venmo, etc.).
-              </p>
-              <select
-                id="manual_payout_method"
-                value={manualPayoutMethod}
-                onChange={(e) =>
-                  setManualPayoutMethod(e.target.value as ManualPayoutMethod | "")
-                }
+              <input
+                id="serving_airports"
+                value={servingAirportsText}
+                onChange={(e) => {
+                  setServingAirportsText(e.target.value);
+                  setSaveFeedback((prev) =>
+                    prev?.status === "error" && prev.field === "servingAirports"
+                      ? null
+                      : prev
+                  );
+                }}
                 className={inputClass}
-              >
-                <option value="">No manual payout method</option>
-                <option value="zelle">Zelle</option>
-                <option value="cash_app">Cash App</option>
-                <option value="paypal">PayPal</option>
-                <option value="venmo">Venmo</option>
-                <option value="other">Other</option>
-              </select>
+                placeholder="Comma-separated codes, e.g. LAX, SFO, SAN"
+                required={airportsCategorySelected}
+                aria-required={airportsCategorySelected}
+                aria-describedby="waiter-categories-airports-note"
+                aria-invalid={servingAirportsSaveInvalid || undefined}
+                aria-errormessage={
+                  servingAirportsSaveInvalid
+                    ? PROFILE_FIELD_ERROR_IDS.servingAirports
+                    : undefined
+                }
+              />
+              {servingAirportsSaveInvalid && profileSaveError ? (
+                <p
+                  id={PROFILE_FIELD_ERROR_IDS.servingAirports}
+                  className={inlineFieldErrorClass}
+                  role="alert"
+                >
+                  {profileSaveError.message}
+                </p>
+              ) : null}
             </div>
-            {manualPayoutMethod ? (
-              <div>
-                <label htmlFor="manual_payout_handle" className={labelClass}>
-                  Manual payout handle
-                </label>
-                <input
-                  id="manual_payout_handle"
-                  value={manualPayoutHandle}
-                  onChange={(e) => setManualPayoutHandle(e.target.value)}
-                  className={inputClass}
-                  placeholder={
-                    manualPayoutMethod === "zelle"
-                      ? "Email or phone for Zelle"
-                      : manualPayoutMethod === "cash_app"
-                        ? "Cash App tag (e.g. $yourtag)"
-                        : manualPayoutMethod === "paypal"
-                          ? "PayPal email"
-                          : manualPayoutMethod === "venmo"
-                            ? "Venmo username"
-                            : "Payout instructions"
-                  }
-                />
-              </div>
-            ) : null}
             <label className="flex cursor-pointer items-center gap-3 text-sm text-slate-800">
               <input
                 type="checkbox"
@@ -1187,31 +1455,73 @@ export function ProfileSettingsForm({
             </label>
             <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
               <p className="text-sm font-semibold text-slate-900">Legal acknowledgments</p>
-              <p className="mt-1 text-xs leading-relaxed text-slate-600">
+              <p
+                id="waiter-legal-ack-intro"
+                className="mt-1 text-xs leading-relaxed text-slate-600"
+              >
                 Line holders are independent contractors using the LineCrew.ai marketplace.
               </p>
               <div className="mt-3 space-y-2">
                 <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
                   <input
+                    id="worker_independent_contractor_ack"
                     type="checkbox"
                     checked={workerIndependentContractorConfirmed}
-                    onChange={(e) =>
-                      setWorkerIndependentContractorConfirmed(e.target.checked)
-                    }
+                    onChange={(e) => {
+                      setWorkerIndependentContractorConfirmed(e.target.checked);
+                      setSaveFeedback((prev) =>
+                        prev?.status === "error" && prev.field === "legal"
+                          ? null
+                          : prev
+                      );
+                    }}
                     className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                    aria-required
+                    aria-describedby="waiter-legal-ack-intro"
+                    aria-invalid={legalAckSaveInvalid || undefined}
+                    aria-errormessage={
+                      legalAckSaveInvalid
+                        ? PROFILE_FIELD_ERROR_IDS.legal
+                        : undefined
+                    }
                   />
                   <span>I understand I am an independent contractor, not a LineCrew.ai employee.</span>
                 </label>
                 <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
                   <input
+                    id="worker_tax_responsibility_ack"
                     type="checkbox"
                     checked={workerTaxResponsibilityConfirmed}
-                    onChange={(e) => setWorkerTaxResponsibilityConfirmed(e.target.checked)}
+                    onChange={(e) => {
+                      setWorkerTaxResponsibilityConfirmed(e.target.checked);
+                      setSaveFeedback((prev) =>
+                        prev?.status === "error" && prev.field === "legal"
+                          ? null
+                          : prev
+                      );
+                    }}
                     className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                    aria-required
+                    aria-describedby="waiter-legal-ack-intro"
+                    aria-invalid={legalAckSaveInvalid || undefined}
+                    aria-errormessage={
+                      legalAckSaveInvalid
+                        ? PROFILE_FIELD_ERROR_IDS.legal
+                        : undefined
+                    }
                   />
                   <span>I am responsible for venue/law compliance and taxes.</span>
                 </label>
               </div>
+              {legalAckSaveInvalid && profileSaveError ? (
+                <p
+                  id={PROFILE_FIELD_ERROR_IDS.legal}
+                  className={`${inlineFieldErrorClass} mt-3`}
+                  role="alert"
+                >
+                  {profileSaveError.message}
+                </p>
+              ) : null}
             </div>
           </div>
         </section>
@@ -1220,57 +1530,87 @@ export function ProfileSettingsForm({
       <section className={sectionShell} aria-labelledby="section-legal">
         <div className="border-b border-slate-100 pb-5">
           <h2 id="section-legal" className={sectionTitle}>
-            Legal & policies
+            Legal & Policies
           </h2>
           <p className={sectionDesc}>
-            Review policies and your currently recorded acceptance versions.
+            Review policies and your recorded acceptance versions. Links open in a
+            new tab.
           </p>
         </div>
-        <div className="mt-6 space-y-2 text-sm text-slate-700">
-          <p>
-            Terms version:{" "}
-            <span className="font-medium">{acceptedTermsVersion ?? "Not recorded"}</span>
-          </p>
-          <p>
-            Privacy version:{" "}
-            <span className="font-medium">{acceptedPrivacyVersion ?? "Not recorded"}</span>
-          </p>
-          {role === "waiter" ? (
-            <p>
-              Line Holder Agreement version:{" "}
-              <span className="font-medium">
-                {acceptedWorkerAgreementVersion ?? "Not recorded"}
-              </span>
+        <ul className="mt-6 list-none divide-y divide-slate-100 text-sm">
+          <li className="py-4 first:pt-0">
+            <Link
+              href={LEGAL_PATHS.terms}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 transition hover:text-blue-800"
+            >
+              Terms of Service
+            </Link>
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted version:{" "}
+              {acceptedTermsVersion ?? "Not recorded"}
             </p>
-          ) : null}
-          <p className="pt-2 text-xs text-slate-500">
-            Current worker agreement version: {POLICY_VERSIONS.workerAgreement}
-          </p>
-          <p className="pt-1 text-xs leading-relaxed text-slate-600">
-            <Link href={LEGAL_PATHS.terms} className="text-blue-700 hover:text-blue-800">
-              Terms
-            </Link>{" "}
-            ·{" "}
-            <Link href={LEGAL_PATHS.privacy} className="text-blue-700 hover:text-blue-800">
-              Privacy
-            </Link>{" "}
-            ·{" "}
-            <Link href={LEGAL_PATHS.refund} className="text-blue-700 hover:text-blue-800">
+          </li>
+          <li className="py-4">
+            <Link
+              href={LEGAL_PATHS.privacy}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 transition hover:text-blue-800"
+            >
+              Privacy Policy
+            </Link>
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted version:{" "}
+              {acceptedPrivacyVersion ?? "Not recorded"}
+            </p>
+          </li>
+          <li className="py-4">
+            <Link
+              href={LEGAL_PATHS.refund}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 transition hover:text-blue-800"
+            >
               Refund Policy
-            </Link>{" "}
-            ·{" "}
-            <Link href={LEGAL_PATHS.guidelines} className="text-blue-700 hover:text-blue-800">
+            </Link>
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted version:{" "}
+              {acceptedRefundPolicyVersion ?? "Not recorded"}
+            </p>
+          </li>
+          <li className="py-4">
+            <Link
+              href={LEGAL_PATHS.guidelines}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 transition hover:text-blue-800"
+            >
               Community Guidelines
-            </Link>{" "}
-            ·{" "}
+            </Link>
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted version:{" "}
+              {acceptedGuidelinesVersion ?? "Not recorded"}
+            </p>
+          </li>
+          <li className="py-4 last:pb-0">
             <Link
               href={LEGAL_PATHS.workerAgreement}
-              className="text-blue-700 hover:text-blue-800"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-blue-700 transition hover:text-blue-800"
             >
               Line Holder Agreement
             </Link>
-          </p>
-        </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Accepted version:{" "}
+              {role === "waiter"
+                ? (acceptedWorkerAgreementVersion ?? "Not recorded")
+                : "Not recorded"}
+            </p>
+          </li>
+        </ul>
       </section>
 
       <section className={sectionShell} aria-labelledby="section-save">
@@ -1280,27 +1620,28 @@ export function ProfileSettingsForm({
           </h2>
           <p className={sectionDesc}>
             {role === "customer"
-              ? "Saves your account details and traveler preferences. Photos save separately when you upload."
-              : "Saves your account details and Line Holder settings. Photos save separately when you upload."}
+              ? "Saves your account details and traveler preferences. Your photo is in the section above."
+              : "Saves your account details and Line Holder settings. Your photo is in the section above."}
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-4 sm:items-end">
-          {message && (
+          {saveFeedback?.status === "success" ? (
             <p
-              className={`w-full rounded-xl px-4 py-3 text-sm sm:max-w-md ${
-                message === "__saved__" || message === "__avatar_saved__"
-                  ? "border border-emerald-200/80 bg-emerald-50/90 text-emerald-900"
-                  : "border border-red-200/80 bg-red-50/90 text-red-800"
-              }`}
+              className="w-full rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900 sm:max-w-md"
               role="status"
             >
-              {message === "__saved__"
-                ? "Profile saved."
-                : message === "__avatar_saved__"
-                  ? "Photo updated"
-                  : message}
+              {SAVE_SUCCESS_MSG}
             </p>
-          )}
+          ) : null}
+          {showGenericSaveError ? (
+            <p
+              id={PROFILE_SAVE_ERROR_ID}
+              className="w-full rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-800 sm:max-w-md"
+              role="alert"
+            >
+              {saveFeedback.message}
+            </p>
+          ) : null}
 
           <button
             type="submit"
@@ -1318,15 +1659,13 @@ export function ProfileSettingsForm({
         stripeAccountId={stripeAccountId}
         stripeDetailsSubmitted={stripeDetailsSubmitted}
         stripePayoutsEnabled={stripePayoutsEnabled}
-        manualPayoutReady={
-          buildManualPayoutPreference(manualPayoutMethod, manualPayoutHandle) != null
-        }
-        manualPayoutSummary={
-          manualPayoutMethod && manualPayoutHandle.trim()
-            ? `${manualPayoutMethod.replace("_", " ")}: ${manualPayoutHandle.trim()}`
-            : null
-        }
-        returnTo="/dashboard/profile"
+        initialManualMethod={manualPayoutMethod}
+        initialManualHandle={manualPayoutHandle}
+        returnTo={stripeConnectReturnTo}
+        onStripeRefreshSuccess={() => setStripeConnectSyncError(null)}
+        onManualPayoutSaved={() => {
+          void load({ silent: true });
+        }}
       />
     )}
 

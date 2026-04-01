@@ -1,22 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
+import { HomeHeaderNav } from "@/components/home-header-nav";
 import { MARKETPLACE_CATEGORIES } from "@/lib/marketplace-categories";
+import { Suspense } from "react";
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="relative flex min-h-[min(90vh,900px)] flex-1 flex-col overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, #1E4FAF 0%, #17A7B8 55%, #67C45A 100%)",
-          }}
-        />
+        <div className="linecrew-bg-hero absolute inset-0" aria-hidden />
         <div className="absolute -left-28 top-20 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
         <div className="absolute -right-20 bottom-14 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.18),transparent_42%),radial-gradient(circle_at_80%_65%,rgba(255,255,255,0.14),transparent_38%)]" />
-        <header className="relative z-10 border-b border-white/20 bg-white/10 backdrop-blur-sm">
+        <header className="relative z-10 border-b border-white/25 bg-gradient-to-b from-white/20 via-white/10 to-transparent backdrop-blur-md">
           <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
             <Image
               src="/linecrew-logo.png"
@@ -26,13 +22,16 @@ export default function Home() {
               className="h-8 w-auto"
               priority
             />
-            <nav className="hidden items-center gap-4 text-sm text-white/80 md:flex">
-              <a href="#categories" className="transition hover:text-white">Categories</a>
-              <a href="#how-it-works-heading" className="transition hover:text-white">How It Works</a>
-              <Link href="/dashboard/customer/post-job" className="transition hover:text-white">Book</Link>
-              <Link href="/auth?intent=waiter" className="transition hover:text-white">Become a Line Holder</Link>
-              <Link href="/auth" className="transition hover:text-white">Dashboard</Link>
-            </nav>
+            <Suspense
+              fallback={
+                <nav
+                  className="flex min-h-[44px] min-w-[180px] max-w-[min(100%,28rem)] animate-pulse rounded-lg bg-white/10 sm:min-w-[220px] sm:max-w-none"
+                  aria-hidden
+                />
+              }
+            >
+              <HomeHeaderNav />
+            </Suspense>
           </div>
         </header>
         <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24">

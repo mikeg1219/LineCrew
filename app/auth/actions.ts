@@ -156,6 +156,26 @@ export async function authAction(
             role,
             acceptance_context: "signup",
           },
+          {
+            user_id: userId,
+            policy_type: "refund_policy",
+            policy_version: POLICY_VERSIONS.refund,
+            accepted_at: acceptedAt,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            role,
+            acceptance_context: "signup",
+          },
+          {
+            user_id: userId,
+            policy_type: "guidelines",
+            policy_version: POLICY_VERSIONS.guidelines,
+            accepted_at: acceptedAt,
+            ip_address: ipAddress,
+            user_agent: userAgent,
+            role,
+            acceptance_context: "signup",
+          },
         ];
         if (role === "waiter") {
           acceptanceRows.push({
@@ -175,8 +195,12 @@ export async function authAction(
           .update({
             accepted_terms_version: POLICY_VERSIONS.terms,
             accepted_privacy_version: POLICY_VERSIONS.privacy,
+            accepted_refund_policy_version: POLICY_VERSIONS.refund,
+            accepted_guidelines_version: POLICY_VERSIONS.guidelines,
             accepted_terms_at: acceptedAt,
             accepted_privacy_at: acceptedAt,
+            accepted_refund_policy_at: acceptedAt,
+            accepted_guidelines_at: acceptedAt,
             ...(role === "waiter"
               ? {
                   accepted_worker_agreement_version:

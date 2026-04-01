@@ -1,7 +1,9 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { getBookingCategoryForLineType } from "@/lib/jobs/options";
+import { WaiterStripeSyncErrorBanner } from "@/app/dashboard/waiter/stripe-sync-error-banner";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
   isWaiterAcceptSetupComplete,
@@ -18,7 +20,21 @@ function airportLabel(code: string) {
   );
 }
 
-export default async function BrowseJobsPage() {
+export default async function BrowseJobsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp =
+    (await (searchParams ?? Promise.resolve({}))) as Record<
+      string,
+      string | string[] | undefined
+    >;
+  const connectRaw = sp.connect;
+  const connect = Array.isArray(connectRaw) ? connectRaw[0] : connectRaw;
+  const forceStripeSync =
+    connect === "return" || connect === "refresh";
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -43,13 +59,17 @@ export default async function BrowseJobsPage() {
     );
   }
 
-  const profile = profileRow
-    ? ((await syncWaiterStripeIfNeeded(
+  const { profile: syncedProfile, stripeSyncError } = profileRow
+    ? await syncWaiterStripeIfNeeded(
         supabase,
         user.id,
         profileRow as Record<string, unknown>,
-        { force: false }
-      )) as typeof profileRow)
+        { force: forceStripeSync }
+      )
+    : { profile: null as Record<string, unknown> | null, stripeSyncError: null };
+
+  const profile = syncedProfile
+    ? (syncedProfile as typeof profileRow)
     : null;
 
   if (!profile) {
@@ -58,6 +78,10 @@ export default async function BrowseJobsPage() {
 
   if (profile.role === "customer") {
     redirect("/dashboard/customer");
+  }
+
+  if (!isProfileCompleteForBookings(profile)) {
+    redirect("/dashboard/profile?profile_required=1");
   }
 
   const canAcceptJobs = isWaiterAcceptSetupComplete(profile, user);
@@ -106,6 +130,13 @@ export default async function BrowseJobsPage() {
           Open listings from Customers who need someone in line. Accept a booking to
           see full details and contact the Customer.
         </p>
+        {stripeSyncError ? (
+          <WaiterStripeSyncErrorBanner
+            message={stripeSyncError}
+            afterStripeRedirect={forceStripeSync}
+            footerVariant="linkToDashboard"
+          />
+        ) : null}
         {!canAcceptJobs && (
           <div
             className="mt-4 rounded-xl border border-amber-200/90 bg-amber-50/90 px-4 py-3 text-sm leading-relaxed text-amber-950"

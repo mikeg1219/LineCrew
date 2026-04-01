@@ -1,5 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
+import {
+  markStripeWebhookEventProcessed,
+  releaseStripeWebhookEventClaim,
+  tryClaimStripeWebhookEvent,
+} from "@/lib/stripe-processed-events";
+import { chargeIdFromPaymentIntent } from "@/lib/stripe-charge";
+import { findJobIdByStripePaymentIntentOrCharge } from "@/lib/stripe-webhook-job-lookup";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 
@@ -103,6 +110,11 @@ export async function POST(req: Request) {
   const admin = createAdminClient();
   const stripe = getStripe();
 
+  const claimed = await tryClaimStripeWebhookEvent(admin, event);
+  if (!claimed) {
+    return NextResponse.json({ received: true, duplicate: true });
+  }
+
   try {
     switch (event.type) {
       case "payment_intent.succeeded":
@@ -124,6 +136,16 @@ export async function POST(req: Request) {
       case "account.updated":
         await handleAccountUpdated(admin, event.data.object as Stripe.Account);
         break;
+      case "charge.dispute.created":
+        await handleChargeDisputeCreated(
+          admin,
+          stripe,
+          event.data.object as Stripe.Dispute
+        );
+        break;
+      case "charge.refunded":
+        await handleChargeRefunded(admin, event.data.object as Stripe.Charge);
+        break;
       default:
         if (process.env.NODE_ENV === "development") {
           console.log("[stripe/webhook] unhandled event type (acknowledged)", {
@@ -133,7 +155,9 @@ export async function POST(req: Request) {
         }
         break;
     }
+    await markStripeWebhookEventProcessed(admin, event.id);
   } catch (e) {
+    await releaseStripeWebhookEventClaim(admin, event.id, e);
     console.error("Stripe webhook handler error:", e);
     const err = e as { code?: string; message?: string };
     return NextResponse.json(
@@ -161,11 +185,14 @@ function handlePaymentIntentFailed(pi: Stripe.PaymentIntent) {
 async function handlePaymentIntentSucceeded(
   admin: ReturnType<typeof createAdminClient>,
   pi: Stripe.PaymentIntent,
-  metadataOverride?: Record<string, string | null | undefined> | null
+  metadataOverride?: Record<string, string | null | undefined> | null,
+  opts?: { checkoutSessionId?: string | null }
 ) {
   if (pi.status !== "succeeded") return;
 
   const md = readMeta(pi.metadata, metadataOverride);
+  const checkoutSessionId = opts?.checkoutSessionId?.trim() || null;
+  const stripeChargeId = chargeIdFromPaymentIntent(pi);
   const customerId = md.customer_id;
   if (!customerId) {
     console.warn("payment_intent.succeeded: missing customer_id", pi.id);
@@ -231,6 +258,9 @@ async function handlePaymentIntentSucceeded(
     refund_policy_version: md.refund_policy_version ?? null,
     status: "open",
     stripe_payment_intent_id: pi.id,
+    payment_status: "captured" as const,
+    stripe_checkout_session_id: checkoutSessionId,
+    stripe_charge_id: stripeChargeId,
   };
 
   const { error } = await admin.from("jobs").insert(baseInsert);
@@ -266,7 +296,9 @@ async function handleCheckoutSessionCompleted(
     return;
   }
   const pi = await stripe.paymentIntents.retrieve(piId);
-  await handlePaymentIntentSucceeded(admin, pi, session.metadata);
+  await handlePaymentIntentSucceeded(admin, pi, session.metadata, {
+    checkoutSessionId: session.id,
+  });
 }
 
 async function handleAccountUpdated(
@@ -295,5 +327,112 @@ async function handleAccountUpdated(
     .eq("stripe_account_id", account.id);
   if (error && process.env.NODE_ENV === "development") {
     console.warn("[stripe/webhook] account.updated: no row for account", account.id);
+  }
+}
+
+/**
+ * Card chargeback: freeze payout by marking payment_status (in-app "disputed" is status-only).
+ */
+async function handleChargeDisputeCreated(
+  admin: ReturnType<typeof createAdminClient>,
+  stripe: Stripe,
+  dispute: Stripe.Dispute
+) {
+  const chargeId =
+    typeof dispute.charge === "string"
+      ? dispute.charge
+      : dispute.charge?.id ?? null;
+  if (!chargeId) {
+    console.warn("[stripe/webhook] charge.dispute.created: missing charge id", dispute.id);
+    return;
+  }
+
+  const charge = await stripe.charges.retrieve(chargeId);
+  const piRef = charge.payment_intent;
+  const piId = typeof piRef === "string" ? piRef : piRef?.id ?? null;
+
+  const jobId = await findJobIdByStripePaymentIntentOrCharge(
+    admin,
+    piId,
+    chargeId
+  );
+
+  if (!jobId) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[stripe/webhook] charge.dispute.created: no matching job", {
+        disputeId: dispute.id,
+        chargeId,
+        piId,
+      });
+    }
+    return;
+  }
+
+  const { error } = await admin
+    .from("jobs")
+    .update({
+      payment_status: "disputed",
+      stripe_dispute_id: dispute.id,
+    })
+    .eq("id", jobId);
+
+  if (error) {
+    console.error("[stripe/webhook] charge.dispute.created update failed:", error.message);
+    throw error;
+  }
+}
+
+/**
+ * Reconcile jobs.payment_status when a refund is created outside the app (Dashboard, API, etc.).
+ * Full refund → refunded; partial → refund_pending (unless already refunded).
+ */
+async function handleChargeRefunded(
+  admin: ReturnType<typeof createAdminClient>,
+  charge: Stripe.Charge
+) {
+  const chargeId = charge.id;
+  const piRef = charge.payment_intent;
+  const piId = typeof piRef === "string" ? piRef : piRef?.id ?? null;
+
+  const jobId = await findJobIdByStripePaymentIntentOrCharge(
+    admin,
+    piId,
+    chargeId
+  );
+
+  if (!jobId) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[stripe/webhook] charge.refunded: no matching job", {
+        chargeId,
+        piId,
+      });
+    }
+    return;
+  }
+
+  const amount = charge.amount ?? 0;
+  const refunded = charge.amount_refunded ?? 0;
+  if (refunded <= 0 || amount <= 0) return;
+
+  const { data: row } = await admin
+    .from("jobs")
+    .select("payment_status")
+    .eq("id", jobId)
+    .maybeSingle();
+  const current = row?.payment_status as string | null | undefined;
+  if (current === "refunded") return;
+
+  const nextStatus =
+    refunded >= amount ? ("refunded" as const) : ("refund_pending" as const);
+  if (current === nextStatus) return;
+
+  const { error } = await admin
+    .from("jobs")
+    .update({ payment_status: nextStatus })
+    .eq("id", jobId);
+
+  if (error) {
+    console.error("[stripe/webhook] charge.refunded update failed:", error.message);
+    throw error;
   }
 }

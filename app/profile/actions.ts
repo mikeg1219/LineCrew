@@ -8,6 +8,10 @@ import { isValidE164ForStorage, normalizePhoneE164 } from "@/lib/phone";
 import { revalidatePath } from "next/cache";
 import { BOOKING_CATEGORIES } from "@/lib/jobs/options";
 import { POLICY_VERSIONS } from "@/lib/legal";
+import {
+  buildManualPayoutPreference,
+  type ManualPayoutMethod,
+} from "@/lib/waiter-profile-complete";
 
 export type SaveProfileSettingsInput = {
   firstName: string;
@@ -197,6 +201,7 @@ export async function saveProfileSettingsAction(
 
 if (error) {
     console.error("[profile/save] supabase_update", {
+      userId: user.id,
       code: error.code,
       message: error.message,
       details: error.details,
@@ -218,7 +223,103 @@ if (error) {
   }
 
   revalidatePath("/dashboard/profile");
+  revalidatePath("/profile");
   revalidatePath("/dashboard/customer");
+  revalidatePath("/dashboard/waiter");
+
+  return { ok: true };
+}
+
+export type SaveWaiterManualPayoutResult =
+  | { ok: true }
+  | { ok: false; kind: "auth" | "save" | "validation"; message?: string };
+
+/**
+ * Updates only `contact_preference` for waiters (manual Zelle / PayPal / etc.).
+ */
+export async function saveWaiterManualPayoutAction(input: {
+  method: string;
+  handle: string;
+}): Promise<SaveWaiterManualPayoutResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authErr,
+  } = await supabase.auth.getUser();
+
+  if (authErr || !user) {
+    return { ok: false, kind: "auth" };
+  }
+
+  const { data: profileRow, error: profileErr } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileErr || !profileRow) {
+    return { ok: false, kind: "save" };
+  }
+
+  if (profileRow.role !== "waiter") {
+    return { ok: false, kind: "auth" };
+  }
+
+  const methodRaw = input.method.trim();
+  const handleRaw = input.handle.trim();
+
+  let contactPreference: string | null;
+  if (!methodRaw && !handleRaw) {
+    contactPreference = null;
+  } else {
+    const m = methodRaw as ManualPayoutMethod;
+    const valid =
+      m === "zelle" ||
+      m === "cash_app" ||
+      m === "paypal" ||
+      m === "venmo" ||
+      m === "other";
+    if (!valid || !handleRaw) {
+      return {
+        ok: false,
+        kind: "validation",
+        message: "Choose a payment method and enter your handle, email, or phone.",
+      };
+    }
+    const built = buildManualPayoutPreference(m, handleRaw);
+    if (!built) {
+      return {
+        ok: false,
+        kind: "validation",
+        message: "Choose a payment method and enter your handle, email, or phone.",
+      };
+    }
+    contactPreference = built;
+  }
+
+  const service = createServiceRoleClient();
+  const clientForUpdate = service ?? supabase;
+
+  const { error } = await clientForUpdate
+    .from("profiles")
+    .update({
+      contact_preference: contactPreference,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", user.id)
+    .eq("role", "waiter");
+
+  if (error) {
+    console.error("[profile/manual-payout] update", {
+      userId: user.id,
+      code: error.code,
+      message: error.message,
+    });
+    return { ok: false, kind: "save" };
+  }
+
+  revalidatePath("/dashboard/profile");
+  revalidatePath("/profile");
   revalidatePath("/dashboard/waiter");
 
   return { ok: true };

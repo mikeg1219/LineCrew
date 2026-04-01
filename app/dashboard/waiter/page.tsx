@@ -1,11 +1,14 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { ProfileRequiredForBookingsGate } from "@/components/profile-required-for-bookings-gate";
 import { LineHolderSetupChecklist } from "@/app/dashboard/waiter/line-holder-setup-checklist";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
+import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
+import { WaiterStripeSyncErrorBanner } from "@/app/dashboard/waiter/stripe-sync-error-banner";
 import {
   isStripePayoutBypassEnabled,
   isStripeConnectPayoutReady,
@@ -78,12 +81,23 @@ export default async function WaiterDashboardPage({
   const connect = Array.isArray(connectRaw) ? connectRaw[0] : connectRaw;
   const forceStripeSync =
     connect === "return" || connect === "refresh";
-  const profile = (await syncWaiterStripeIfNeeded(
-    supabase,
-    user.id,
-    profileRow as Record<string, unknown>,
-    { force: forceStripeSync }
-  )) as typeof profileRow;
+  const { profile: syncedProfile, stripeSyncError } =
+    await syncWaiterStripeIfNeeded(
+      supabase,
+      user.id,
+      profileRow as Record<string, unknown>,
+      { force: forceStripeSync }
+    );
+  const profile = syncedProfile as typeof profileRow;
+
+  if (!isProfileCompleteForBookings(profile)) {
+    return (
+      <ProfileRequiredForBookingsGate
+        role="waiter"
+        userEmail={user.email ?? ""}
+      />
+    );
+  }
 
   const { data: jobRows } = await supabase
     .from("jobs")
@@ -142,6 +156,13 @@ export default async function WaiterDashboardPage({
           <span className="font-medium text-slate-600">{user.email}</span>
         </p>
       </header>
+
+      {stripeSyncError ? (
+        <WaiterStripeSyncErrorBanner
+          message={stripeSyncError}
+          afterStripeRedirect={forceStripeSync}
+        />
+      ) : null}
 
       {!acceptSetupReady && (
         <div
@@ -215,12 +236,8 @@ export default async function WaiterDashboardPage({
           stripeAccountId={profile?.stripe_account_id ?? null}
           stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
           stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
-          manualPayoutReady={manualPayout !== null}
-          manualPayoutSummary={
-            manualPayout
-              ? `${manualPayout.method.replace("_", " ")}: ${manualPayout.handle}`
-              : null
-          }
+          initialManualMethod={manualPayout?.method ?? ""}
+          initialManualHandle={manualPayout?.handle ?? ""}
         />
       )}
 

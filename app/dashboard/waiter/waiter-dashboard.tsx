@@ -5,6 +5,7 @@ import {
   profileResolvedLabel,
   profileWelcomeFirstName,
 } from "@/lib/profile-display-name";
+import { parseManualPayoutPreference } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
@@ -62,6 +63,9 @@ export default async function WaiterDashboardPage() {
   const activeJobs = (jobRows ?? []) as Pick<Job, "id" | "status" | "airport" | "line_type" | "offered_price" | "created_at">[];
   const servingAirports = profile.serving_airports ?? null;
   const servingCount = Array.isArray(servingAirports) ? servingAirports.length : 0;
+  const manualPayout = parseManualPayoutPreference(
+    (profile as { contact_preference?: string | null }).contact_preference
+  );
 
   return (
     <div style={{ minHeight: "100vh", background: "#f8f9fa", paddingTop: "60px", paddingBottom: "80px" }}>
@@ -116,6 +120,8 @@ export default async function WaiterDashboardPage() {
             (profile as { stripe_payouts_enabled?: boolean | null } | null)
               ?.stripe_payouts_enabled ?? null
           }
+          initialManualMethod={manualPayout?.method ?? ""}
+          initialManualHandle={manualPayout?.handle ?? ""}
         />
 
         <section className="mt-12">

@@ -2,10 +2,12 @@
 
 import { appBaseUrl } from "@/lib/app-url";
 import { getStripe } from "@/lib/stripe";
+import { syncStripeConnectFromStripeForUser } from "@/lib/stripe-account-sync";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import Stripe from "stripe";
 
 export type ConnectState = { error: string } | null;
@@ -25,6 +27,13 @@ function normalizeStripeConnectError(err: unknown): string {
 
   if (lowered.includes("no such account")) {
     return "Your saved Stripe account could not be found. Please contact support to reconnect payouts.";
+  }
+
+  if (
+    lowered.includes("account_update") &&
+    lowered.includes("account_onboarding")
+  ) {
+    return "Finish Stripe onboarding first (Review and confirm on Stripe, then return here). Use Continue payout setup or Refresh status.";
   }
 
   if (err.code === "api_key_expired" || lowered.includes("invalid api key")) {
@@ -62,32 +71,53 @@ async function findExistingConnectedAccountId(
   return null;
 }
 
+type ProfileConnectFlags = {
+  stripe_details_submitted?: boolean | null;
+  stripe_payouts_enabled?: boolean | null;
+};
+
 /**
- * Incomplete Connect → resume with account_onboarding.
- * Fully enabled Connect → use account_update so Line Holders can change bank without restarting full onboarding.
+ * Account Link type from persisted flags (after optional Stripe→DB sync).
+ * - `account_onboarding` until identity/details are submitted in Stripe.
+ * - `account_update` once `stripe_details_submitted` is true (e.g. pending
+ *   payouts verification or post-onboarding bank updates). Do not use
+ *   `account_update` when details are still missing — Stripe rejects it.
  */
-function stripeAccountLinkType(
-  profile: Record<string, unknown> | null | undefined
+function resolveAccountLinkTypeFromProfileFlags(
+  profile: ProfileConnectFlags
 ): "account_onboarding" | "account_update" {
-  const id = profile?.stripe_account_id;
-  if (typeof id !== "string" || !id.trim()) return "account_onboarding";
-  const ds = profile?.stripe_details_submitted;
-  const pe = profile?.stripe_payouts_enabled;
-  if (ds === undefined && pe === undefined) return "account_onboarding";
-  if (ds === true && pe === true) return "account_update";
-  return "account_onboarding";
+  if (profile.stripe_details_submitted !== true) {
+    return "account_onboarding";
+  }
+  // Details submitted: use account_update (payouts still pending, or fully enabled).
+  return "account_update";
 }
 
-function stripeAccountLinkTypeForMode(args: {
-  mode: "onboarding" | "update";
-  hasAccountId: boolean;
-  profile: Record<string, unknown> | null | undefined;
-}): "account_onboarding" | "account_update" {
-  const { mode, hasAccountId, profile } = args;
-  if (mode === "update" && hasAccountId) {
-    return "account_update";
+/** Refresh Connect flags from Stripe API into `profiles` before choosing link type. */
+async function syncConnectFlagsForLinkDecision(
+  supabase: SupabaseClient,
+  userId: string,
+  profile: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const sync = await syncStripeConnectFromStripeForUser(supabase, userId);
+  if (!sync.ok) {
+    console.info("[waiter/connect] pre-link sync skipped or failed", {
+      userId,
+      error: sync.error,
+    });
+    return profile;
   }
-  return stripeAccountLinkType(profile);
+  const { data: fresh } = await supabase
+    .from("profiles")
+    .select("stripe_details_submitted, stripe_payouts_enabled")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!fresh) return profile;
+  return {
+    ...profile,
+    stripe_details_submitted: fresh.stripe_details_submitted,
+    stripe_payouts_enabled: fresh.stripe_payouts_enabled,
+  };
 }
 
 export async function startStripeConnectOnboardingAction(
@@ -157,19 +187,16 @@ export async function startStripeConnectOnboardingAction(
     const rawMode = String(formData.get("mode") ?? "onboarding").trim();
     const mode: "onboarding" | "update" =
       rawMode === "update" ? "update" : "onboarding";
-    const returnPath =
-      rawReturn === "/dashboard/profile" || rawReturn === "/dashboard/waiter"
-        ? rawReturn
-        : "/dashboard/waiter";
-    const linkType = stripeAccountLinkTypeForMode({
-      mode,
-      hasAccountId: Boolean(accountId?.trim()),
-      profile: {
-      ...(profile as Record<string, unknown>),
-      stripe_account_id: accountId,
-      },
-    });
-    const createAccountLink = async (acctId: string) =>
+    const allowedReturn =
+      rawReturn === "/dashboard/profile" ||
+      rawReturn === "/dashboard/waiter" ||
+      rawReturn === "/profile";
+    const returnPath = allowedReturn ? rawReturn : "/dashboard/waiter";
+
+    const createAccountLink = async (
+      acctId: string,
+      linkType: "account_onboarding" | "account_update"
+    ) =>
       stripe.accountLinks.create({
         account: acctId,
         refresh_url: `${base}${returnPath}?connect=refresh`,
@@ -178,8 +205,17 @@ export async function startStripeConnectOnboardingAction(
       });
 
     let link: Stripe.AccountLink;
+    let resolvedLinkType: "account_onboarding" | "account_update" | null = null;
     try {
-      link = await createAccountLink(accountId);
+      const profileForLink = await syncConnectFlagsForLinkDecision(
+        supabase,
+        user.id,
+        profile as Record<string, unknown>
+      );
+      resolvedLinkType = resolveAccountLinkTypeFromProfileFlags(
+        profileForLink as ProfileConnectFlags
+      );
+      link = await createAccountLink(accountId, resolvedLinkType);
     } catch (err) {
       // Auto-heal stale account IDs saved in profile: retry with a recovered account ID.
       if (!isNoSuchAccountError(err)) {
@@ -212,14 +248,22 @@ export async function startStripeConnectOnboardingAction(
         return { error: repairErr.message };
       }
 
-      link = await createAccountLink(accountId);
+      const profileAfterRepair = await syncConnectFlagsForLinkDecision(
+        supabase,
+        user.id,
+        profile as Record<string, unknown>
+      );
+      resolvedLinkType = resolveAccountLinkTypeFromProfileFlags(
+        profileAfterRepair as ProfileConnectFlags
+      );
+      link = await createAccountLink(accountId, resolvedLinkType);
     }
 
     // Lightweight server-side analytics marker (visible in Vercel logs).
     console.info("[analytics][waiter_connect_click]", {
       userId: user.id,
       mode,
-      linkType,
+      linkType: resolvedLinkType,
       accountId,
       returnPath,
       timestamp: new Date().toISOString(),
