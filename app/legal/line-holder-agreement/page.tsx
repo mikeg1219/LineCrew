@@ -1,11 +1,10 @@
-import { POLICY_VERSIONS } from "@/lib/legal";
 import { PolicyShell } from "@/app/legal/policy-shell";
 
 export default function LineHolderAgreementPage() {
   return (
     <PolicyShell
       title="Independent Line Holder Agreement"
-      updated={POLICY_VERSIONS.workerAgreement}
+      versionKey="workerAgreement"
     >
       <h2>Independent contractor status</h2>
       <p>

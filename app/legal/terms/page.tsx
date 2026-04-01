@@ -1,9 +1,8 @@
-import { POLICY_VERSIONS } from "@/lib/legal";
 import { PolicyShell } from "@/app/legal/policy-shell";
 
 export default function TermsPage() {
   return (
-    <PolicyShell title="Terms of Service" updated={POLICY_VERSIONS.terms}>
+    <PolicyShell title="Terms of Service" versionKey="terms">
       <h2>Marketplace role</h2>
       <p>
         LineCrew.ai is a technology marketplace that connects customers with independent third-party line holders.

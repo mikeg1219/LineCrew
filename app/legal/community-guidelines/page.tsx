@@ -1,9 +1,8 @@
-import { POLICY_VERSIONS } from "@/lib/legal";
 import { PolicyShell } from "@/app/legal/policy-shell";
 
 export default function CommunityGuidelinesPage() {
   return (
-    <PolicyShell title="Community Guidelines" updated={POLICY_VERSIONS.guidelines}>
+    <PolicyShell title="Community Guidelines" versionKey="guidelines">
       <h2>Respect and safety</h2>
       <p>No harassment, threats, discriminatory behavior, or unsafe conduct.</p>
       <h2>Authenticity</h2>

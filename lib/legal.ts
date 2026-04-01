@@ -4,6 +4,8 @@ export const POLICY_VERSIONS = {
   refund: "2026-03-31.1",
   guidelines: "2026-03-31.1",
   workerAgreement: "2026-03-31.1",
+  /** Contact & Support page (not stored in policy_documents today). */
+  contactSupport: "2026-03-31.1",
   categoryDisclaimer: {
     Airports: "2026-03-31.airports.1",
     "Concerts & Festivals": "2026-03-31.concerts.1",
@@ -18,6 +20,9 @@ export const POLICY_VERSIONS = {
     "Other Lines": "2026-03-31.other.1",
   } as Record<string, string>,
 } as const;
+
+/** Top-level policy version keys (excludes category map). Use with PolicyShell `versionKey`. */
+export type PolicyVersionKey = Exclude<keyof typeof POLICY_VERSIONS, "categoryDisclaimer">;
 
 export const LEGAL_PATHS = {
   terms: "/legal/terms",

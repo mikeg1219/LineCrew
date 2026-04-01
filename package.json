@@ -12,6 +12,8 @@
     "test:mobile:android:quick": "npm run mobile:android:sync",
     "verify:booking-pipeline": "node scripts/verify-booking-pipeline.mjs",
     "deploy:prod": "node scripts/deploy-production.mjs",
+    "db:supabase:link": "npx supabase link --project-ref iphcvzsgakbsadoekbrj",
+    "db:legal": "npx supabase db query -f supabase/legal-foundation-migration.sql --linked",
     "mobile:android:add": "npx cap add android",
     "mobile:android:sync": "npx cap sync android",
     "mobile:android:open": "npx cap open android",

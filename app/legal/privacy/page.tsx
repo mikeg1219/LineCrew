@@ -1,9 +1,8 @@
-import { POLICY_VERSIONS } from "@/lib/legal";
 import { PolicyShell } from "@/app/legal/policy-shell";
 
 export default function PrivacyPage() {
   return (
-    <PolicyShell title="Privacy Policy" updated={POLICY_VERSIONS.privacy}>
+    <PolicyShell title="Privacy Policy" versionKey="privacy">
       <h2>Data collected</h2>
       <p>
         We collect account data, booking data, payment-related metadata, location and handoff events, and support

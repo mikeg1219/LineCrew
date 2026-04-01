@@ -2,7 +2,7 @@ import { PolicyShell } from "@/app/legal/policy-shell";
 
 export default function ContactSupportPage() {
   return (
-    <PolicyShell title="Contact & Support" updated="2026-03-31.1">
+    <PolicyShell title="Contact & Support" versionKey="contactSupport">
       <h2>Support channels</h2>
       <p>
         For booking, payout, or safety issues, contact support through in-app issue reporting first so booking context
