@@ -157,6 +157,21 @@ export default async function AdminPage() {
     .order("created_at", { ascending: false })
     .limit(8);
 
+  const { data: recentMonthJobs } = await admin
+    .from("jobs")
+    .select("id, status, airport, line_type, offered_price, created_at, waiter_id")
+    .gte("created_at", monthIso)
+    .order("created_at", { ascending: false })
+    .limit(1500);
+
+  const { data: waiterProfiles } = await admin
+    .from("profiles")
+    .select(
+      "id, first_name, last_name, full_name, display_name, average_rating, jobs_completed, is_available, serving_airports"
+    )
+    .eq("role", "waiter")
+    .limit(300);
+
   const activityFeed = (recentJobs ?? []).slice(0, 6).map((job) => {
     const ts = new Date(job.created_at).toLocaleTimeString([], {
       hour: "numeric",
@@ -193,18 +208,115 @@ export default async function AdminPage() {
     { label: "JFK Available", top: "22%", left: "78%", type: "available" },
   ] as const;
 
-  const categoryDemand = [
-    { name: "Airport", requests: 27, supply: 19 },
-    { name: "DMV", requests: 9, supply: 7 },
-    { name: "Events", requests: 14, supply: 8 },
-  ] as const;
+  const lineTypeToCategory = (lineType: string): "Airport" | "DMV" | "Events" => {
+    const normalized = lineType.toLowerCase();
+    if (
+      normalized.includes("dmv") ||
+      normalized.includes("government") ||
+      normalized.includes("passport")
+    ) {
+      return "DMV";
+    }
+    if (
+      normalized.includes("event") ||
+      normalized.includes("concert") ||
+      normalized.includes("theme park") ||
+      normalized.includes("retail")
+    ) {
+      return "Events";
+    }
+    return "Airport";
+  };
 
-  const locationDemand = [
-    { name: "Orlando", requests: 13 },
-    { name: "Atlanta", requests: 10 },
-    { name: "New York", requests: 8 },
-    { name: "Los Angeles", requests: 6 },
-  ] as const;
+  const requestCountsByCategory: Record<"Airport" | "DMV" | "Events", number> = {
+    Airport: 0,
+    DMV: 0,
+    Events: 0,
+  };
+  const requestCountsByAirport = new Map<string, number>();
+  const acceptedByCategory: Record<"Airport" | "DMV" | "Events", number> = {
+    Airport: 0,
+    DMV: 0,
+    Events: 0,
+  };
+  const requestsByDay = new Map<string, number>();
+  const revenueByDay = new Map<string, number>();
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    requestsByDay.set(key, 0);
+    revenueByDay.set(key, 0);
+  }
+
+  for (const job of recentMonthJobs ?? []) {
+    const category = lineTypeToCategory(job.line_type ?? "");
+    requestCountsByCategory[category] += 1;
+    const airport = (job.airport ?? "Unknown").toUpperCase();
+    requestCountsByAirport.set(airport, (requestCountsByAirport.get(airport) ?? 0) + 1);
+    if (job.status !== "open") {
+      acceptedByCategory[category] += 1;
+    }
+    const dayKey = new Date(job.created_at).toISOString().slice(0, 10);
+    if (requestsByDay.has(dayKey)) {
+      requestsByDay.set(dayKey, (requestsByDay.get(dayKey) ?? 0) + 1);
+      if (job.status === "completed") {
+        revenueByDay.set(
+          dayKey,
+          (revenueByDay.get(dayKey) ?? 0) + (Number(job.offered_price) || 0)
+        );
+      }
+    }
+  }
+
+  const airportToCity: Record<string, string> = {
+    MCO: "Orlando",
+    ATL: "Atlanta",
+    JFK: "New York",
+    LAX: "Los Angeles",
+    ORD: "Chicago",
+    DFW: "Dallas",
+    MIA: "Miami",
+    SEA: "Seattle",
+    DEN: "Denver",
+    CLT: "Charlotte",
+  };
+
+  const locationTotals = new Map<string, number>();
+  for (const [airport, count] of requestCountsByAirport.entries()) {
+    const city = airportToCity[airport] ?? airport;
+    locationTotals.set(city, (locationTotals.get(city) ?? 0) + count);
+  }
+
+  const waiters = waiterProfiles ?? [];
+  const activeWaiterIds = new Set(
+    (recentMonthJobs ?? [])
+      .filter((job) =>
+        ["accepted", "at_airport", "in_line", "near_front", "pending_confirmation"].includes(
+          job.status
+        )
+      )
+      .map((job) => job.waiter_id)
+      .filter(Boolean)
+  );
+  const availableWaiters = waiters.filter((w) => w.is_available !== false).length;
+  const busyWaiters = waiters.filter((w) => activeWaiterIds.has(w.id)).length;
+
+  const categoryDemand = (["Airport", "DMV", "Events"] as const).map((name) => {
+    const requests = requestCountsByCategory[name];
+    const supply = Math.max(
+      0,
+      waiters.filter((w) =>
+        (w.serving_airports ?? []).length > 0 || name !== "Airport"
+      ).length - busyWaiters
+    );
+    return { name, requests, supply };
+  });
+
+  const locationDemand = Array.from(locationTotals.entries())
+    .map(([name, requests]) => ({ name, requests }))
+    .sort((a, b) => b.requests - a.requests)
+    .slice(0, 4);
 
   const alerts: { level: "high" | "medium"; text: string }[] = [
     {
@@ -250,50 +362,76 @@ export default async function AdminPage() {
     },
   ] as const;
 
-  const trendSeries = [
-    { day: "Mon", requests: 34, revenue: 1220, categoryScore: 74 },
-    { day: "Tue", requests: 41, revenue: 1490, categoryScore: 80 },
-    { day: "Wed", requests: 37, revenue: 1325, categoryScore: 77 },
-    { day: "Thu", requests: 46, revenue: 1730, categoryScore: 86 },
-    { day: "Fri", requests: 52, revenue: 1940, categoryScore: 91 },
-    { day: "Sat", requests: 39, revenue: 1565, categoryScore: 82 },
-    { day: "Sun", requests: 28, revenue: 1080, categoryScore: 69 },
-  ] as const;
+  const totalRequestsMonth = (recentMonthJobs ?? []).length;
+  const totalAcceptedMonth = (recentMonthJobs ?? []).filter((job) => job.status !== "open").length;
+  const acceptanceRatePct =
+    totalRequestsMonth > 0
+      ? Math.round((totalAcceptedMonth / totalRequestsMonth) * 100)
+      : 0;
 
-  const lineHolders = [
-    {
-      name: "A. Johnson",
-      status: "available",
-      rating: 4.9,
-      jobs: 112,
-      acceptance: "93%",
-      location: "Orlando",
-    },
-    {
-      name: "R. Patel",
-      status: "busy",
-      rating: 4.7,
-      jobs: 84,
-      acceptance: "88%",
-      location: "Atlanta",
-    },
-    {
-      name: "M. Chen",
-      status: "available",
-      rating: 4.8,
-      jobs: 97,
-      acceptance: "91%",
-      location: "New York",
-    },
-    {
-      name: "S. Carter",
-      status: "paused",
-      rating: 4.4,
-      jobs: 51,
-      acceptance: "76%",
-      location: "Orlando",
-    },
-  ] as const;
+  const trendSeries = Array.from(requestsByDay.entries()).map(([day, requests]) => {
+    const revenue = revenueByDay.get(day) ?? 0;
+    const categoryScore = Math.min(100, Math.round((requests * 7 + revenue / 8) / 2));
+    return { day: day.slice(5), requests, revenue, categoryScore };
+  });
+
+  const waiterStats = new Map<
+    string,
+    { completed: number; total: number; accepted: number; active: boolean }
+  >();
+  for (const job of recentMonthJobs ?? []) {
+    const waiterId = job.waiter_id;
+    if (!waiterId) continue;
+    const entry = waiterStats.get(waiterId) ?? {
+      completed: 0,
+      total: 0,
+      accepted: 0,
+      active: false,
+    };
+    entry.total += 1;
+    if (job.status !== "open") entry.accepted += 1;
+    if (job.status === "completed") entry.completed += 1;
+    if (
+      ["accepted", "at_airport", "in_line", "near_front", "pending_confirmation"].includes(
+        job.status
+      )
+    ) {
+      entry.active = true;
+    }
+    waiterStats.set(waiterId, entry);
+  }
+
+  const lineHolders = waiters
+    .slice(0, 20)
+    .map((w) => {
+      const stats = waiterStats.get(w.id) ?? {
+        completed: Number(w.jobs_completed ?? 0),
+        total: Number(w.jobs_completed ?? 0),
+        accepted: Number(w.jobs_completed ?? 0),
+        active: false,
+      };
+      const name =
+        w.full_name ||
+        w.display_name ||
+        [w.first_name, w.last_name].filter(Boolean).join(" ") ||
+        `Waiter ${w.id.slice(0, 6)}`;
+      const acceptance =
+        stats.total > 0 ? `${Math.round((stats.accepted / stats.total) * 100)}%` : "0%";
+      const location = (w.serving_airports ?? [])[0] ?? "—";
+      const status =
+        w.is_available === false ? "paused" : stats.active ? "busy" : "available";
+      return {
+        id: w.id,
+        name,
+        status,
+        rating: Number(w.average_rating ?? 0),
+        jobs: Number(w.jobs_completed ?? stats.completed ?? 0),
+        acceptance,
+        location,
+      };
+    })
+    .sort((a, b) => b.jobs - a.jobs)
+    .slice(0, 8);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-emerald-50 px-4 py-8 sm:px-6">
@@ -381,9 +519,9 @@ export default async function AdminPage() {
                 </div>
               </div>
               <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
-                <p>Active line holders: <span className="font-semibold">21</span></p>
-                <p>Available vs busy: <span className="font-semibold">12 / 9</span></p>
-                <p>Acceptance rate: <span className="font-semibold">89%</span></p>
+                <p>Active line holders: <span className="font-semibold">{busyWaiters}</span></p>
+                <p>Available vs busy: <span className="font-semibold">{availableWaiters} / {busyWaiters}</span></p>
+                <p>Acceptance rate: <span className="font-semibold">{acceptanceRatePct}%</span></p>
                 <p>Total users: <span className="font-semibold">{totalUsers ?? 0}</span></p>
               </div>
             </div>
@@ -454,7 +592,7 @@ export default async function AdminPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {lineHolders.map((row) => (
-                  <tr key={row.name}>
+                  <tr key={row.id}>
                     <td className="px-3 py-2 font-medium text-slate-900">{row.name}</td>
                     <td className="px-3 py-2">
                       <span
