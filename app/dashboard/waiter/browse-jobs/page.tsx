@@ -126,7 +126,7 @@ export default async function BrowseJobsPage() {
           <p className="mt-2 text-sm text-amber-900/90">
             Go to{" "}
             <Link
-              href="/dashboard/waiter/airports"
+              href="/dashboard/waiter/service-areas"
               className="font-semibold underline"
             >
               Edit my service areas

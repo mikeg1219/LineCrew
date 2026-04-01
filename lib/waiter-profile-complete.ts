@@ -186,7 +186,7 @@ export function waiterAcceptSetupShortfallMessage(
     return "Add your photo, phone, and bio in Profile before accepting.";
   }
   if ((p.serving_airports?.filter(Boolean) ?? []).length === 0) {
-    return "Select at least one airport before accepting.";
+    return "Select at least one service area before accepting.";
   }
   if (p.onboarding_completed !== true) {
     return "Finish Line Holder onboarding in Profile before accepting.";

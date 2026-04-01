@@ -197,7 +197,7 @@ export default async function WaiterDashboardPage({
             Browse available bookings
           </Link>
           <Link
-            href="/dashboard/waiter/airports"
+            href="/dashboard/waiter/service-areas"
             className="inline-flex min-h-[52px] w-full flex-1 items-center justify-center rounded-xl border border-slate-200/90 bg-white px-6 py-3.5 text-base font-semibold text-slate-800 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 active:bg-slate-100 sm:min-h-[48px] sm:w-auto sm:flex-none"
           >
             Edit my service areas

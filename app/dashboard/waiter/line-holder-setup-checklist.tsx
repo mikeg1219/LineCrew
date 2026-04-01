@@ -30,11 +30,11 @@ export function LineHolderSetupChecklist({
 
   if (!show) return null;
 
-  type RowKey = "email" | "profile" | "airports" | "payouts";
+  type RowKey = "email" | "profile" | "serviceAreas" | "payouts";
   const visible: RowKey[] = [];
   if (!emailVerified) visible.push("email");
   if (!profileBasicsComplete) visible.push("profile");
-  if (!hasAirports) visible.push("airports");
+  if (!hasAirports) visible.push("serviceAreas");
   if (!hasPayouts) visible.push("payouts");
 
   return (
@@ -125,10 +125,10 @@ export function LineHolderSetupChecklist({
               </li>
             );
           }
-          if (key === "airports") {
+          if (key === "serviceAreas") {
             return (
               <li
-                key="airports"
+                key="serviceAreas"
                 className="rounded-2xl border border-amber-200/90 border-l-[4px] border-l-amber-500 bg-gradient-to-br from-amber-50 to-amber-50/40 p-4 shadow-sm sm:p-5"
               >
                 <div className="flex gap-3">
@@ -137,17 +137,17 @@ export function LineHolderSetupChecklist({
                   </span>
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base font-semibold leading-snug text-amber-950">
-                      Select your airports
+                      Select your service areas
                     </h3>
                     <p className="mt-1.5 text-sm leading-relaxed text-amber-950/85">
                       Choose where you&apos;re available so we can show you nearby
                       available bookings.
                     </p>
                     <Link
-                      href="/dashboard/waiter/airports"
+                      href="/dashboard/waiter/service-areas"
                       className="mt-4 inline-flex min-h-[48px] w-full items-center justify-center rounded-xl border border-amber-400/50 bg-white px-5 py-3 text-sm font-semibold text-amber-950 shadow-sm transition hover:bg-amber-100/60 active:bg-amber-100 sm:w-auto sm:min-w-[200px]"
                     >
-                      Edit my airports
+                      Edit my service areas
                     </Link>
                   </div>
                 </div>
