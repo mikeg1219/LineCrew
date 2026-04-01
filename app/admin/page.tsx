@@ -419,8 +419,10 @@ export default async function AdminPage() {
   const waiterPrefCounts = new Map<BookingCategory, number>();
   for (const c of BOOKING_CATEGORIES) waiterPrefCounts.set(c, 0);
   for (const w of waiters) {
-    const prefs =
+    const rawPrefs =
       (w as { preferred_categories?: string[] | null }).preferred_categories ?? [];
+    // Mirror browse-jobs behavior: if none selected, treat as all categories.
+    const prefs = rawPrefs.length > 0 ? rawPrefs : [...BOOKING_CATEGORIES];
     for (const p of prefs) {
       if ((BOOKING_CATEGORIES as readonly string[]).includes(p)) {
         const cat = p as BookingCategory;
