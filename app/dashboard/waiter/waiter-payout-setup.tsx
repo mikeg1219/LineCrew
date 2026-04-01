@@ -63,6 +63,13 @@ export function WaiterPayoutSetup({
         platform fee. You must finish Stripe onboarding (identity + bank) and
         have payouts enabled before accepting jobs or receiving transfers.
       </p>
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/80 p-3 text-xs leading-relaxed text-slate-600 sm:text-sm">
+        <p>
+          <span className="font-semibold text-slate-800">Payout routes:</span>{" "}
+          Stripe bank-link (automatic payouts) or manual payout method
+          (Zelle/Cash App/PayPal/Venmo) configured in Profile.
+        </p>
+      </div>
       {manualPayoutReady ? (
         <p className="mt-3 text-sm font-medium text-emerald-800">
           Manual payout is configured{manualPayoutSummary ? ` (${manualPayoutSummary})` : ""}. You can accept bookings now. Stripe setup is optional if you want automatic payouts later.

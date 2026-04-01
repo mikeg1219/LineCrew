@@ -394,6 +394,11 @@ export function PostJobForm() {
             <p className="mt-4 text-xs leading-relaxed text-slate-500">
               The fee is deducted from your payment before payout to your Line Holder.
             </p>
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              No Stripe account signup is required. Pay as guest in Stripe Checkout
+              with card/wallet methods; bank-link options appear in Checkout when
+              available for your device and region.
+            </p>
           </div>
 
           {/* Test-only payment method selector (does not change Stripe flow yet) */}
