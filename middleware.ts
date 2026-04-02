@@ -1,7 +1,11 @@
 import { type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-export async function proxy(request: NextRequest) {
+/**
+ * Edge middleware — runs before routes. Delegates to shared Supabase session + guards
+ * (including /admin authentication) in `lib/supabase/middleware.ts`.
+ */
+export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }
 

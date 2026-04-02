@@ -1,14 +1,19 @@
+import { isAdminUser } from "@/lib/admin-config";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/constants";
 import { NextResponse, type NextRequest } from "next/server";
+
+function isAuthPath(pathname: string): boolean {
+  return pathname === "/auth" || pathname.startsWith("/auth/");
+}
 
 function isExemptFromOnboardingGuard(pathname: string): boolean {
   if (pathname.startsWith("/api")) return true;
   if (pathname.startsWith("/legal")) return true;
   if (pathname.startsWith("/onboarding")) return true;
   /** Sign-in and related flows must never be hijacked by onboarding redirects. */
-  if (pathname === "/auth" || pathname.startsWith("/auth/")) return true;
+  if (isAuthPath(pathname)) return true;
   return false;
 }
 
@@ -53,19 +58,59 @@ export async function updateSession(request: NextRequest) {
   const isVerifyEmail = pathname.startsWith("/auth/verify-email");
   const isAuthRoot = pathname === "/auth" || pathname === "/auth/";
 
+  /**
+   * /admin and /admin/* — MUST run before any other redirect logic.
+   * a) Path is /admin or /admin/*
+   * b) Valid Supabase session? (user from getUser)
+   * c) No session → /auth?next=<requested path>
+   * d) Session → is email in ADMIN_EMAILS?
+   * e) Not admin → /dashboard/[role]
+   * f) Admin → allow (continue with refreshed cookies)
+   */
+  const isAdminPath = pathname === "/admin" || pathname.startsWith("/admin/");
+  if (isAdminPath) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth";
+      url.search = "";
+      const returnTo = pathname + (request.nextUrl.search || "");
+      url.searchParams.set("next", returnTo);
+      return NextResponse.redirect(url);
+    }
+    const email = user.email ?? "";
+    if (isAdminUser(email)) {
+      return supabaseResponse;
+    }
+    const { data: adminGateProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    const url = request.nextUrl.clone();
+    const r = adminGateProfile?.role;
+    if (r === "customer" || r === "waiter") {
+      url.pathname = `/dashboard/${r}`;
+    } else {
+      url.pathname = "/dashboard";
+    }
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
   if (!user) {
+    if (isAuthPath(pathname)) {
+      return supabaseResponse;
+    }
     if (pathname.startsWith("/dashboard")) {
       const url = request.nextUrl.clone();
       url.pathname = "/onboarding";
       url.search = "";
       return NextResponse.redirect(url);
     }
-    const isAdmin = pathname.startsWith("/admin");
-    const isProfile = pathname === "/profile";
-    if (isAdmin || isProfile) {
+    if (pathname === "/profile") {
       const url = request.nextUrl.clone();
       url.pathname = "/auth";
-      /** e.g. /admin → next=/admin so sign-in can return to the portal */
+      url.search = "";
       const returnTo =
         request.nextUrl.pathname + (request.nextUrl.search || "");
       url.searchParams.set("next", returnTo);
@@ -113,8 +158,7 @@ export async function updateSession(request: NextRequest) {
 
     const isProtected =
       pathname.startsWith("/dashboard") ||
-      pathname === "/profile" ||
-      pathname.startsWith("/admin");
+      pathname === "/profile";
 
     if (isProtected) {
       const url = request.nextUrl.clone();

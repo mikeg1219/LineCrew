@@ -13,19 +13,22 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/auth?next=/admin");
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("profiles")
-    .select("role")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (profileErr) {
+    console.error("[admin/layout] profiles select:", profileErr.message);
+  }
+
   const email = user.email ?? "";
   if (!isAdminUser(email)) {
-    const r = profile?.role;
-    if (r === "customer" || r === "waiter") {
-      redirect(`/dashboard/${r}`);
-    }
-    redirect("/dashboard");
+    const role = profile?.role;
+    const segment =
+      role === "waiter" || role === "customer" ? role : "customer";
+    redirect(`/dashboard/${segment}`);
   }
 
   return (
