@@ -1,6 +1,8 @@
 import { AuthenticatedAppHeader } from "@/components/authenticated-app-header";
+import { MobileBottomNav } from "@/components/mobile-bottom-nav";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
+import { fetchNavBadgeCounts } from "@/lib/nav-badge-counts";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -82,16 +84,31 @@ export async function AuthenticatedAppShell({
     hasBookingDraft = draft != null;
   }
 
+  const { customerBookings, waiterAssignments } = await fetchNavBadgeCounts(
+    supabase,
+    user.id,
+    role
+  );
+
   return (
-    <div className="linecrew-bg-dashboard flex min-h-full flex-col">
+    <div className="linecrew-zone-dashboard flex min-h-full flex-col">
       <AuthenticatedAppHeader
         email={user.email ?? null}
         role={role}
         avatarUrl={avatarPublic}
         displayName={displayName}
         hasBookingDraft={hasBookingDraft}
+        customerBookingsBadge={customerBookings}
+        waiterAssignmentsBadge={waiterAssignments}
       />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:pb-0">
+        <div className="mx-auto w-full max-w-5xl px-4">{children}</div>
+      </main>
+      <MobileBottomNav
+        role={role}
+        customerBookingsBadge={customerBookings}
+        waiterAssignmentsBadge={waiterAssignments}
+      />
     </div>
   );
 }

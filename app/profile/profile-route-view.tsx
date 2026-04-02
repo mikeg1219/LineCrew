@@ -1,4 +1,5 @@
 import { ProfileSettingsForm } from "@/app/profile/profile-settings-form";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { Suspense } from "react";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
@@ -76,8 +77,29 @@ export default async function ProfileRouteView({
         ? "Customer"
         : "Account";
 
+  const eyebrow: "CUSTOMER" | "LINE HOLDER" | "ACCOUNT" =
+    role === "customer"
+      ? "CUSTOMER"
+      : role === "waiter"
+        ? "LINE HOLDER"
+        : "ACCOUNT";
+
+  const title =
+    role === "customer"
+      ? "Traveler profile & settings"
+      : role === "waiter"
+        ? "Line Holder profile & settings"
+        : "Profile & settings";
+
+  const subtitle =
+    role === "customer"
+      ? "Your account, photo, and preferences for line requests and bookings."
+      : role === "waiter"
+        ? "Your account, photo, service areas, and settings for accepting bookings."
+        : "Manage how you show up across LineCrew.";
+
   return (
-    <div className="mx-auto max-w-2xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
+    <div className="mx-auto max-w-2xl pb-12">
       {profileRequiredGate ? (
         <div
           className="mb-6 rounded-xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm"
@@ -88,25 +110,12 @@ export default async function ProfileRouteView({
           booking tools on your dashboard.
         </div>
       ) : null}
-      <header className="mb-8 sm:mb-10">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-          Account
-        </p>
-        <h1 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-          {role === "customer"
-            ? "Traveler profile & settings"
-            : role === "waiter"
-              ? "Line Holder profile & settings"
-              : "Profile & settings"}
-        </h1>
-        <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-600">
-          {role === "customer"
-            ? "Your account, photo, and preferences for line requests and bookings."
-            : role === "waiter"
-              ? "Your account, photo, service areas, and settings for accepting bookings."
-              : "Manage how you show up across LineCrew."}
-        </p>
-      </header>
+      <DashboardPageHeader
+        eyebrow={eyebrow}
+        title={title}
+        subtitle={subtitle}
+        className="mb-8 sm:mb-10"
+      />
 
       <Suspense
         fallback={

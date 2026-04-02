@@ -1,21 +1,19 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
-import { NavBar } from "@/components/NavBar";
 import { WaiterDashboardWelcomeBanner } from "@/components/waiter-dashboard-welcome-banner";
 import { WaiterOnboardingProgress } from "@/components/waiter-onboarding-progress";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
-import {
-  profileResolvedLabel,
-  profileWelcomeFirstName,
-} from "@/lib/profile-display-name";
+import { profileWelcomeFirstName } from "@/lib/profile-display-name";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
 import {
-  isStripeConnectPayoutReady,
   isStripePayoutBypassEnabled,
   parseManualPayoutPreference,
-  waiterProfileBasicsAndOnboardingComplete,
 } from "@/lib/waiter-profile-complete";
+import {
+  hasPayoutMethodForGate3,
+  resolveWaiterOnboardingGates,
+} from "@/lib/waiter-onboarding-gates";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
@@ -84,14 +82,6 @@ export default async function WaiterDashboardPage({
   );
   const profile = syncedProfile as typeof profileRow;
 
-  let avatarUrl = null;
-  if (profile.avatar_url) {
-    const { data } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(profile.avatar_url);
-    avatarUrl = data.publicUrl;
-  }
-
   const { data: jobRows } = await supabase
     .from("jobs")
     .select("id, status, airport, line_type, offered_price, created_at")
@@ -115,52 +105,24 @@ export default async function WaiterDashboardPage({
     (profile as { contact_preference?: string | null }).contact_preference
   );
 
-  const hasPayouts = isStripeConnectPayoutReady(profile);
-  const hasAirports = servingCount > 0;
   const emailVerified = isEmailVerifiedForApp(
     profile as { email_verified_at: string | null } | null,
     user
   );
-  const profileBasicsComplete = waiterProfileBasicsAndOnboardingComplete(profile);
 
   const profileGates = profile as {
-    gate1_unlocked?: boolean | null;
-    gate2_unlocked?: boolean | null;
-    gate3_unlocked?: boolean | null;
     avatar_url?: string | null;
   };
 
-  const gate1Unlocked =
-    profileGates.gate1_unlocked != null
-      ? Boolean(profileGates.gate1_unlocked)
-      : emailVerified && profileBasicsComplete;
-
-  const gate2Unlocked =
-    profileGates.gate2_unlocked != null
-      ? Boolean(profileGates.gate2_unlocked)
-      : Boolean(
-          gate1Unlocked &&
-            hasAirports &&
-            (profile.bio?.trim() ?? "") !== "" &&
-            (profileGates.avatar_url?.trim() ?? "") !== ""
-        );
-
-  const gate3Unlocked =
-    profileGates.gate3_unlocked != null
-      ? Boolean(profileGates.gate3_unlocked)
-      : hasPayouts;
+  const { gate1Unlocked, gate2Unlocked, gate3Unlocked } =
+    resolveWaiterOnboardingGates(profile, user);
 
   const gatesUnlockedCount = [gate1Unlocked, gate2Unlocked, gate3Unlocked].filter(
     Boolean
   ).length;
   const stepsRemaining = 3 - gatesUnlockedCount;
 
-  const payoutReadyForProgress =
-    Boolean(profile.stripe_payouts_enabled) ||
-    Boolean(
-      (profile as { manual_payout_method?: string | null }).manual_payout_method
-        ?.trim()
-    );
+  const payoutReadyForProgress = hasPayoutMethodForGate3(profile);
 
   const onboardingStep = (profile as { onboarding_step?: number | null })
     .onboarding_step;
@@ -170,19 +132,7 @@ export default async function WaiterDashboardPage({
   const payoutBypass = isStripePayoutBypassEnabled();
 
   return (
-    <div
-      style={{ minHeight: "100vh", background: "#f8f9fa", paddingTop: "60px", paddingBottom: "80px" }}
-    >
-      <NavBar
-        role="waiter"
-        avatarUrl={avatarUrl}
-        fullName={profileResolvedLabel(
-          profile,
-          user.email,
-          user.user_metadata as Record<string, unknown> | undefined
-        )}
-      />
-
+    <div className="min-h-screen bg-[#f8f9fa] pb-16">
       <div className="mx-auto max-w-4xl px-4 py-12">
         <header className="border-b border-slate-200/80 pb-6">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
@@ -246,7 +196,7 @@ export default async function WaiterDashboardPage({
             Edit my service areas
           </Link>
           <Link
-            href="/dashboard/profile"
+            href="/profile"
             className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
           >
             Edit profile

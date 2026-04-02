@@ -1,4 +1,5 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { ProfileRequiredForBookingsGate } from "@/components/profile-required-for-bookings-gate";
 import {
   CUSTOMER_DASHBOARD_STATUS_LABELS,
@@ -74,7 +75,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
   >[];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-10 md:py-12">
+    <div className="pb-12">
       {showWelcome ? (
         <div
           className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
@@ -84,19 +85,17 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
           your first Line Holder?
         </div>
       ) : null}
-      <header className="max-w-2xl space-y-3">
-        <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-          Book a Line Holder
-        </h1>
-        <p className="text-base leading-relaxed text-slate-600 sm:text-lg">
-          Reserve someone to hold your place in line across airports, events,
-          retail drops, restaurants, and services.
-        </p>
-        <p className="text-sm leading-snug text-slate-500">
-          Signed in as{" "}
-          <span className="font-medium text-slate-700">{user.email}</span>
-        </p>
-      </header>
+      <DashboardPageHeader
+        eyebrow="CUSTOMER"
+        title="Book a Line Holder"
+        subtitle="Reserve someone to hold your place in line across airports, events, retail drops, restaurants, and services."
+        meta={
+          <>
+            Signed in as{" "}
+            <span className="font-medium text-slate-700">{user.email}</span>
+          </>
+        }
+      />
 
       <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
         <div className="w-full rounded-[14px] border border-[#D7E3F1] bg-white px-4 py-3 text-center text-sm font-medium leading-snug text-[#1E4FAF] shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:w-auto sm:max-w-md sm:text-left">
@@ -117,7 +116,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
       </div>
 
       <section
-        className="mt-10 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:mt-12 sm:p-7"
+        className="linecrew-card mt-10 p-5 sm:mt-12 sm:p-7"
         aria-labelledby="how-it-works-customer"
       >
         <h2
@@ -169,7 +168,10 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
         </ol>
       </section>
 
-      <section className="mt-12 border-t border-slate-200 pt-10 sm:mt-14 sm:pt-12">
+      <section
+        id="customer-bookings"
+        className="mt-12 scroll-mt-28 border-t border-slate-200 pt-10 sm:mt-14 sm:pt-12"
+      >
         <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">
           Your bookings
         </h2>
@@ -196,7 +198,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
               return (
                 <li
                   key={job.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:flex-row sm:items-stretch sm:justify-between sm:gap-6 sm:p-6"
+                  className="linecrew-card flex flex-col gap-4 p-5 sm:flex-row sm:items-stretch sm:justify-between sm:gap-6 sm:p-6"
                 >
                   <div className="min-w-0 flex-1 space-y-3">
                     <p className="text-base font-semibold leading-snug text-slate-900 sm:text-lg">

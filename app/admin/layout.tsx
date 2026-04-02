@@ -5,6 +5,6 @@ import type { ReactNode } from "react";
  * (same pattern as dashboard routes).
  */
 export default function AdminLayout({ children }: { children: ReactNode }) {
-  return children;
+  return <div className="linecrew-zone-admin min-h-screen">{children}</div>;
 }
  

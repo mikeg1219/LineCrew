@@ -7,6 +7,8 @@ export default function LegalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="linecrew-bg-marketing flex min-h-full flex-col">{children}</div>
+    <div className="linecrew-zone-marketing-page flex min-h-full flex-col">
+      {children}
+    </div>
   );
 }

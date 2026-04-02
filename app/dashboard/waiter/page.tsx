@@ -1,11 +1,15 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
-import { ProfileRequiredForBookingsGate } from "@/components/profile-required-for-bookings-gate";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { LineHolderSetupChecklist } from "@/app/dashboard/waiter/line-holder-setup-checklist";
 import { WaiterDashboardWelcomeBanner } from "@/components/waiter-dashboard-welcome-banner";
 import { WaiterOnboardingProgress } from "@/components/waiter-onboarding-progress";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
+import {
+  hasPayoutMethodForGate3,
+  resolveWaiterOnboardingGates,
+} from "@/lib/waiter-onboarding-gates";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
@@ -95,15 +99,6 @@ export default async function WaiterDashboardPage({
     );
   const profile = syncedProfile as typeof profileRow;
 
-  if (!isProfileCompleteForBookings(profile)) {
-    return (
-      <ProfileRequiredForBookingsGate
-        role="waiter"
-        userEmail={user.email ?? ""}
-      />
-    );
-  }
-
   const { data: jobRows } = await supabase
     .from("jobs")
     .select("id, status, airport, line_type, offered_price, created_at")
@@ -147,81 +142,72 @@ export default async function WaiterDashboardPage({
   );
 
   const profileGates = profile as {
-    gate1_unlocked?: boolean | null;
-    gate2_unlocked?: boolean | null;
-    gate3_unlocked?: boolean | null;
     avatar_url?: string | null;
   };
 
-  const gate1Unlocked =
-    profileGates.gate1_unlocked != null
-      ? Boolean(profileGates.gate1_unlocked)
-      : emailVerified && profileBasicsComplete;
-
-  const gate2Unlocked =
-    profileGates.gate2_unlocked != null
-      ? Boolean(profileGates.gate2_unlocked)
-      : Boolean(
-          gate1Unlocked &&
-            hasAirports &&
-            (profile.bio?.trim() ?? "") !== "" &&
-            (profileGates.avatar_url?.trim() ?? "") !== ""
-        );
-
-  const gate3Unlocked =
-    profileGates.gate3_unlocked != null
-      ? Boolean(profileGates.gate3_unlocked)
-      : hasPayouts;
+  const { gate1Unlocked, gate2Unlocked, gate3Unlocked } =
+    resolveWaiterOnboardingGates(profile, user);
 
   const gatesUnlockedCount = [gate1Unlocked, gate2Unlocked, gate3Unlocked].filter(
     Boolean
   ).length;
   const stepsRemaining = 3 - gatesUnlockedCount;
 
-  const payoutReadyForProgress =
-    Boolean(profile.stripe_payouts_enabled) ||
-    Boolean(
-      (profile as { manual_payout_method?: string | null }).manual_payout_method
-        ?.trim()
-    );
+  const payoutReadyForProgress = hasPayoutMethodForGate3(profile);
 
   const onboardingStep = (profile as { onboarding_step?: number | null })
     .onboarding_step;
   const showWelcomeProgressBanner =
     typeof onboardingStep === "number" && onboardingStep < 3;
 
+  const profileBookingsReady = isProfileCompleteForBookings(profile);
+
   return (
-    <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
+    <div className="pb-12">
+      <DashboardPageHeader
+        eyebrow="LINE HOLDER"
+        title="Start earning as a Line Holder"
+        subtitle={
+          stepsRemaining > 0
+            ? `${stepsRemaining} more ${stepsRemaining === 1 ? "step" : "steps"} to start earning. Browse category-based bookings, manage your setup, and get paid after completed handoffs.`
+            : "Browse category-based bookings, manage your setup, and get paid after completed handoffs."
+        }
+        meta={
+          <>
+            Signed in as{" "}
+            <span className="font-medium text-slate-700">{user.email}</span>
+          </>
+        }
+      />
+
       {showWelcome ? (
         <div
-          className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
+          className="mt-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
           role="status"
         >
           <span className="font-semibold">Welcome!</span> Complete your payout
           setup to start accepting bookings.
         </div>
       ) : null}
-      <header className="border-b border-slate-200/80 pb-6 sm:pb-7">
-        <h1 className="text-balance text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl sm:leading-[1.15]">
-          Start earning as a Line Holder
-        </h1>
-        {stepsRemaining > 0 ? (
-          <p className="mt-1 text-sm text-slate-500 sm:text-[15px]">
-            {stepsRemaining} more{" "}
-            {stepsRemaining === 1 ? "step" : "steps"} to start earning
-          </p>
-        ) : null}
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-slate-600 sm:mt-4 sm:text-lg sm:leading-relaxed">
-          Browse category-based bookings, manage your setup, and get paid after
-          completed handoffs.
-        </p>
-        <p className="mt-4 text-xs text-slate-500 sm:mt-5 sm:text-sm">
-          Signed in as{" "}
-          <span className="font-medium text-slate-600">{user.email}</span>
-        </p>
-      </header>
 
       <WaiterDashboardWelcomeBanner show={showWelcomeProgressBanner} />
+
+      {!profileBookingsReady ? (
+        <div
+          className="mt-6 rounded-2xl border border-amber-200/90 bg-amber-50/90 px-4 py-4 text-sm leading-relaxed text-amber-950 shadow-sm sm:px-5 sm:py-4"
+          role="status"
+        >
+          <span className="font-semibold">Finish your basics in Profile.</span>{" "}
+          Add your name, display name, and phone so we can show your Line Holder
+          setup progress and unlock booking tools.{" "}
+          <Link
+            href="/profile"
+            className="font-semibold text-amber-950 underline decoration-amber-700/40 underline-offset-2 hover:decoration-amber-900"
+          >
+            Open Profile
+          </Link>
+        </div>
+      ) : null}
 
       {!gate3Unlocked ? (
         <div className="mt-6 sm:mt-7">
@@ -274,7 +260,7 @@ export default async function WaiterDashboardPage({
               Browse bookings
             </Link>
             <Link
-              href="/dashboard/profile"
+              href="/profile"
               className="inline-flex min-h-[44px] items-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-900 shadow-sm transition hover:bg-blue-100/80"
             >
               Profile
@@ -353,7 +339,7 @@ export default async function WaiterDashboardPage({
         </p>
       </div>
 
-      <section className="mt-10 sm:mt-12">
+      <section id="waiter-assignments" className="mt-10 scroll-mt-28 sm:mt-12">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
           <div>
             <h2 className="text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">

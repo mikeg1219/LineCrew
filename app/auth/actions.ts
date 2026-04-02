@@ -1,6 +1,7 @@
 "use server";
 
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
+import { isAdminEmail } from "@/lib/admin-config";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -14,6 +15,10 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
 
   if (!user) {
     redirect("/auth");
+  }
+
+  if (user.email && isAdminEmail(user.email)) {
+    redirect("/admin");
   }
 
   const { data: profile } = await supabase
@@ -59,39 +64,44 @@ export async function authAction(
   });
 
   if (error) {
-    return { error: error.message };
+    return { error: "Invalid email or password" };
+  }
+
+  const sessionUser = signInData.user;
+  const uid = sessionUser?.id;
+  if (!uid || !sessionUser) {
+    return { error: "Invalid email or password" };
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", uid)
+    .maybeSingle();
+
+  if (profileError) {
+    console.error("[auth] profile fetch on sign-in:", profileError.message);
+  }
+
+  if (!isEmailVerifiedForApp(profileError ? null : profile, sessionUser)) {
+    await supabase.auth.signOut();
+    return { error: "Please verify your email before signing in" };
   }
 
   revalidatePath("/", "layout");
 
-  const uid = signInData.user?.id;
-  const sessionUser = signInData.user;
-  if (uid && sessionUser) {
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", uid)
-      .maybeSingle();
+  if (sessionUser.email && isAdminEmail(sessionUser.email)) {
+    redirect("/admin");
+  }
 
-    if (profileError) {
-      console.error("[auth] profile fetch on sign-in:", profileError.message);
-    }
-
-    if (!isEmailVerifiedForApp(profileError ? null : profile, sessionUser)) {
-      const q = new URLSearchParams({ pending: "1" });
-      q.set("email", email);
-      redirect(`/onboarding/verify?${q.toString()}`);
-    }
-
-    const onboardingRedirect = needsOnboardingRedirect(
-      profile ?? null,
-      sessionUser
-    );
-    if (onboardingRedirect) {
-      const q = new URLSearchParams({ pending: "1" });
-      if (sessionUser.email) q.set("email", sessionUser.email);
-      redirect(`${onboardingRedirect}?${q.toString()}`);
-    }
+  const onboardingRedirect = needsOnboardingRedirect(
+    profile ?? null,
+    sessionUser
+  );
+  if (onboardingRedirect) {
+    const q = new URLSearchParams({ pending: "1" });
+    if (sessionUser.email) q.set("email", sessionUser.email);
+    redirect(`${onboardingRedirect}?${q.toString()}`);
   }
 
   await redirectToRoleDashboard(supabase);

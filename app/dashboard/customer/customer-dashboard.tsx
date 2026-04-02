@@ -1,14 +1,10 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { JOB_STATUS_LABELS, statusBadgeClass } from "@/lib/job-status";
-import {
-  profileResolvedLabel,
-  profileWelcomeFirstName,
-} from "@/lib/profile-display-name";
+import { profileWelcomeFirstName } from "@/lib/profile-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { NavBar } from "@/components/NavBar";
 
 export default async function CustomerDashboardPage() {
   const supabase = await createClient();
@@ -36,12 +32,6 @@ export default async function CustomerDashboardPage() {
   }
   if (profile.role === "waiter") redirect("/dashboard/waiter");
 
-  let avatarUrl = null;
-  if (profile.avatar_url) {
-    const { data } = supabase.storage.from("avatars").getPublicUrl(profile.avatar_url);
-    avatarUrl = data.publicUrl;
-  }
-
   const { data: jobRows } = await supabase
     .from("jobs")
     .select("id, status, airport, line_type, offered_price, created_at")
@@ -51,17 +41,7 @@ export default async function CustomerDashboardPage() {
   const jobs = (jobRows ?? []) as Pick<Job, "id" | "status" | "airport" | "line_type" | "offered_price" | "created_at">[];
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f8f9fa", paddingTop: "60px", paddingBottom: "80px" }}>
-      <NavBar
-        role="customer"
-        avatarUrl={avatarUrl}
-        fullName={profileResolvedLabel(
-          profile,
-          user.email,
-          user.user_metadata as Record<string, unknown> | undefined
-        )}
-      />
-
+    <div className="min-h-screen bg-[#f8f9fa] pb-16">
       <div className="mx-auto max-w-4xl px-4 py-12">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
           Welcome back,{" "}
@@ -84,7 +64,7 @@ export default async function CustomerDashboardPage() {
             Book Now
           </Link>
           <Link
-            href="/dashboard/profile"
+            href="/profile"
             className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
           >
             Edit profile

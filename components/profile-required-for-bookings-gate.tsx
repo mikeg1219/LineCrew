@@ -23,7 +23,7 @@ export function ProfileRequiredForBookingsGate({
       </p>
       <div className="mt-8">
         <Link
-          href="/dashboard/profile"
+          href="/profile"
           className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:w-auto"
         >
           Go to Profile

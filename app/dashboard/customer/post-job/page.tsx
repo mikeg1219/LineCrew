@@ -1,5 +1,6 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { PostJobForm } from "@/app/dashboard/customer/post-job/post-job-form";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { LegalLinksInline } from "@/components/legal-links";
 import { getBookingDraftCookie } from "@/lib/booking-draft-cookie";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
@@ -104,23 +105,19 @@ export default async function PostJobPage({ searchParams }: PageProps) {
   const bookingDraft = await getBookingDraftCookie();
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-5 sm:py-10 lg:px-6">
-      <header className="mb-8 max-w-3xl space-y-3 sm:mb-10">
-        <Link
-          href="/dashboard/customer"
-          className="inline-flex text-sm font-medium text-blue-700 hover:text-blue-800"
-        >
-          ← Back to dashboard
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
-          Book a request
-        </h1>
-        <p className="text-[15px] leading-relaxed text-slate-600 sm:text-base">
-          Tell Line Holders where and what queue you need covered across
-          airports, events, attractions, retail drops, and services. You&apos;ll pay
-          upfront when you post, and LineCrew releases payment only after
-          completion.
-        </p>
+    <div className="pb-12">
+      <Link
+        href="/dashboard/customer"
+        className="inline-flex text-sm font-medium text-blue-700 hover:text-blue-800"
+      >
+        ← Back to dashboard
+      </Link>
+      <DashboardPageHeader
+        eyebrow="CUSTOMER"
+        title="Book a request"
+        subtitle="Tell Line Holders where and what queue you need covered across airports, events, attractions, retail drops, and services. You pay upfront when you post, and LineCrew releases payment only after completion."
+      />
+      <div className="mb-8 max-w-3xl space-y-4 sm:mb-10">
         <p className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3.5 text-sm leading-relaxed text-slate-700 sm:px-5">
           <span className="font-semibold text-slate-900">Cancellation:</span>{" "}
           free cancellation before a Line Holder accepts. After a Line Holder accepts, a{" "}
@@ -128,7 +125,7 @@ export default async function PostJobPage({ searchParams }: PageProps) {
           to the Line Holder); the rest is refunded to you.
         </p>
         <LegalLinksInline />
-      </header>
+      </div>
 
       <div className="mb-8 rounded-xl border border-blue-200/90 bg-blue-50/90 px-4 py-3.5 text-center shadow-sm sm:mb-10 sm:px-5 sm:py-4">
         <p className="text-sm font-medium leading-snug text-blue-900">

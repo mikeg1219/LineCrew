@@ -22,7 +22,7 @@ export function PolicyShell({
       <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Legal</p>
       <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
       <p className="mt-2 text-xs text-slate-500">Version {resolved}</p>
-      <article className="prose prose-slate mt-6 max-w-none rounded-2xl border border-slate-200 bg-white p-6 text-sm leading-relaxed">
+      <article className="linecrew-card-marketing prose prose-slate mt-6 max-w-none p-6 text-sm leading-relaxed">
         {children}
       </article>
       <p className="mt-5 text-sm">

@@ -1,8 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #eff6ff;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-surface: #ffffff;
+  --color-background: #f8fafc;
+  --color-border: #e2e8f0;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --gradient-brand: linear-gradient(135deg, #2563eb 0%, #0d9488 100%);
+  /* Legacy aliases used in theme / JS */
+  --background: var(--color-surface);
+  --foreground: var(--color-text-primary);
   --linecrew-blue: #1e4faf;
   --linecrew-teal: #17a7b8;
   --linecrew-green: #67c45a;
@@ -17,32 +30,78 @@
 }
 
 body {
-  background-color: #ffffff;
+  background-color: var(--color-background);
   color: var(--foreground);
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
-/* Theme shells — use on layout wrappers; avoid mixing with conflicting page-level bg. */
-@layer utilities {
-  .linecrew-bg-dashboard {
-    background-image: linear-gradient(to bottom, rgb(248 250 252), rgb(255 255 255));
+@layer components {
+  /** Zone 2 — dashboard cards */
+  .linecrew-card {
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240 / 0.9);
+    background-color: var(--color-surface);
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
   }
-  /** Public marketing / legal — blue→teal wash into white */
+
+  /** Zone 1 — marketing / auth cards on gradient */
+  .linecrew-card-marketing {
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240);
+    background-color: var(--color-surface);
+    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  }
+
+  /** Zone 3 — admin surfaces */
+  .linecrew-card-admin {
+    border-radius: 1rem;
+    border: 1px solid rgb(51 65 85);
+    background-color: rgb(30 41 59);
+  }
+}
+
+/* Zone shells — layout wrappers */
+@layer utilities {
+  /** Marketing: blue → teal page wash */
+  .linecrew-zone-marketing-page {
+    min-height: 100%;
+    background-image: linear-gradient(
+      to bottom,
+      rgb(37 99 235),
+      rgb(20 184 166)
+    );
+  }
+
+  /** Dashboard + profile */
+  .linecrew-zone-dashboard {
+    min-height: 100%;
+    background-color: var(--color-background);
+  }
+
+  /** Admin */
+  .linecrew-zone-admin {
+    min-height: 100%;
+    background-color: rgb(15 23 42);
+    color: #fff;
+  }
+
+  /** Legacy: dashboard shell (now maps to zone 2) */
+  .linecrew-bg-dashboard {
+    background-color: var(--color-background);
+  }
+
+  /** Soft marketing wash (legal, etc.) */
   .linecrew-bg-marketing {
     background-image: linear-gradient(
       to bottom,
-      rgba(59, 130, 246, 0.12),
-      rgba(45, 212, 191, 0.08),
+      rgba(37, 99, 235, 0.12),
+      rgba(13, 148, 136, 0.1),
       #ffffff
     );
   }
+
   /** Hero band — stronger gradient for home / auth heroes */
   .linecrew-bg-hero {
-    background-image: linear-gradient(
-      135deg,
-      rgb(59 130 246) 0%,
-      rgb(20 184 166) 55%,
-      rgb(52 211 153) 100%
-    );
+    background-image: var(--gradient-brand);
   }
 }

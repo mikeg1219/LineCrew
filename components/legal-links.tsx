@@ -32,22 +32,3 @@ export function LegalLinksInline({ className = "" }: { className?: string }) {
   );
 }
 
-export function GlobalLegalFooter() {
-  return (
-    <footer className="mt-auto border-t border-slate-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-4 text-xs text-slate-500 sm:justify-between sm:px-6">
-        <p>LineCrew.ai is a marketplace connecting customers and independent line holders.</p>
-        <nav
-          className="flex flex-wrap items-center gap-x-3 gap-y-1"
-          aria-label="Legal and support"
-        >
-          {GLOBAL_FOOTER_LINKS.map((item) => (
-            <Link key={item.href} href={item.href} className={linkClass}>
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </footer>
-  );
-}

@@ -42,7 +42,7 @@ export default async function CustomerLayout({
               so Line Holders can recognize you and reach you reliably. Add your
               name and phone in{" "}
               <Link
-                href="/dashboard/profile"
+                href="/profile"
                 className="font-semibold text-blue-700 underline decoration-blue-700/30 underline-offset-2 transition hover:text-blue-800"
               >
                 Profile settings

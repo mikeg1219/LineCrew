@@ -31,15 +31,15 @@ export async function HomeHeroCTAs() {
       <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
         <Link
           href={bookHref}
-          className="rounded-[14px] bg-white px-8 py-4 text-center text-sm font-bold text-[#1E4FAF] shadow-[0_16px_40px_rgba(30,79,175,0.12)] transition hover:bg-slate-100 sm:text-base"
+          className="rounded-2xl bg-white px-8 py-4 text-center text-sm font-bold text-blue-600 shadow-lg shadow-blue-900/15 transition hover:bg-blue-50 sm:text-base"
         >
           Book a Line Holder
         </Link>
         <Link
           href={becomeHref}
-          className="rounded-[14px] border border-white/40 bg-white/10 px-8 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 sm:text-base"
+          className="rounded-2xl border-2 border-white bg-transparent px-8 py-4 text-center text-sm font-semibold text-white transition hover:bg-white/10 sm:text-base"
         >
-          Become a Line Holder
+          Start earning
         </Link>
       </div>
       <p className="mt-4 text-sm text-white/75">

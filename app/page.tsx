@@ -1,31 +1,96 @@
-import Image from "next/image";
 import { HomeHeroCTAs } from "@/components/home-hero-ctas";
 import { HomeHeaderNav } from "@/components/home-header-nav";
-import { MARKETPLACE_CATEGORIES } from "@/lib/marketplace-categories";
+import { HomeWaiterCtaLink } from "@/components/home-waiter-cta-link";
 import { Suspense } from "react";
+
+const TRUST_ITEMS = [
+  "Verified Line Holders",
+  "Live status updates",
+  "Pay after completion",
+  "Most bookings accepted in 3–10 min",
+] as const;
+
+const CATEGORY_CARDS = [
+  { emoji: "✈", title: "Airports" },
+  { emoji: "🎵", title: "Concerts" },
+  { emoji: "🎢", title: "Theme Parks" },
+  { emoji: "🛍", title: "Retail Drops" },
+  { emoji: "🏛", title: "DMV" },
+  { emoji: "🍽", title: "Restaurants" },
+] as const;
+
+function IconBook(props: { className?: string }) {
+  return (
+    <svg
+      className={props.className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      <path d="M8 7h8M8 11h6" />
+    </svg>
+  );
+}
+
+function IconPerson(props: { className?: string }) {
+  return (
+    <svg
+      className={props.className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function IconCheckCircle(props: { className?: string }) {
+  return (
+    <svg
+      className={props.className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="relative flex min-h-[min(90vh,900px)] flex-1 flex-col overflow-hidden">
-        <div className="linecrew-bg-hero absolute inset-0" aria-hidden />
-        <div className="absolute -left-28 top-20 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-        <div className="absolute -right-20 bottom-14 h-72 w-72 rounded-full bg-white/20 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.18),transparent_42%),radial-gradient(circle_at_80%_65%,rgba(255,255,255,0.14),transparent_38%)]" />
-        <header className="relative z-10 border-b border-white/25 bg-gradient-to-b from-white/20 via-white/10 to-transparent backdrop-blur-md">
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-            <Image
-              src="/linecrew-logo.png"
-              alt="LineCrew"
-              width={180}
-              height={54}
-              className="h-8 w-auto"
-              priority
-            />
+    <div className="flex min-h-0 flex-col bg-white">
+      {/* Hero — full viewport on desktop; natural height on mobile */}
+      <section
+        className="relative flex min-h-0 flex-col overflow-hidden bg-gradient-to-b from-blue-600 via-blue-500 to-teal-500 md:min-h-screen"
+        aria-label="Hero"
+      >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_55%)]" />
+        <div className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-teal-400/20 blur-3xl" />
+        <header className="relative z-10 border-b border-white/20 bg-gradient-to-b from-black/10 to-transparent backdrop-blur-md">
+          <div className="mx-auto flex min-h-16 max-w-6xl items-center px-4 py-3 sm:px-6">
             <Suspense
               fallback={
-                <nav
-                  className="flex min-h-[44px] min-w-[180px] max-w-[min(100%,28rem)] animate-pulse rounded-lg bg-white/10 sm:min-w-[220px] sm:max-w-none"
+                <div
+                  className="flex h-10 w-full animate-pulse items-center justify-between rounded-lg bg-white/10"
                   aria-hidden
                 />
               }
@@ -34,264 +99,149 @@ export default function Home() {
             </Suspense>
           </div>
         </header>
-        <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-16 text-center sm:px-6 sm:py-24">
-          <h1 className="mb-5 max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
+
+        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 py-12 text-center sm:px-6 sm:py-16 md:py-20">
+          <p className="mb-5 inline-flex items-center justify-center self-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:text-sm">
+            Now available at major US airports
+          </p>
+          <h1 className="text-balance text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
             Save your spot. Keep your day moving.
           </h1>
-          <p className="mb-10 max-w-xl text-base leading-relaxed text-white/80 sm:text-lg">
-            LineCrew.ai helps you book trusted line holders for concerts,
-            amusement parks, product drops, airports, DMV visits, restaurants,
-            and other high-wait situations.
+          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-white/90 sm:text-lg md:text-xl">
+            Book a trusted Line Holder for airport security, concerts, theme parks, and more. We
+            hold your place so you don&apos;t have to.
           </p>
-          <Suspense
-            fallback={
-              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                <div className="h-[52px] w-full max-w-xs animate-pulse rounded-[14px] bg-white/20 sm:max-w-none" />
-                <div className="h-[52px] w-full max-w-xs animate-pulse rounded-[14px] bg-white/10 sm:max-w-none" />
-              </div>
-            }
-          >
-            <HomeHeroCTAs />
-          </Suspense>
-          <div className="mt-10 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="text-emerald-400" aria-hidden>
-                ✔
-              </span>
-              Verified Line Holders
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="text-emerald-400" aria-hidden>
-                ✔
-              </span>
-              Live updates
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="text-emerald-400" aria-hidden>
-                ✔
-              </span>
-              Pay after completion
-            </span>
-          </div>
-          <p className="mt-6 rounded-lg border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/90 backdrop-blur-sm">
-            Most bookings accepted in 3–10 minutes
-          </p>
-        </main>
-      </div>
 
-      <section id="categories" className="border-t border-slate-200 bg-white py-14 sm:py-16">
+          <div className="mt-10 flex justify-center">
+            <Suspense
+              fallback={
+                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                  <div className="h-[52px] w-full max-w-xs animate-pulse rounded-2xl bg-white/20 sm:max-w-none" />
+                  <div className="h-[52px] w-full max-w-xs animate-pulse rounded-2xl bg-white/10 sm:max-w-none" />
+                </div>
+              }
+            >
+              <HomeHeroCTAs />
+            </Suspense>
+          </div>
+
+          <ul
+            className="mx-auto mt-12 flex max-w-4xl flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/90 sm:mt-14 sm:text-base"
+            aria-label="Trust highlights"
+          >
+            {TRUST_ITEMS.map((label) => (
+              <li key={label} className="flex items-center gap-2">
+                <span className="shrink-0 text-emerald-300" aria-hidden>
+                  ✓
+                </span>
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section
+        id="how-it-works"
+        className="border-t border-slate-200 bg-white py-16 sm:py-20"
+        aria-labelledby="how-it-works-heading"
+      >
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2 className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            Browse categories
+          <h2
+            id="how-it-works-heading"
+            className="text-center text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
+          >
+            How LineCrew works
           </h2>
-          <p className="mx-auto mt-3 max-w-3xl text-center text-sm leading-relaxed text-slate-600 sm:text-base">
-            LineCrew supports events, attractions, retail drops, airports, and
-            everyday service queues.
-          </p>
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {MARKETPLACE_CATEGORIES.map((c) => (
+          <div className="mt-12 grid gap-8 sm:grid-cols-3 sm:gap-10">
+            <article className="linecrew-card-marketing flex flex-col items-center p-8 text-center">
+              <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <IconBook className="size-7" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Post your request</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                Choose your airport, line type, and offer price
+              </p>
+            </article>
+            <article className="linecrew-card-marketing flex flex-col items-center p-8 text-center">
+              <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <IconPerson className="size-7" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">We match you</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                A Line Holder accepts and heads to your line
+              </p>
+            </article>
+            <article className="linecrew-card-marketing flex flex-col items-center p-8 text-center">
+              <div className="mb-5 flex size-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600">
+                <IconCheckCircle className="size-7" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900">Swap in</h3>
+              <p className="mt-3 text-sm leading-relaxed text-slate-600">
+                Arrive when it&apos;s your turn and take your spot
+              </p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* Categories */}
+      <section
+        className="border-t border-slate-200 bg-slate-50 py-16 sm:py-20"
+        aria-labelledby="categories-heading"
+      >
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <h2
+            id="categories-heading"
+            className="text-center text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl"
+          >
+            Where we hold your spot
+          </h2>
+          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {CATEGORY_CARDS.map((c) => (
               <div
-                key={c.id}
-                className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 shadow-sm"
+                key={c.title}
+                className="linecrew-card-marketing flex items-center gap-4 p-6 transition hover:border-slate-300 hover:shadow-md"
               >
-                <h3 className="text-base font-semibold text-slate-900">{c.label}</h3>
-                <p className="mt-2 text-sm text-slate-600">{c.description}</p>
-                <p className="mt-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Pricing: {c.pricingModel}
-                </p>
+                <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-white text-2xl shadow-sm ring-1 ring-slate-200/80">
+                  {c.emoji}
+                </span>
+                <span className="text-lg font-semibold text-slate-900">{c.title}</span>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Line Holder CTA */}
       <section
-        className="border-t border-slate-200 bg-white py-14 sm:py-16"
-        aria-labelledby="how-it-works-heading"
+        className="relative overflow-hidden border-t border-white/10 bg-gradient-to-br from-blue-600 via-blue-600 to-teal-500 py-16 sm:py-20"
+        aria-labelledby="earn-heading"
       >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2
-            id="how-it-works-heading"
-            className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
-          >
-            How it works
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.12),transparent_50%)]" />
+        <div className="relative mx-auto max-w-3xl px-4 text-center sm:px-6">
+          <h2 id="earn-heading" className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Earn $15-40 per booking
           </h2>
-          <div className="mt-10 grid gap-6 sm:grid-cols-3 sm:gap-8">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
-                1
-              </div>
-              <h3 className="font-semibold text-slate-900">Book your request</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Choose category, location, and details in under a minute.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
-                2
-              </div>
-              <h3 className="font-semibold text-slate-900">We hold your place</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                A Line Holder checks in live and keeps you updated.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm">
-              <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-800">
-                3
-              </div>
-              <h3 className="font-semibold text-slate-900">You walk up</h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                Arrive at handoff time, swap in, and keep moving.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16"
-        aria-labelledby="getting-started-heading"
-      >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <h2
-            id="getting-started-heading"
-            className="text-center text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
-          >
-            Getting started on the web
-          </h2>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 sm:gap-8">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                For customers
-              </h3>
-              <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                <li>1. Click “Book a Line Holder” in the hero (or Get started in the header).</li>
-                <li>2. Create your account with email and password.</li>
-                <li>3. Open your email and verify your address.</li>
-                <li>4. Go to Dashboard → Customer and complete your profile.</li>
-                <li>5. Post a booking by category, choose payment, complete checkout.</li>
-              </ol>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
-                For Line Holders (LineWaiters)
-              </h3>
-              <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                <li>1. Click “Become a Line Holder” in the hero or start from Get started.</li>
-                <li>2. Create your account and verify your email.</li>
-                <li>3. In Dashboard → Line Holder, set profile, service areas, and preferred categories.</li>
-                <li>4. Set up payouts when Stripe Connect is ready, or continue in test mode.</li>
-                <li>5. Browse bookings, accept a job, and follow the in‑app steps.</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16"
-        aria-labelledby="why-linecrew-heading"
-      >
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <header className="mx-auto max-w-2xl text-center">
-            <h2
-              id="why-linecrew-heading"
-              className="text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl"
+          <p className="mx-auto mt-5 max-w-xl text-pretty text-base leading-relaxed text-white/90 sm:text-lg">
+            Set your own schedule. Work when you want. Get paid after every completed handoff.
+          </p>
+          <div className="mt-10 flex justify-center">
+            <Suspense
+              fallback={
+                <div className="h-12 w-56 animate-pulse rounded-2xl bg-white/25" aria-hidden />
+              }
             >
-              Why LineCrew
-            </h2>
-            <p className="mt-4 text-pretty text-sm leading-relaxed text-slate-600 sm:mt-5 sm:text-base sm:leading-relaxed">
-              Built for people who want less waiting and more control in any
-              high-demand queue.
-            </p>
-          </header>
-          <ul className="mt-10 grid list-none grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:mt-14 lg:grid-cols-3 lg:gap-8">
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Skip long lines anywhere
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Events, airports, retail drops, services, and more
-              </p>
-            </li>
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Save 30–90+ minutes per request
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Get your time back without losing your place
-              </p>
-            </li>
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Real people holding your spot
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                A Line Holder stands in line so you don&apos;t have to
-              </p>
-            </li>
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Live updates while you wait
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Know when to head over
-              </p>
-            </li>
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Pay only after completion
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Your payment is released after the booking is done
-              </p>
-            </li>
-            <li className="flex h-full min-h-0 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6">
-              <h3 className="text-balance text-base font-semibold leading-snug text-slate-900 sm:text-lg">
-                Designed for busy schedules
-              </h3>
-              <p className="mt-3 text-pretty text-sm leading-relaxed text-slate-600">
-                Built for modern city life and demand spikes
-              </p>
-            </li>
-          </ul>
+              <HomeWaiterCtaLink className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-white px-10 py-3.5 text-sm font-bold text-blue-600 shadow-lg shadow-blue-900/20 transition hover:bg-blue-50 sm:text-base">
+                Start earning today
+              </HomeWaiterCtaLink>
+            </Suspense>
+          </div>
         </div>
       </section>
 
-      <section className="border-t border-slate-200 bg-white py-14 sm:py-16">
-        <div className="mx-auto grid max-w-6xl gap-6 px-4 sm:grid-cols-2 sm:px-6">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
-            <h2 className="text-xl font-semibold text-slate-900">Popular use cases</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>Tampa International TSA request</li>
-              <li>Amalie Arena concert merch line</li>
-              <li>Universal attraction queue handoff</li>
-              <li>Nike sneaker release drop line</li>
-              <li>DMV office renewal line</li>
-              <li>Restaurant walk-in waitlist coverage</li>
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-6">
-            <h2 className="text-xl font-semibold text-slate-900">Trust and safety</h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              <li>Live status tracking and check-ins</li>
-              <li>Handoff confirmations</li>
-              <li>Photo verification placeholders</li>
-              <li>Two-way ratings and issue reporting</li>
-            </ul>
-          </div>
-        </div>
-        <div className="mx-auto mt-6 max-w-6xl px-4 sm:px-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-slate-900">FAQ</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Customers do not need Stripe accounts to pay. Line holders can use
-              Stripe payouts or manual payout methods while category support
-              expands across events, retail, services, and travel.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* App footer is rendered in root layout (components/app-footer.tsx) */}
     </div>
   );
 }

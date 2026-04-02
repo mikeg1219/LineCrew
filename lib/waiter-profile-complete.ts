@@ -22,6 +22,8 @@ export type WaiterAcceptGateRow = WaiterProfileGateRow & {
   /** Synced from Stripe API / account.updated webhook */
   stripe_details_submitted?: boolean | null;
   stripe_payouts_enabled?: boolean | null;
+  /** e.g. PayPal, Zelle — set in Profile Get paid tab (see progressive-onboarding-gates migration). */
+  manual_payout_method?: string | null;
 };
 
 export function isStripePayoutBypassEnabled(): boolean {
@@ -64,6 +66,7 @@ export function buildManualPayoutPreference(
 }
 
 export function isManualPayoutReady(p: WaiterAcceptGateRow): boolean {
+  if (String(p.manual_payout_method ?? "").trim()) return true;
   return parseManualPayoutPreference(p.contact_preference) !== null;
 }
 

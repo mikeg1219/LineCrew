@@ -1,5 +1,6 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { AcceptJobForm } from "@/app/dashboard/waiter/browse-jobs/accept-job-form";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { getBookingCategoryForLineType } from "@/lib/jobs/options";
@@ -142,21 +143,19 @@ export default async function BrowseJobsPage({
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-10">
+    <div className="pb-12">
+      <Link
+        href="/dashboard/waiter"
+        className="text-sm font-medium text-blue-700 hover:text-blue-800"
+      >
+        ← Back to dashboard
+      </Link>
+      <DashboardPageHeader
+        eyebrow="LINE HOLDER"
+        title="Browse open bookings"
+        subtitle="Open listings from customers who need someone in line. Accept a booking to see full details and contact the customer."
+      />
       <div className="mb-8">
-        <Link
-          href="/dashboard/waiter"
-          className="text-sm font-medium text-blue-700 hover:text-blue-800"
-        >
-          ← Back to dashboard
-        </Link>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-          Browse open bookings
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Open listings from Customers who need someone in line. Accept a booking to
-          see full details and contact the Customer.
-        </p>
         {stripeSyncError ? (
           <WaiterStripeSyncErrorBanner
             message={stripeSyncError}
@@ -205,7 +204,7 @@ export default async function BrowseJobsPage({
       )}
 
       {!error && serving.length > 0 && list.length === 0 && (
-        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center text-slate-600">
+        <div className="linecrew-card p-10 text-center text-slate-600">
           No open bookings match your current service areas and category preferences.
           Check back soon or update preferences in Profile.
         </div>
@@ -216,7 +215,7 @@ export default async function BrowseJobsPage({
           {list.map((job) => (
             <li
               key={job.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-blue-200 hover:shadow-md"
+              className="linecrew-card p-5 transition hover:border-blue-200/80 hover:shadow-md"
             >
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 {airportLabel(job.airport)}

@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getBookingDraftCookie } from "@/lib/booking-draft-cookie";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Marketing home header: Sign in → /auth; Get started → /onboarding; Dashboard by role when logged in.
+ * Marketing home header: logo + How it works, Sign in (text), Get started (CTA) when logged out.
+ * Logged-in users: logo to role dashboard + optional booking draft CTA.
  */
 export async function HomeHeaderNav() {
   const supabase = await createClient();
@@ -36,42 +38,54 @@ export async function HomeHeaderNav() {
         ? "/dashboard/customer"
         : "/dashboard";
 
-  const linkClass = "transition hover:text-white";
+  const linkMuted = "text-sm font-medium text-white/90 transition hover:text-white";
   const ctaClass =
-    "inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-white/40 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:border-white/55 hover:bg-white/20";
-  const reviewCtaClass =
-    "inline-flex min-h-[44px] shrink-0 items-center rounded-lg border border-amber-200/80 bg-amber-400/20 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-400/30";
+    "inline-flex min-h-[44px] shrink-0 items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-900/20 transition hover:bg-blue-500";
 
   return (
-    <nav
-      className="flex max-w-[min(100%,28rem)] flex-wrap items-center justify-end gap-x-3 gap-y-2 text-sm text-white/90 sm:max-w-none sm:gap-x-4"
-      aria-label="Site"
-    >
-      <a href="#categories" className={linkClass}>
-        Categories
-      </a>
-      <a href="#how-it-works-heading" className={linkClass}>
-        How It Works
-      </a>
-      {user && customerHasBookingDraft ? (
-        <Link href="/dashboard/customer/booking-review" className={reviewCtaClass}>
-          Continue to review
-        </Link>
-      ) : null}
-      {user ? (
-        <Link href={dashboardHref} className={ctaClass}>
-          Dashboard
-        </Link>
-      ) : (
-        <>
-          <Link href="/auth" className={ctaClass}>
-            Sign in
+    <div className="flex w-full items-center justify-between gap-4">
+      <Link href="/" className="inline-flex shrink-0 items-center transition hover:opacity-90">
+        <Image
+          src="/linecrew-logo.png"
+          alt="LineCrew.ai"
+          width={180}
+          height={54}
+          className="h-8 w-auto"
+          priority
+        />
+      </Link>
+
+      <nav
+        className="flex max-w-[min(100%,22rem)] flex-wrap items-center justify-end gap-x-4 gap-y-2 sm:max-w-none sm:gap-x-6"
+        aria-label="Site"
+      >
+        {user && customerHasBookingDraft ? (
+          <Link
+            href="/dashboard/customer/booking-review"
+            className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg border border-amber-200/80 bg-amber-400/20 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-400/30 sm:text-sm"
+          >
+            Continue to review
           </Link>
-          <Link href="/onboarding" className={ctaClass}>
-            Get started
+        ) : null}
+
+        {user ? (
+          <Link href={dashboardHref} className={linkMuted}>
+            Open app
           </Link>
-        </>
-      )}
-    </nav>
+        ) : (
+          <>
+            <Link href="/#how-it-works" className={linkMuted}>
+              How it works
+            </Link>
+            <Link href="/auth" className={linkMuted}>
+              Sign in
+            </Link>
+            <Link href="/onboarding" className={ctaClass}>
+              Get started
+            </Link>
+          </>
+        )}
+      </nav>
+    </div>
   );
 }

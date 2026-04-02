@@ -145,7 +145,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const { exactLocation } = parseBookingDescription(job.description ?? "");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-7 px-4 pb-24 pt-6 sm:space-y-8 sm:px-5 sm:pb-24 sm:pt-10 md:pb-14">
+    <div className="mx-auto w-full max-w-3xl space-y-7 pb-24 pt-8 sm:space-y-8 sm:pb-24 md:pb-14">
       <Link
         href="/dashboard/waiter"
         className="inline-flex min-h-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"
@@ -153,7 +153,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
         ← Back to dashboard
       </Link>
 
-      <header className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-900/5">
+      <header className="relative overflow-hidden linecrew-card shadow-md ring-1 ring-slate-900/5">
         <div
           className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500"
           aria-hidden
@@ -164,8 +164,8 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
         />
         <div className="relative p-6 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              {isOpenPreview ? "Open booking" : "Your booking"}
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              LINE HOLDER
             </p>
             {showLiveStrip && (
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">

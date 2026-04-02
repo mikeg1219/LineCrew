@@ -182,7 +182,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
     status === "near_front" || status === "pending_confirmation";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+    <div className="mx-auto w-full max-w-3xl pb-12 pt-8">
       <BookingTrackingLive jobId={job.id} />
       <Link
         href="/dashboard/customer"
@@ -191,7 +191,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         ← Back to dashboard
       </Link>
 
-      <header className="relative mt-6 overflow-hidden rounded-3xl border border-slate-200/90 bg-white shadow-md ring-1 ring-slate-900/5">
+      <header className="relative mt-6 overflow-hidden linecrew-card shadow-md ring-1 ring-slate-900/5">
         <div
           className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-emerald-500"
           aria-hidden
@@ -206,8 +206,8 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         />
         <div className="relative p-6 sm:p-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Track booking
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+              CUSTOMER
             </p>
             {showLiveStrip && (
               <span className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 ring-1 ring-emerald-200/80">

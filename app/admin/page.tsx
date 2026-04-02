@@ -576,13 +576,16 @@ export default async function AdminPage() {
     .slice(0, 8);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-teal-50 to-emerald-50 px-4 py-8 sm:px-6">
+    <div className="px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200/70">
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+        <header className="linecrew-card-admin pt-8 pb-6">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            ADMIN
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             LineCrew.ai Owner Dashboard
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-slate-300">
             Signed in as {user.email}. Live operations, revenue, and AI pricing insights.
           </p>
         </header>
@@ -655,7 +658,7 @@ export default async function AdminPage() {
           </p>
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-slate-700 text-xs uppercase text-slate-300">
                 <tr>
                   <th className="px-3 py-2">Category</th>
                   <th className="px-3 py-2">Requests</th>
@@ -665,7 +668,7 @@ export default async function AdminPage() {
                   <th className="px-3 py-2">Gap</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-600 bg-slate-900/40">
                 {preferenceVsAccepted.map((row) => {
                   const gap = row.preferred - row.accepted;
                   const acceptedPctValue =
@@ -679,7 +682,7 @@ export default async function AdminPage() {
                         : "text-red-700";
                   return (
                     <tr key={row.category}>
-                      <td className="px-3 py-2 font-medium text-slate-900">
+                      <td className="px-3 py-2 font-medium text-slate-100">
                         {row.category}
                       </td>
                       <td className="px-3 py-2">{row.requested}</td>
@@ -728,9 +731,9 @@ export default async function AdminPage() {
           <Card title="Revenue Snapshot" className="xl:col-span-2">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {revenueBlocks.map((item) => (
-                <div key={item.label} className="rounded-lg bg-slate-50 p-3">
-                  <p className="text-xs uppercase tracking-wide text-slate-500">{item.label}</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-900">{item.value}</p>
+                <div key={item.label} className="rounded-lg bg-slate-900/50 p-3">
+                  <p className="text-xs uppercase tracking-wide text-slate-400">{item.label}</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{item.value}</p>
                 </div>
               ))}
             </div>
@@ -759,7 +762,7 @@ export default async function AdminPage() {
         <Card title="Line Holder Management">
           <div className="overflow-x-auto rounded-xl border border-slate-200">
             <table className="min-w-full text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-slate-700 text-xs uppercase text-slate-300">
                 <tr>
                   <th className="px-3 py-2">Name</th>
                   <th className="px-3 py-2">Status</th>
@@ -770,10 +773,10 @@ export default async function AdminPage() {
                   <th className="px-3 py-2">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
+              <tbody className="divide-y divide-slate-600 bg-slate-900/40">
                 {lineHolders.map((row) => (
                   <tr key={row.id}>
-                    <td className="px-3 py-2 font-medium text-slate-900">{row.name}</td>
+                    <td className="px-3 py-2 font-medium text-slate-100">{row.name}</td>
                     <td className="px-3 py-2">
                       <span
                         className={`rounded-full px-2 py-0.5 text-xs ${
@@ -826,7 +829,7 @@ export default async function AdminPage() {
             <p className="text-sm text-slate-600">No disputed bookings.</p>
           )}
           {disputed && disputed.length > 0 && (
-            <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-xl border border-slate-600 bg-slate-900/50 shadow-sm">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
                   <tr>
@@ -884,9 +887,9 @@ export default async function AdminPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ring-1 ring-slate-200/50">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
+    <div className="linecrew-card-admin p-4">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tracking-tight text-white">{value}</p>
     </div>
   );
 }
@@ -901,9 +904,9 @@ function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200/70 ${className}`}>
-      <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-      <div className="mt-4">{children}</div>
+    <section className={`linecrew-card-admin p-5 ${className}`}>
+      <h2 className="text-base font-semibold text-white">{title}</h2>
+      <div className="mt-4 text-slate-200">{children}</div>
     </section>
   );
 }
@@ -919,8 +922,8 @@ function MiniTrend({
 }) {
   const max = Math.max(...values, 1);
   return (
-    <div className="rounded-xl border border-slate-200 p-3">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{title}</p>
+    <div className="rounded-xl border border-slate-600 bg-slate-900/40 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{title}</p>
       <div className="mt-3 flex h-28 items-end gap-1.5">
         {values.map((value, idx) => (
           <div

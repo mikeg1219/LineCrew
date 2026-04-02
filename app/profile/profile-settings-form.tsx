@@ -1105,12 +1105,17 @@ export function ProfileSettingsForm({
 
       <nav
         className="flex gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
+        role="tablist"
         aria-label="Profile sections"
       >
         {profileTabs.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            id={`profile-tab-${t.id}`}
+            aria-selected={activeTab === t.id}
+            tabIndex={activeTab === t.id ? 0 : -1}
             onClick={() => navigateToTab(t.id)}
             className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition sm:px-4 ${
               activeTab === t.id

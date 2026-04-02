@@ -1,6 +1,23 @@
-# LineCrew Progress Log — April 1, 2026
+# LineCrew Progress Log
 
-## Completed Today
+## Phase 3 — Complete (April 2, 2026)
+
+**Status:** Shipped to production — https://linecrew.ai
+
+### Delivered
+- **Navigation redesign:** Authenticated app shell, mobile bottom navigation, role-aware headers and entry points
+- **Visual theme system:** CSS design tokens (`globals.css`), marketing / dashboard / admin zone utilities, shared card patterns
+- **Marketing homepage:** Hero (blue→teal gradient), how it works, category grid, Line Holder earn CTA, global footer
+- **Auth:** Sign-in-only page; registration via `/onboarding`; inline errors for invalid credentials and unverified email; redirects for customer, Line Holder, and admin
+- **Shared UI:** `AppFooter`, `DashboardPageHeader`, consistent dashboard layout (`max-w-5xl`)
+
+### Deployment
+- **Commit message:** `Phase 3: Navigation redesign, visual theme, homepage, auth page`
+- **Post-deploy checks (HTTP):** `/` (homepage), `/auth`, `/onboarding`, `/dashboard/customer`, `/dashboard/waiter` — routes respond (dashboard paths may redirect to sign-in when unauthenticated)
+
+---
+
+## April 1, 2026 — Prior session
 
 ### Stripe & Payments
 - Fixed Stripe webhook signature mismatch (was returning 400, now returns 200)
@@ -29,10 +46,9 @@
 
 ## Remaining Work
 - Stripe Connect Express account setup (for automatic payouts to Line Holders)
-- Profile save error fix
-- UX improvements across all pages
-- Admin portal access control
-- Consistent theming across all pages
+- Profile save error fix (if any regressions)
+- Admin portal access control hardening
+- Ongoing UX polish
 
 ## Environment
 - Production URL: https://linecrew.ai
