@@ -64,6 +64,27 @@ This document summarizes Phase 2 delivery for LineCrew: progressive **Line Holde
 - [ ] `GET /dashboard/waiter` — redirect to auth or 200 as configured.
 - [ ] `GET /profile` — redirect to auth or 200 as configured.
 
+## Deployment record (Phase 2 close-out)
+
+| Step | Result |
+|------|--------|
+| `npx tsc --noEmit` | Pass (exit 0) |
+| `npm run lint` | Pass — *Note: `npx next lint` is not used in this repo; ESLint is `npm run lint`.* |
+| `git push origin main` | Pushed commit: `Phase 2: Line Holder onboarding gates, profile tabs, save fix` |
+| `npx vercel deploy --prod --yes` | **Ready** — production alias **https://linecrew.ai** |
+
+### Post-deploy URL checks (anonymous)
+
+Fetched after deploy; pages rendered without 5xx:
+
+| URL | Observed behavior |
+|-----|-------------------|
+| https://linecrew.ai/onboarding | Onboarding shell and role choice (expected when not signed in). |
+| https://linecrew.ai/dashboard/waiter | Middleware routed to onboarding flow for anonymous session (expected). |
+| https://linecrew.ai/profile | Sign-in page (expected when not signed in). |
+
+Re-verify while **signed in** as waiter for true dashboard/profile content.
+
 ---
 
 *Generated as part of Phase 2 close-out. Update known issues as bugs are filed.*
