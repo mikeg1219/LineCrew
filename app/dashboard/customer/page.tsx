@@ -10,7 +10,17 @@ import type { Job, JobStatus } from "@/lib/types/job";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function CustomerDashboardPage() {
+type PageProps = {
+  searchParams?: Promise<{ welcome?: string | string[] }>;
+};
+
+export default async function CustomerDashboardPage({ searchParams }: PageProps) {
+  const sp = (await (searchParams ?? Promise.resolve({}))) as {
+    welcome?: string | string[];
+  };
+  const welcomeRaw = sp.welcome;
+  const showWelcome =
+    (Array.isArray(welcomeRaw) ? welcomeRaw[0] : welcomeRaw) === "1";
   const supabase = await createClient();
   const {
     data: { user },
@@ -65,6 +75,15 @@ export default async function CustomerDashboardPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-5 sm:py-10 md:py-12">
+      {showWelcome ? (
+        <div
+          className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
+          role="status"
+        >
+          <span className="font-semibold">Welcome to LineCrew!</span> Ready to book
+          your first Line Holder?
+        </div>
+      ) : null}
       <header className="max-w-2xl space-y-3">
         <h1 className="text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
           Book a Line Holder

@@ -1,6 +1,8 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { ProfileRequiredForBookingsGate } from "@/components/profile-required-for-bookings-gate";
 import { LineHolderSetupChecklist } from "@/app/dashboard/waiter/line-holder-setup-checklist";
+import { WaiterDashboardWelcomeBanner } from "@/components/waiter-dashboard-welcome-banner";
+import { WaiterOnboardingProgress } from "@/components/waiter-onboarding-progress";
 import { WaiterPayoutSetup } from "@/app/dashboard/waiter/waiter-payout-setup";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
@@ -79,6 +81,9 @@ export default async function WaiterDashboardPage({
 
   const connectRaw = sp.connect;
   const connect = Array.isArray(connectRaw) ? connectRaw[0] : connectRaw;
+  const welcomeRaw = sp.welcome;
+  const showWelcome =
+    (Array.isArray(welcomeRaw) ? welcomeRaw[0] : welcomeRaw) === "1";
   const forceStripeSync =
     connect === "return" || connect === "refresh";
   const { profile: syncedProfile, stripeSyncError } =
@@ -141,12 +146,71 @@ export default async function WaiterDashboardPage({
     (profile as { contact_preference?: string | null }).contact_preference ?? null
   );
 
+  const profileGates = profile as {
+    gate1_unlocked?: boolean | null;
+    gate2_unlocked?: boolean | null;
+    gate3_unlocked?: boolean | null;
+    avatar_url?: string | null;
+  };
+
+  const gate1Unlocked =
+    profileGates.gate1_unlocked != null
+      ? Boolean(profileGates.gate1_unlocked)
+      : emailVerified && profileBasicsComplete;
+
+  const gate2Unlocked =
+    profileGates.gate2_unlocked != null
+      ? Boolean(profileGates.gate2_unlocked)
+      : Boolean(
+          gate1Unlocked &&
+            hasAirports &&
+            (profile.bio?.trim() ?? "") !== "" &&
+            (profileGates.avatar_url?.trim() ?? "") !== ""
+        );
+
+  const gate3Unlocked =
+    profileGates.gate3_unlocked != null
+      ? Boolean(profileGates.gate3_unlocked)
+      : hasPayouts;
+
+  const gatesUnlockedCount = [gate1Unlocked, gate2Unlocked, gate3Unlocked].filter(
+    Boolean
+  ).length;
+  const stepsRemaining = 3 - gatesUnlockedCount;
+
+  const payoutReadyForProgress =
+    Boolean(profile.stripe_payouts_enabled) ||
+    Boolean(
+      (profile as { manual_payout_method?: string | null }).manual_payout_method
+        ?.trim()
+    );
+
+  const onboardingStep = (profile as { onboarding_step?: number | null })
+    .onboarding_step;
+  const showWelcomeProgressBanner =
+    typeof onboardingStep === "number" && onboardingStep < 3;
+
   return (
     <div className="mx-auto max-w-4xl px-4 pb-12 pt-6 sm:px-5 sm:pb-16 sm:pt-8">
+      {showWelcome ? (
+        <div
+          className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
+          role="status"
+        >
+          <span className="font-semibold">Welcome!</span> Complete your payout
+          setup to start accepting bookings.
+        </div>
+      ) : null}
       <header className="border-b border-slate-200/80 pb-6 sm:pb-7">
         <h1 className="text-balance text-[1.65rem] font-semibold leading-tight tracking-tight text-slate-900 sm:text-4xl sm:leading-[1.15]">
           Start earning as a Line Holder
         </h1>
+        {stepsRemaining > 0 ? (
+          <p className="mt-1 text-sm text-slate-500 sm:text-[15px]">
+            {stepsRemaining} more{" "}
+            {stepsRemaining === 1 ? "step" : "steps"} to start earning
+          </p>
+        ) : null}
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-slate-600 sm:mt-4 sm:text-lg sm:leading-relaxed">
           Browse category-based bookings, manage your setup, and get paid after
           completed handoffs.
@@ -156,6 +220,29 @@ export default async function WaiterDashboardPage({
           <span className="font-medium text-slate-600">{user.email}</span>
         </p>
       </header>
+
+      <WaiterDashboardWelcomeBanner show={showWelcomeProgressBanner} />
+
+      {!gate3Unlocked ? (
+        <div className="mt-6 sm:mt-7">
+          <WaiterOnboardingProgress
+            gate1Unlocked={gate1Unlocked}
+            gate2Unlocked={gate2Unlocked}
+            gate3Unlocked={gate3Unlocked}
+            firstName={profile.first_name ?? null}
+            phone={profile.phone ?? null}
+            bio={profile.bio ?? null}
+            servingAirports={
+              Array.isArray(profile.serving_airports)
+                ? profile.serving_airports
+                : null
+            }
+            payoutReady={payoutReadyForProgress}
+            emailVerified={emailVerified}
+            hasProfilePhoto={Boolean(profileGates.avatar_url?.trim())}
+          />
+        </div>
+      ) : null}
 
       {stripeSyncError ? (
         <WaiterStripeSyncErrorBanner
@@ -226,20 +313,25 @@ export default async function WaiterDashboardPage({
         </div>
       </div>
 
-      {payoutBypass ? (
-        <div className="mt-7 rounded-2xl border border-amber-200/90 bg-amber-50/80 p-5 text-sm text-amber-900 sm:mt-8 sm:p-6">
-          Test mode: payout gating is bypassed (`NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS=true`).
-          You can continue booking-flow testing without Stripe Connect registration.
-        </div>
-      ) : (
-        <WaiterPayoutSetup
-          stripeAccountId={profile?.stripe_account_id ?? null}
-          stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
-          stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
-          initialManualMethod={manualPayout?.method ?? ""}
-          initialManualHandle={manualPayout?.handle ?? ""}
-        />
-      )}
+      <div
+        id="waiter-payout-section"
+        className="scroll-mt-28 sm:scroll-mt-24"
+      >
+        {payoutBypass ? (
+          <div className="mt-7 rounded-2xl border border-amber-200/90 bg-amber-50/80 p-5 text-sm text-amber-900 sm:mt-8 sm:p-6">
+            Test mode: payout gating is bypassed (`NEXT_PUBLIC_ALLOW_TEST_PAYOUT_BYPASS=true`).
+            You can continue booking-flow testing without Stripe Connect registration.
+          </div>
+        ) : (
+          <WaiterPayoutSetup
+            stripeAccountId={profile?.stripe_account_id ?? null}
+            stripeDetailsSubmitted={profile?.stripe_details_submitted ?? null}
+            stripePayoutsEnabled={profile?.stripe_payouts_enabled ?? null}
+            initialManualMethod={manualPayout?.method ?? ""}
+            initialManualHandle={manualPayout?.handle ?? ""}
+          />
+        )}
+      </div>
 
       <div className="mt-7 rounded-2xl border border-slate-200/80 bg-white px-4 py-5 shadow-sm sm:mt-8 sm:px-6 sm:py-5">
         <p className="text-xs font-semibold uppercase tracking-[0.06em] text-slate-500">

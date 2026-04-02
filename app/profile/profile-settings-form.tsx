@@ -15,7 +15,7 @@ import {
 import { BOOKING_CATEGORIES, type BookingCategory } from "@/lib/jobs/options";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -87,12 +87,6 @@ function logProfileSaveFailureClient(meta: {
   });
 }
 
-const SAVE_FAILED_MSG =
-  "We couldn't save your profile changes. Please try again.";
-
-/** Server / unknown save failure (bottom of form). */
-const PROFILE_SAVE_ERROR_ID = "profile-save-error";
-
 /** Inline field errors (aria-errormessage targets). */
 const PROFILE_FIELD_ERROR_IDS = {
   firstName: "profile-error-first-name",
@@ -103,7 +97,7 @@ const PROFILE_FIELD_ERROR_IDS = {
 } as const;
 
 const inlineFieldErrorClass = "mt-2 text-sm text-red-600";
-const SAVE_SUCCESS_MSG = "Profile saved successfully";
+const SAVE_SUCCESS_PROFILE = "Profile saved ✓";
 const AVATAR_UPLOAD_FAILED_MSG =
   "We couldn't upload your photo. Please try again.";
 
@@ -117,6 +111,18 @@ function RequiredAsterisk() {
   );
 }
 
+function formatLegalDate(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return null;
+  }
+}
+
 /** Which control a save error applies to (for aria-invalid / aria-errormessage). */
 type ProfileSaveFieldError =
   | "firstName"
@@ -124,11 +130,12 @@ type ProfileSaveFieldError =
   | "homeAirport"
   | "servingAirports"
   | "legal"
+  | "session"
+  | "database"
   | "generic";
 
 type ProfileSaveFeedback =
   | null
-  | { status: "success" }
   | {
       status: "error";
       message: string;
@@ -228,13 +235,14 @@ export function ProfileSettingsForm({
   const supabase = createClient();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   /** Match Stripe Connect allowlist — return here after onboarding. */
   const stripeConnectReturnTo =
     pathname === "/profile" ? "/profile" : "/dashboard/profile";
   const fileRef = useRef<HTMLInputElement>(null);
   const previewBlobRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingTab, setSavingTab] = useState<null | "info" | "settings">(null);
   const [avatarPhase, setAvatarPhase] = useState<
     "idle" | "preparing" | "uploading"
   >("idle");
@@ -299,6 +307,14 @@ export function ProfileSettingsForm({
   const [acceptedGuidelinesVersion, setAcceptedGuidelinesVersion] = useState<
     string | null
   >(null);
+  const [acceptedTermsAt, setAcceptedTermsAt] = useState<string | null>(null);
+  const [acceptedPrivacyAt, setAcceptedPrivacyAt] = useState<string | null>(
+    null
+  );
+  const [acceptedRefundAt, setAcceptedRefundAt] = useState<string | null>(null);
+  const [acceptedGuidelinesAt, setAcceptedGuidelinesAt] = useState<
+    string | null
+  >(null);
   const [workerIndependentContractorConfirmed, setWorkerIndependentContractorConfirmed] =
     useState(false);
   const [workerTaxResponsibilityConfirmed, setWorkerTaxResponsibilityConfirmed] =
@@ -306,6 +322,10 @@ export function ProfileSettingsForm({
   /** Shown when Stripe→DB sync fails after load (e.g. ?connect=return). */
   const [stripeConnectSyncError, setStripeConnectSyncError] = useState<
     string | null
+  >(null);
+  /** Per-tab green banner (info / settings / payment), auto-dismiss 3s */
+  const [tabSuccess, setTabSuccess] = useState<
+    null | "info" | "settings" | "payment"
   >(null);
 
   const phoneE164ForCompletion = useMemo(() => {
@@ -318,6 +338,71 @@ export function ProfileSettingsForm({
     () => waiterPreferredCategories.includes(AIRPORTS_CATEGORY),
     [waiterPreferredCategories]
   );
+
+  const activeTab = useMemo(() => {
+    const raw = searchParams.get("tab");
+    if (role === "waiter") {
+      if (
+        raw === "legal" ||
+        raw === "payment" ||
+        raw === "settings" ||
+        raw === "info"
+      ) {
+        return raw;
+      }
+      return "info";
+    }
+    if (role === "customer") {
+      if (raw === "legal" || raw === "settings" || raw === "info") {
+        return raw;
+      }
+      return "info";
+    }
+    if (raw === "legal" || raw === "info") return raw;
+    return "info";
+  }, [searchParams, role]);
+
+  const profileTabs = useMemo(() => {
+    if (role === "waiter") {
+      return [
+        { id: "info" as const, label: "Your info" },
+        { id: "settings" as const, label: "Line Holder settings" },
+        { id: "payment" as const, label: "Get paid" },
+        { id: "legal" as const, label: "Legal & policies" },
+      ];
+    }
+    if (role === "customer") {
+      return [
+        { id: "info" as const, label: "Your info" },
+        { id: "settings" as const, label: "Travel preferences" },
+        { id: "legal" as const, label: "Legal & policies" },
+      ];
+    }
+    return [
+      { id: "info" as const, label: "Your info" },
+      { id: "legal" as const, label: "Legal & policies" },
+    ];
+  }, [role]);
+
+  const navigateToTab = useCallback(
+    (next: string) => {
+      setSaveFeedback(null);
+      const p = new URLSearchParams(searchParams.toString());
+      p.set("tab", next);
+      router.replace(`${pathname}?${p.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
+
+  useEffect(() => {
+    if (role !== "waiter") return;
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get("connect") !== "return") return;
+    sp.delete("connect");
+    sp.set("tab", "payment");
+    router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+  }, [role, pathname, router]);
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -393,6 +478,10 @@ export function ProfileSettingsForm({
         );
         setAcceptedRefundPolicyVersion(p.accepted_refund_policy_version ?? null);
         setAcceptedGuidelinesVersion(p.accepted_guidelines_version ?? null);
+        setAcceptedTermsAt(p.accepted_terms_at ?? null);
+        setAcceptedPrivacyAt(p.accepted_privacy_at ?? null);
+        setAcceptedRefundAt(p.accepted_refund_policy_at ?? null);
+        setAcceptedGuidelinesAt(p.accepted_guidelines_at ?? null);
         setWorkerIndependentContractorConfirmed(
           Boolean(
             (p as { independent_contractor_acknowledged_at?: string | null })
@@ -472,12 +561,10 @@ export function ProfileSettingsForm({
   }, [load]);
 
   useEffect(() => {
-    if (saveFeedback?.status !== "success") return;
-    const id = window.setTimeout(() => {
-      setSaveFeedback(null);
-    }, 3000);
+    if (!tabSuccess) return;
+    const id = window.setTimeout(() => setTabSuccess(null), 3000);
     return () => window.clearTimeout(id);
-  }, [saveFeedback]);
+  }, [tabSuccess]);
 
   useEffect(() => {
     return () => {
@@ -633,85 +720,33 @@ export function ProfileSettingsForm({
     }
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user || !role) return;
-
-    setSaving(true);
-    setMessage("");
-    setSaveFeedback(null);
-    setPhoneError("");
-
-    const fn = firstName.trim();
-    const dn = displayName.trim();
+  function validatePhoneForSave(): boolean {
     const phoneNorm = normalizePhoneE164(phoneCountryId, phoneNationalDigits);
     if (!phoneNorm.ok) {
       setPhoneError(phoneNorm.message);
-      setSaving(false);
-      return;
+      return false;
     }
     const ph = phoneNorm.e164;
     if (!isValidE164ForStorage(ph)) {
       setPhoneError("Enter a valid phone number.");
-      setSaving(false);
       logProfileError("profile save phone validation", null, {
         phoneNormOk: phoneNorm.ok,
         phoneLen: ph?.length ?? 0,
       });
-      return;
+      return false;
     }
-    if (!fn) {
-      setSaveFeedback({
-        status: "error",
-        message: "First name is required.",
-      });
-      setSaving(false);
-      return;
-    }
-    if (role === "waiter" && !bio.trim()) {
-      setSaveFeedback({
-        status: "error",
-        message: "Bio is required.",
-      });
-      setSaving(false);
-      return;
-    }
-    if (role === "waiter" && airportsCategorySelected) {
-      if (!homeAirport.trim()) {
-        setSaveFeedback({
-          status: "error",
-          message:
-            "Home base is required when Airports is selected in Preferred request categories.",
-        });
-        setSaving(false);
-        return;
-      }
-      if (!servingAirportsText.trim()) {
-        setSaveFeedback({
-          status: "error",
-          message:
-            "Service areas are required when Airports is selected in Preferred request categories.",
-        });
-        setSaving(false);
-        return;
-      }
-    }
-    if (
-      role === "waiter" &&
-      (!workerIndependentContractorConfirmed || !workerTaxResponsibilityConfirmed)
-    ) {
-      setSaveFeedback({
-        status: "error",
-        message:
-          "Please confirm the legal acknowledgments in the Line Holder section before saving.",
-      });
-      setSaving(false);
-      return;
-    }
+    setPhoneError("");
+    return true;
+  }
 
+  async function persistProfileFromState(): Promise<boolean> {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user || !role) return false;
+
+    const fn = firstName.trim();
+    const dn = displayName.trim();
     const result = await saveProfileSettingsAction({
       firstName: fn,
       displayName: dn,
@@ -737,27 +772,177 @@ export function ProfileSettingsForm({
     if (!result.ok) {
       if ("phoneError" in result && result.phoneError) {
         setPhoneError(result.phoneError);
-      } else {
-        logProfileError("profile save action", null, {
-          kind: "kind" in result ? result.kind : undefined,
-        });
-        logProfileSaveFailureClient({
-          kind: "kind" in result ? String(result.kind) : undefined,
-        });
+        return false;
+      }
+      if ("kind" in result && result.kind === "session") {
+        logProfileSaveFailureClient({ kind: "session" });
         setSaveFeedback({
           status: "error",
-          message: SAVE_FAILED_MSG,
-          field: "generic",
+          message: result.message,
+          field: "session",
         });
+        return false;
       }
-      setSaving(false);
-      return;
+      if ("kind" in result && result.kind === "database") {
+        logProfileSaveFailureClient({ kind: "database" });
+        setSaveFeedback({
+          status: "error",
+          message: result.message,
+          field: "database",
+        });
+        return false;
+      }
+      logProfileError("profile save action", null, {
+        kind: "kind" in result ? result.kind : undefined,
+      });
+      logProfileSaveFailureClient({
+        kind: "kind" in result ? String(result.kind) : undefined,
+      });
+      setSaveFeedback({
+        status: "error",
+        message: "Could not save — please try again.",
+        field: "generic",
+      });
+      return false;
     }
 
-    setSaveFeedback({ status: "success" });
-    setSaving(false);
+    setPhoneError("");
+    setSaveFeedback(null);
     await load({ silent: true });
     router.refresh();
+    return true;
+  }
+
+  async function handleSaveInfo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!role) return;
+    setMessage("");
+    setSaveFeedback(null);
+    setSavingTab("info");
+    const fn = firstName.trim();
+    if (!fn) {
+      setSaveFeedback({
+        status: "error",
+        message: "First name is required.",
+        field: "firstName",
+      });
+      setSavingTab(null);
+      return;
+    }
+    if (!validatePhoneForSave()) {
+      setSavingTab(null);
+      return;
+    }
+    const ok = await persistProfileFromState();
+    setSavingTab(null);
+    if (ok) {
+      setTabSuccess("info");
+      setSaveFeedback(null);
+    }
+  }
+
+  async function handleSaveWaiterSettings(e: React.FormEvent) {
+    e.preventDefault();
+    if (role !== "waiter") return;
+    setMessage("");
+    setSaveFeedback(null);
+    setSavingTab("settings");
+    const fn = firstName.trim();
+    if (!fn) {
+      setSaveFeedback({
+        status: "error",
+        message: "First name is required. Save Your info first.",
+        field: "firstName",
+      });
+      setSavingTab(null);
+      navigateToTab("info");
+      return;
+    }
+    if (!validatePhoneForSave()) {
+      setSavingTab(null);
+      navigateToTab("info");
+      return;
+    }
+    if (!bio.trim()) {
+      setSaveFeedback({
+        status: "error",
+        message: "Bio is required.",
+        field: "bio",
+      });
+      setSavingTab(null);
+      return;
+    }
+    if (airportsCategorySelected) {
+      if (!homeAirport.trim()) {
+        setSaveFeedback({
+          status: "error",
+          message:
+            "Home base is required when Airports is selected in Preferred request categories.",
+          field: "homeAirport",
+        });
+        setSavingTab(null);
+        return;
+      }
+      if (!servingAirportsText.trim()) {
+        setSaveFeedback({
+          status: "error",
+          message:
+            "Service areas are required when Airports is selected in Preferred request categories.",
+          field: "servingAirports",
+        });
+        setSavingTab(null);
+        return;
+      }
+    }
+    if (
+      !workerIndependentContractorConfirmed ||
+      !workerTaxResponsibilityConfirmed
+    ) {
+      setSaveFeedback({
+        status: "error",
+        message:
+          "Please confirm the legal acknowledgments before saving.",
+        field: "legal",
+      });
+      setSavingTab(null);
+      return;
+    }
+    const ok = await persistProfileFromState();
+    setSavingTab(null);
+    if (ok) {
+      setTabSuccess("settings");
+      setSaveFeedback(null);
+    }
+  }
+
+  async function handleSaveCustomerTravel(e: React.FormEvent) {
+    e.preventDefault();
+    if (role !== "customer") return;
+    setMessage("");
+    setSaveFeedback(null);
+    setSavingTab("settings");
+    const fn = firstName.trim();
+    if (!fn) {
+      setSaveFeedback({
+        status: "error",
+        message: "First name is required.",
+        field: "firstName",
+      });
+      setSavingTab(null);
+      navigateToTab("info");
+      return;
+    }
+    if (!validatePhoneForSave()) {
+      setSavingTab(null);
+      navigateToTab("info");
+      return;
+    }
+    const ok = await persistProfileFromState();
+    setSavingTab(null);
+    if (ok) {
+      setTabSuccess("settings");
+      setSaveFeedback(null);
+    }
   }
 
   if (loading && !heroFallback) {
@@ -841,13 +1026,16 @@ export function ProfileSettingsForm({
     profileSaveError?.field === "servingAirports";
   const legalAckSaveInvalid = profileSaveError?.field === "legal";
 
-  const showGenericSaveError =
+  const showServerSaveError =
     saveFeedback?.status === "error" &&
-    (saveFeedback.field === "generic" || saveFeedback.field === undefined);
+    (saveFeedback.field === "generic" ||
+      saveFeedback.field === "session" ||
+      saveFeedback.field === "database" ||
+      saveFeedback.field === undefined);
 
   return (
     <>
-    <form onSubmit={handleSubmit} className="space-y-8 sm:space-y-10">
+    <div className="space-y-8 sm:space-y-10">
       {compactAvatar ? (
         <ProfileHeroCard
           photoSrc={heroPhotoSrc}
@@ -880,7 +1068,7 @@ export function ProfileSettingsForm({
             <span className="font-semibold text-red-950">
               Refresh Stripe status now
             </span>{" "}
-            in the Payouts section below.
+            in the Get paid tab below.
           </p>
         </div>
       ) : null}
@@ -915,25 +1103,49 @@ export function ProfileSettingsForm({
         />
       )}
 
-      <section className={sectionShell} aria-labelledby="section-photo">
+      <nav
+        className="flex gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
+        aria-label="Profile sections"
+      >
+        {profileTabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => navigateToTab(t.id)}
+            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition sm:px-4 ${
+              activeTab === t.id
+                ? "border-blue-600 text-blue-700"
+                : "border-transparent text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === "info" ? (
+      <form
+        onSubmit={handleSaveInfo}
+        className="space-y-6 sm:space-y-8"
+      >
+      <section className={sectionShell} aria-labelledby="section-your-info">
         <div className="border-b border-slate-100 pb-5">
-          <h2 id="section-photo" className={sectionTitle}>
-            Photo
+          <h2 id="section-your-info" className={sectionTitle}>
+            Your info
           </h2>
           <p className={sectionDesc}>
             {compactAvatar ? (
               <>
                 Your photo is shown in the profile header above — only the upload
-                controls are here so it isn&apos;t duplicated. Uploads save when you
-                pick a file. Use{" "}
-                <span className="font-medium text-slate-800">Save changes</span>{" "}
-                below for your name and other profile fields.
+                controls are here. Uploads save when you pick a file. Use{" "}
+                <span className="font-medium text-slate-800">Save info</span>{" "}
+                for your name and phone.
               </>
             ) : (
               <>
                 Uploads save when you pick a file. Use{" "}
-                <span className="font-medium text-slate-800">Save changes</span>{" "}
-                below for your name and other profile fields.
+                <span className="font-medium text-slate-800">Save info</span>{" "}
+                for your name and phone.
               </>
             )}
           </p>
@@ -1074,16 +1286,9 @@ export function ProfileSettingsForm({
             </div>
           ) : null}
         </div>
-      </section>
 
-      <section className={sectionShell} aria-labelledby="section-account">
-        <div className="border-b border-slate-100 pb-5">
-          <h2 id="section-account" className={sectionTitle}>
-            Account
-          </h2>
-          <p className={sectionDesc}>{accountIntro}</p>
-        </div>
-
+        <div className="mt-8 border-t border-slate-100 pt-8">
+          <p className="text-sm leading-relaxed text-slate-600">{accountIntro}</p>
         <div className="mt-6 space-y-6">
           <div>
             <label htmlFor="first_name" className={labelClass}>
@@ -1234,13 +1439,44 @@ export function ProfileSettingsForm({
             ) : null}
           </div>
         </div>
-      </section>
+        </div>
 
-      {role === "customer" && (
+        {tabSuccess === "info" ? (
+          <p
+            className="mt-6 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-900"
+            role="status"
+          >
+            {SAVE_SUCCESS_PROFILE}
+          </p>
+        ) : null}
+        {showServerSaveError ? (
+          <p className="mt-4 text-sm text-red-600" role="alert">
+            {saveFeedback.message}
+          </p>
+        ) : null}
+
+        <div className="mt-6 flex justify-end">
+          <button
+            type="submit"
+            disabled={savingTab === "info"}
+            className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
+          >
+            {savingTab === "info" ? "Saving…" : "Save info"}
+          </button>
+        </div>
+      </section>
+      </form>
+      ) : null}
+
+      {role === "customer" && activeTab === "settings" ? (
+        <form
+          onSubmit={handleSaveCustomerTravel}
+          className="space-y-6 sm:space-y-8"
+        >
         <section className={sectionShell} aria-labelledby="section-traveler">
           <div className="border-b border-slate-100 pb-5">
             <h2 id="section-traveler" className={sectionTitle}>
-              Traveler preferences
+              Travel preferences
             </h2>
             <p className={sectionDesc}>
               Optional defaults for line requests and bookings. You can change
@@ -1274,20 +1510,53 @@ export function ProfileSettingsForm({
               />
             </div>
           </div>
+          {tabSuccess === "settings" ? (
+            <p
+              className="mt-6 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-900"
+              role="status"
+            >
+              {SAVE_SUCCESS_PROFILE}
+            </p>
+          ) : null}
+          {showServerSaveError ? (
+            <p className="mt-4 text-sm text-red-600" role="alert">
+              {saveFeedback.message}
+            </p>
+          ) : null}
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              disabled={savingTab === "settings"}
+              className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
+            >
+              {savingTab === "settings" ? "Saving…" : "Save settings"}
+            </button>
+          </div>
         </section>
-      )}
+        </form>
+      ) : null}
 
-      {role === "waiter" && (
+      {role === "waiter" && activeTab === "settings" ? (
+        <form
+          onSubmit={handleSaveWaiterSettings}
+          className="space-y-6 sm:space-y-8"
+        >
         <section className={sectionShell} aria-labelledby="section-waiter">
           <div className="border-b border-slate-100 pb-5">
-            <h2 id="section-waiter" className={sectionTitle}>Line Holder</h2>
+            <h2 id="section-waiter" className={sectionTitle}>
+              Line Holder settings
+            </h2>
             <p className={sectionDesc}>
-              Service area, category preferences, and availability for bookings.
-              Set up Stripe or manual payouts in{" "}
-              <span className="font-medium text-slate-800">
-                How do you want to get paid?
-              </span>{" "}
-              below.
+              Service areas, categories, availability, and required acknowledgments.
+              Payout setup is under{" "}
+              <button
+                type="button"
+                onClick={() => navigateToTab("payment")}
+                className="font-medium text-blue-700 underline decoration-blue-600/30 underline-offset-2 hover:text-blue-800"
+              >
+                Get paid
+              </button>
+              .
             </p>
           </div>
           <div className="mt-6 space-y-6">
@@ -1524,150 +1793,181 @@ export function ProfileSettingsForm({
               ) : null}
             </div>
           </div>
+          {tabSuccess === "settings" ? (
+            <p
+              className="mt-6 rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-900"
+              role="status"
+            >
+              {SAVE_SUCCESS_PROFILE}
+            </p>
+          ) : null}
+          {showServerSaveError ? (
+            <p className="mt-4 text-sm text-red-600" role="alert">
+              {saveFeedback.message}
+            </p>
+          ) : null}
+          <div className="mt-6 flex justify-end">
+            <button
+              type="submit"
+              disabled={savingTab === "settings"}
+              className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
+            >
+              {savingTab === "settings" ? "Saving…" : "Save settings"}
+            </button>
+          </div>
         </section>
-      )}
+        </form>
+      ) : null}
 
+      {activeTab === "legal" ? (
       <section className={sectionShell} aria-labelledby="section-legal">
         <div className="border-b border-slate-100 pb-5">
           <h2 id="section-legal" className={sectionTitle}>
-            Legal & Policies
+            Legal & policies
           </h2>
           <p className={sectionDesc}>
-            Review policies and your recorded acceptance versions. Links open in a
+            Your recorded acceptance versions and policy links. Each link opens in a
             new tab.
           </p>
         </div>
         <ul className="mt-6 list-none divide-y divide-slate-100 text-sm">
-          <li className="py-4 first:pt-0">
+          <li className="flex flex-col gap-2 py-4 first:pt-0 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900">Terms of Service</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Accepted: version {acceptedTermsVersion ?? "—"}
+              </p>
+              {acceptedTermsAt ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {formatLegalDate(acceptedTermsAt)}
+                </p>
+              ) : null}
+            </div>
             <Link
               href={LEGAL_PATHS.terms}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
             >
-              Terms of Service
+              View →
             </Link>
-            <p className="mt-1 text-xs text-slate-500">
-              Accepted version:{" "}
-              {acceptedTermsVersion ?? "Not recorded"}
-            </p>
           </li>
-          <li className="py-4">
+          <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900">Privacy Policy</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Accepted: version {acceptedPrivacyVersion ?? "—"}
+              </p>
+              {acceptedPrivacyAt ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {formatLegalDate(acceptedPrivacyAt)}
+                </p>
+              ) : null}
+            </div>
             <Link
               href={LEGAL_PATHS.privacy}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
             >
-              Privacy Policy
+              View →
             </Link>
-            <p className="mt-1 text-xs text-slate-500">
-              Accepted version:{" "}
-              {acceptedPrivacyVersion ?? "Not recorded"}
-            </p>
           </li>
-          <li className="py-4">
+          <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900">Refund Policy</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Accepted: version {acceptedRefundPolicyVersion ?? "—"}
+              </p>
+              {acceptedRefundAt ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {formatLegalDate(acceptedRefundAt)}
+                </p>
+              ) : null}
+            </div>
             <Link
               href={LEGAL_PATHS.refund}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
             >
-              Refund Policy
+              View →
             </Link>
-            <p className="mt-1 text-xs text-slate-500">
-              Accepted version:{" "}
-              {acceptedRefundPolicyVersion ?? "Not recorded"}
-            </p>
           </li>
-          <li className="py-4">
+          <li className="flex flex-col gap-2 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900">Community Guidelines</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Accepted: version {acceptedGuidelinesVersion ?? "—"}
+              </p>
+              {acceptedGuidelinesAt ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  {formatLegalDate(acceptedGuidelinesAt)}
+                </p>
+              ) : null}
+            </div>
             <Link
               href={LEGAL_PATHS.guidelines}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
             >
-              Community Guidelines
+              View →
             </Link>
-            <p className="mt-1 text-xs text-slate-500">
-              Accepted version:{" "}
-              {acceptedGuidelinesVersion ?? "Not recorded"}
-            </p>
           </li>
-          <li className="py-4 last:pb-0">
+          <li className="flex flex-col gap-2 py-4 last:pb-0 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900">Line Holder Agreement</p>
+              <p className="mt-1 text-xs text-slate-600">
+                Accepted: version{" "}
+                {role === "waiter"
+                  ? (acceptedWorkerAgreementVersion ?? "—")
+                  : "—"}
+              </p>
+            </div>
             <Link
               href={LEGAL_PATHS.workerAgreement}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-medium text-blue-700 transition hover:text-blue-800"
+              className="shrink-0 text-sm font-semibold text-blue-700 transition hover:text-blue-800"
             >
-              Line Holder Agreement
+              View →
             </Link>
-            <p className="mt-1 text-xs text-slate-500">
-              Accepted version:{" "}
-              {role === "waiter"
-                ? (acceptedWorkerAgreementVersion ?? "Not recorded")
-                : "Not recorded"}
-            </p>
           </li>
         </ul>
       </section>
+      ) : null}
 
-      <section className={sectionShell} aria-labelledby="section-save">
-        <div className="border-b border-slate-100 pb-5">
-          <h2 id="section-save" className={sectionTitle}>
-            Save changes
-          </h2>
-          <p className={sectionDesc}>
-            {role === "customer"
-              ? "Saves your account details and traveler preferences. Your photo is in the section above."
-              : "Saves your account details and Line Holder settings. Your photo is in the section above."}
-          </p>
-        </div>
-        <div className="mt-6 flex flex-col gap-4 sm:items-end">
-          {saveFeedback?.status === "success" ? (
+      {role === "waiter" && activeTab === "payment" ? (
+        <div className="space-y-6">
+          {tabSuccess === "payment" ? (
             <p
-              className="w-full rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm text-emerald-900 sm:max-w-md"
+              className="rounded-xl border border-emerald-200/80 bg-emerald-50/90 px-4 py-3 text-sm font-medium text-emerald-900"
               role="status"
             >
-              {SAVE_SUCCESS_MSG}
+              {SAVE_SUCCESS_PROFILE}
             </p>
           ) : null}
-          {showGenericSaveError ? (
-            <p
-              id={PROFILE_SAVE_ERROR_ID}
-              className="w-full rounded-xl border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-800 sm:max-w-md"
-              role="alert"
-            >
-              {saveFeedback.message}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
-          >
-            {saving ? "Saving…" : "Save changes"}
-          </button>
+          <WaiterPayoutSetup
+            layoutVariant="profileTab"
+            stripeAccountId={stripeAccountId}
+            stripeDetailsSubmitted={stripeDetailsSubmitted}
+            stripePayoutsEnabled={stripePayoutsEnabled}
+            initialManualMethod={manualPayoutMethod}
+            initialManualHandle={manualPayoutHandle}
+            returnTo={stripeConnectReturnTo}
+            onStripeRefreshSuccess={() => {
+              setStripeConnectSyncError(null);
+            }}
+            onManualPayoutSaved={() => {
+              void load({ silent: true });
+              setTabSuccess("payment");
+            }}
+          />
         </div>
-      </section>
-    </form>
+      ) : null}
 
-    {role === "waiter" && (
-      <WaiterPayoutSetup
-        stripeAccountId={stripeAccountId}
-        stripeDetailsSubmitted={stripeDetailsSubmitted}
-        stripePayoutsEnabled={stripePayoutsEnabled}
-        initialManualMethod={manualPayoutMethod}
-        initialManualHandle={manualPayoutHandle}
-        returnTo={stripeConnectReturnTo}
-        onStripeRefreshSuccess={() => setStripeConnectSyncError(null)}
-        onManualPayoutSaved={() => {
-          void load({ silent: true });
-        }}
-      />
-    )}
+    </div>
 
     {cropModal ? (
       <AvatarCropModal

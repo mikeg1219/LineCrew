@@ -1,4 +1,5 @@
 import { ProfileSettingsForm } from "@/app/profile/profile-settings-form";
+import { Suspense } from "react";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
 import { ensureProfileForUser } from "@/lib/ensure-profile";
@@ -107,17 +108,23 @@ export default async function ProfileRouteView({
         </p>
       </header>
 
-      <ProfileSettingsForm
-        compactAvatar
-        stripeSyncForce={stripeSyncForce}
-        heroFallback={{
-          display,
-          email: user.email ?? null,
-          roleLabel,
-          initial: display.slice(0, 1).toUpperCase(),
-          avatarUrl: avatarPublic,
-        }}
-      />
+      <Suspense
+        fallback={
+          <p className="text-center text-sm text-slate-500">Loading settings…</p>
+        }
+      >
+        <ProfileSettingsForm
+          compactAvatar
+          stripeSyncForce={stripeSyncForce}
+          heroFallback={{
+            display,
+            email: user.email ?? null,
+            roleLabel,
+            initial: display.slice(0, 1).toUpperCase(),
+            avatarUrl: avatarPublic,
+          }}
+        />
+      </Suspense>
     </div>
   );
 }

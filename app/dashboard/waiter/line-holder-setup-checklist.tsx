@@ -20,7 +20,7 @@ export function LineHolderSetupChecklist({
   hasAirports,
   hasPayouts,
 }: Props) {
-  const verifyEmailHref = `/auth/verify-email?pending=1&intent=waiter&email=${encodeURIComponent(userEmail)}`;
+  const verifyEmailHref = `/onboarding/verify?pending=1&intent=waiter&email=${encodeURIComponent(userEmail)}`;
 
   const show =
     !emailVerified ||

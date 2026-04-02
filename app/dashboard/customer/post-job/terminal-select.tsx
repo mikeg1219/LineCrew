@@ -7,11 +7,18 @@ const selectClass =
 
 type Props = {
   airportCode: string | null;
+  initialTerminal?: string;
 };
 
-export function TerminalSelect({ airportCode }: Props) {
+export function TerminalSelect({ airportCode, initialTerminal }: Props) {
   const terminals = getTerminalsForAirport(airportCode);
   const disabled = !airportCode;
+  const defaultVal =
+    initialTerminal &&
+    airportCode &&
+    terminals.some((t) => t.value === initialTerminal)
+      ? initialTerminal
+      : "";
 
   return (
     <select
@@ -19,8 +26,8 @@ export function TerminalSelect({ airportCode }: Props) {
       name="terminal"
       required={!disabled}
       disabled={disabled}
-      key={airportCode ?? "none"}
-      defaultValue=""
+      key={`${airportCode ?? "none"}-${initialTerminal ?? ""}`}
+      defaultValue={defaultVal}
       className={`${selectClass} ${disabled ? "cursor-not-allowed bg-slate-50 text-slate-500" : ""}`}
     >
       <option value="" disabled>

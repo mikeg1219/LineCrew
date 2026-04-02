@@ -16,6 +16,8 @@ type AuthenticatedAppHeaderProps = {
   displayName: string;
   /** e.g. "Profile" — shows LineCrew / Profile */
   breadcrumbCurrent?: string;
+  /** Customer has an unpaid booking draft (cookie). */
+  hasBookingDraft?: boolean;
 };
 
 export function AuthenticatedAppHeader(props: AuthenticatedAppHeaderProps) {
@@ -29,6 +31,7 @@ function AuthenticatedAppHeaderInner({
   avatarUrl,
   displayName,
   breadcrumbCurrent,
+  hasBookingDraft,
   pathname,
 }: AuthenticatedAppHeaderProps & { pathname: string }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -155,6 +158,17 @@ function AuthenticatedAppHeaderInner({
             </div>
           </div>
 
+          {role === "customer" &&
+          hasBookingDraft &&
+          pathname !== "/dashboard/customer/booking-review" ? (
+            <Link
+              href="/dashboard/customer/booking-review"
+              className="hidden min-h-[44px] shrink-0 items-center rounded-xl px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 sm:inline-flex"
+            >
+              Continue to review
+            </Link>
+          ) : null}
+
           <div className="relative shrink-0" ref={accountWrapRef}>
             <button
               type="button"
@@ -233,6 +247,18 @@ function AuthenticatedAppHeaderInner({
                       Book Now
                     </Link>
                   ) : null}
+                  {role === "customer" &&
+                  hasBookingDraft &&
+                  pathname !== "/dashboard/customer/booking-review" ? (
+                    <Link
+                      href="/dashboard/customer/booking-review"
+                      className="block px-4 py-2.5 text-sm font-medium text-blue-800 transition hover:bg-blue-50"
+                      role="menuitem"
+                      onClick={() => setAccountOpen(false)}
+                    >
+                      Continue to review
+                    </Link>
+                  ) : null}
                   {role === "waiter" ? (
                     <Link
                       href="/dashboard/waiter/browse-jobs"
@@ -261,6 +287,21 @@ function AuthenticatedAppHeaderInner({
           </div>
         </div>
       </header>
+
+      {role === "customer" &&
+      hasBookingDraft &&
+      pathname !== "/dashboard/customer/booking-review" ? (
+        <div className="border-b border-amber-200/90 bg-amber-50/95 sm:hidden">
+          <div className="mx-auto flex max-w-5xl items-center justify-center px-4 py-2.5">
+            <Link
+              href="/dashboard/customer/booking-review"
+              className="text-center text-sm font-semibold text-blue-900 underline decoration-blue-900/25 underline-offset-2"
+            >
+              Continue to review — finish checkout
+            </Link>
+          </div>
+        </div>
+      ) : null}
 
       {menuOpen ? (
         <>
@@ -338,6 +379,16 @@ function AuthenticatedAppHeaderInner({
                   >
                     Book Now
                   </DrawerLink>
+                  {hasBookingDraft &&
+                  pathname !== "/dashboard/customer/booking-review" ? (
+                    <DrawerLink
+                      href="/dashboard/customer/booking-review"
+                      pathname={pathname}
+                      onNavigate={() => setMenuOpen(false)}
+                    >
+                      Continue to review
+                    </DrawerLink>
+                  ) : null}
                   <DrawerLink
                     href="/dashboard/customer"
                     pathname={pathname}

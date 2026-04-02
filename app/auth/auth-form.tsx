@@ -6,7 +6,6 @@ import {
   type ResetPasswordState,
 } from "@/app/auth/reset-actions";
 import { parseAuthIntent } from "@/lib/auth-intent";
-import { LegalLinksInline } from "@/components/legal-links";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -43,104 +42,55 @@ const postAuthBoxClass =
 const linkTextClass =
   "font-medium text-blue-700 transition hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2 rounded-sm";
 
-function accessBadgeText(
-  mode: "signin" | "signup",
-  intent: UserRole | null,
-  role: UserRole,
-  roleExplicit: boolean
-): string {
-  if (mode === "signin") {
-    if (intent === "customer") return "Sign in · Customer";
-    if (intent === "waiter") return "Sign in · Line Holder";
-    return "Sign in";
-  }
-  if (!intent && !roleExplicit) return "Create your LineCrew account";
-  return role === "customer" ? "New account · Customer" : "New account · Line Holder";
+function accessBadgeText(intent: UserRole | null): string {
+  if (intent === "customer") return "Sign in · Customer";
+  if (intent === "waiter") return "Sign in · Line Holder";
+  return "Sign in";
 }
 
-function heroHeadline(
-  mode: "signin" | "signup",
-  intent: UserRole | null,
-  role: UserRole,
-  hasIntentLayout: boolean,
-  roleExplicit: boolean
-): string {
-  if (mode === "signup") {
-    if (!hasIntentLayout && !roleExplicit) return "Create your LineCrew account";
-    return role === "customer"
-      ? "Create your customer account"
-      : "Create your Line Holder account";
-  }
+function heroHeadline(intent: UserRole | null): string {
   if (intent === "customer") return "Book a Line Holder";
   if (intent === "waiter") return "Become a Line Holder";
   return "Welcome to LineCrew";
 }
 
-function heroSubtext(
-  mode: "signin" | "signup",
-  intent: UserRole | null,
-  role: UserRole,
-  hasIntentLayout: boolean,
-  roleExplicit: boolean
-): string {
-  if (mode === "signup") {
-    if (!hasIntentLayout && !roleExplicit) {
-      return "Choose Customer or Line Holder, then set a password. We will email you a link to verify before you continue.";
-    }
-    return role === "customer"
-      ? "Post queue requests and get matched with a trusted independent Line Holder."
-      : "Accept nearby bookings, wait in line for travelers, and get paid through LineCrew.";
-  }
+function heroSubtext(intent: UserRole | null, hasIntentLayout: boolean): string {
+  if (!hasIntentLayout) return "";
   if (intent === "customer") {
-    return "Sign in or create an account to post a request and get matched with a Line Holder—often within minutes.";
+    return "Sign in to post a request and get matched with a Line Holder—often within minutes.";
   }
   if (intent === "waiter") {
-    return "Sign in or create an account to see open bookings, accept work, and get notified when travelers need line help.";
+    return "Sign in to see open bookings, accept work, and get notified when travelers need line help.";
   }
   return "";
 }
 
-function cardTitle(
-  mode: "signin" | "signup",
-  hasIntentLayout: boolean
+function cardTitle(hasIntentLayout: boolean): string {
+  if (!hasIntentLayout) return "Welcome back";
+  return "Sign in";
+}
+
+function cardSubtitle(
+  hasIntentLayout: boolean,
+  isCustomerIntent: boolean,
+  isWaiterIntent: boolean
 ): string {
-  if (!hasIntentLayout && mode === "signin") return "Welcome back";
-  if (!hasIntentLayout && mode === "signup") return "Create your account";
-  return "Sign in or sign up";
+  if (!hasIntentLayout) {
+    return "Use the email and password for your LineCrew account.";
+  }
+  if (isCustomerIntent) {
+    return "Sign in to continue to booking.";
+  }
+  if (isWaiterIntent) {
+    return "Sign in to continue to Line Holder setup.";
+  }
+  return "Use the email and password for your LineCrew account.";
 }
 
 function recoveryContextBadge(intent: UserRole | null): string {
   if (intent === "customer") return "Reset password · Customer";
   if (intent === "waiter") return "Reset password · Line Holder";
   return "Reset password";
-}
-
-function cardSubtitle(
-  mode: "signin" | "signup",
-  isCustomerIntent: boolean,
-  isWaiterIntent: boolean,
-  hasIntentLayout: boolean
-): string {
-  if (!hasIntentLayout && mode === "signin") {
-    return "Use the email and password for your LineCrew account.";
-  }
-  if (!hasIntentLayout && mode === "signup") {
-    return "Pick Customer or Line Holder, then choose a password. We will send a short verification email.";
-  }
-  if (isCustomerIntent) {
-    return "Most people finish in under a minute. Continue to booking when you are ready.";
-  }
-  if (isWaiterIntent) {
-    return "Most people finish in under a minute. Continue to Line Holder setup next.";
-  }
-  return "Use the same email for sign in and sign up.";
-}
-
-function modeHint(mode: "signin" | "signup"): string {
-  if (mode === "signin") {
-    return "Use the email you registered with. New here? Switch to Sign up.";
-  }
-  return "Already registered? Switch to Sign in.";
 }
 
 type AuthFormProps = {
@@ -296,16 +246,6 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
   const intent =
     parseAuthIntent(searchParams.get("intent")) ?? initialIntent;
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [role, setRole] = useState<UserRole>(() => initialIntent ?? "customer");
-  const [roleExplicit, setRoleExplicit] = useState(
-    () => initialIntent === "customer" || initialIntent === "waiter"
-  );
-
-  const urlLocksRole = intent === "customer" || intent === "waiter";
-  const roleForUi = urlLocksRole ? intent : role;
-  const roleExplicitCombined = urlLocksRole || roleExplicit;
-
   const [authPanel, setAuthPanel] = useState<
     "main" | "forgot" | "forgot-sent"
   >("main");
@@ -329,43 +269,23 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
   const isWaiterIntent = intent === "waiter";
   const hasIntentLayout = isCustomerIntent || isWaiterIntent;
 
-  const heroAudience: "customer" | "waiter" =
-    mode === "signup" ? roleForUi : isCustomerIntent ? "customer" : "waiter";
+  const heroAudience: "customer" | "waiter" = isCustomerIntent
+    ? "customer"
+    : "waiter";
 
-  const badgeLabel = accessBadgeText(
-    mode,
-    intent,
-    roleForUi,
-    roleExplicitCombined
-  );
-  const displayBadge =
+  const badgeLabel =
     authPanel === "forgot" || authPanel === "forgot-sent"
       ? recoveryContextBadge(intent)
-      : badgeLabel;
-  const heroH1 = heroHeadline(
-    mode,
-    intent,
-    roleForUi,
-    hasIntentLayout,
-    roleExplicitCombined
-  );
-  const heroP = heroSubtext(
-    mode,
-    intent,
-    roleForUi,
-    hasIntentLayout,
-    roleExplicitCombined
-  );
+      : accessBadgeText(intent);
+  const displayBadge = badgeLabel;
+  const heroH1 = heroHeadline(intent);
+  const heroP = heroSubtext(intent, hasIntentLayout);
 
   const submitLabel = (() => {
     if (isPending) return "Please wait…";
-    if (isCustomerIntent) {
-      return mode === "signup" ? "Create account" : "Continue to booking";
-    }
-    if (isWaiterIntent) {
-      return mode === "signup" ? "Create account" : "Continue to Line Holder dashboard";
-    }
-    return mode === "signup" ? "Create account" : "Sign in";
+    if (isCustomerIntent) return "Continue to booking";
+    if (isWaiterIntent) return "Continue to Line Holder dashboard";
+    return "Sign in";
   })();
 
   return (
@@ -468,128 +388,17 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
             <>
           <div className="mb-6 space-y-2 text-center sm:mb-7 sm:text-left">
             <h2 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
-              {cardTitle(mode, hasIntentLayout)}
+              {cardTitle(hasIntentLayout)}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              {cardSubtitle(mode, isCustomerIntent, isWaiterIntent, hasIntentLayout)}
+              {cardSubtitle(hasIntentLayout, isCustomerIntent, isWaiterIntent)}
             </p>
-            {mode === "signin" && (
-              <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                Encrypted sign-in. Same account works for customers and Line Holders.
-              </p>
-            )}
+            <p className="mt-2 text-xs leading-relaxed text-slate-500">
+              Encrypted sign-in. Same account works for customers and Line Holders.
+            </p>
           </div>
-
-          <div
-            className="mb-2 flex rounded-xl bg-slate-100/90 p-1 ring-1 ring-slate-200/80"
-            role="tablist"
-            aria-label="Sign in or sign up"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "signin"}
-              onClick={() => setMode("signin")}
-              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-transparent px-2 py-2.5 text-sm font-semibold transition-colors sm:py-2 ${
-                mode === "signin"
-                  ? "border-slate-200/80 bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={mode === "signup"}
-              onClick={() => setMode("signup")}
-              className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-transparent px-2 py-2.5 text-sm font-semibold transition-colors sm:py-2 ${
-                mode === "signup"
-                  ? "border-slate-200/80 bg-white text-slate-900 shadow-sm"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Sign up
-            </button>
-          </div>
-
-          <p className="mb-6 text-center text-xs leading-relaxed text-slate-500 sm:text-left">
-            {modeHint(mode)}
-          </p>
 
           <form action={formAction} className="space-y-5">
-            <input
-              type="hidden"
-              name="mode"
-              value={mode === "signup" ? "signup" : "signin"}
-            />
-            {mode === "signup" && urlLocksRole && intent ? (
-              <input type="hidden" name="role" value={intent} />
-            ) : null}
-
-            {mode === "signup" && (
-              <fieldset
-                className={`space-y-3 ${urlLocksRole ? "opacity-90" : ""}`}
-                aria-disabled={urlLocksRole}
-              >
-                <legend className="text-sm font-medium text-slate-800">
-                  Account type
-                </legend>
-                <div
-                  className={`grid grid-cols-2 gap-3 ${urlLocksRole ? "pointer-events-none" : ""}`}
-                >
-                  <label
-                    className={`flex min-h-[3rem] cursor-pointer items-center justify-center rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                      roleForUi === "customer"
-                        ? "border-blue-600 bg-blue-50 text-blue-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={urlLocksRole ? undefined : "role"}
-                      value="customer"
-                      checked={roleForUi === "customer"}
-                      onChange={() => {
-                        if (!urlLocksRole) {
-                          setRole("customer");
-                          setRoleExplicit(true);
-                        }
-                      }}
-                      className="sr-only"
-                    />
-                    Customer
-                  </label>
-                  <label
-                    className={`flex min-h-[3rem] cursor-pointer items-center justify-center rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
-                      roleForUi === "waiter"
-                        ? "border-blue-600 bg-blue-50 text-blue-900"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name={urlLocksRole ? undefined : "role"}
-                      value="waiter"
-                      checked={roleForUi === "waiter"}
-                      onChange={() => {
-                        if (!urlLocksRole) {
-                          setRole("waiter");
-                          setRoleExplicit(true);
-                        }
-                      }}
-                      className="sr-only"
-                    />
-                    Line Holder
-                  </label>
-                </div>
-                <p className="text-xs leading-relaxed text-slate-500">
-                  Customers request line holds; Line Holders fulfill them across
-                  airports, events, retail drops, and other queues.
-                </p>
-              </fieldset>
-            )}
-
             <div>
               <label htmlFor="email" className={labelClass}>
                 Email
@@ -612,97 +421,26 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
                 >
                   Password
                 </label>
-                {mode === "signin" && (
-                  <button
-                    type="button"
-                    onClick={() => setAuthPanel("forgot")}
-                    className={`${linkTextClass} text-sm`}
-                  >
-                    Forgot password?
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setAuthPanel("forgot")}
+                  className={`${linkTextClass} text-sm`}
+                >
+                  Forgot password?
+                </button>
               </div>
               <input
                 id="password"
                 name="password"
                 type="password"
-                autoComplete={
-                  mode === "signup" ? "new-password" : "current-password"
-                }
+                autoComplete="current-password"
                 required
                 minLength={6}
                 className={inputClass}
               />
             </div>
 
-            {mode === "signup" && (
-              <div>
-                <label htmlFor="confirm_password" className={labelClass}>
-                  Confirm password
-                </label>
-                <input
-                  id="confirm_password"
-                  name="confirm_password"
-                  type="password"
-                  autoComplete="new-password"
-                  required
-                  minLength={6}
-                  className={inputClass}
-                />
-              </div>
-            )}
-
-            {mode === "signup" && (
-              <fieldset className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
-                <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-                  <input
-                    type="checkbox"
-                    name="accept_terms_privacy"
-                    required
-                    className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                  />
-                  <span>
-                    By creating an account, you agree to the Terms of Service and acknowledge the Privacy Policy.
-                  </span>
-                </label>
-                {roleForUi === "waiter" ? (
-                  <>
-                    <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="ack_independent_contractor"
-                        required
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                      />
-                      <span>
-                        I understand I am an independent contractor, not an employee of LineCrew.ai.
-                      </span>
-                    </label>
-                    <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-                      <input
-                        type="checkbox"
-                        name="ack_worker_responsibilities"
-                        required
-                        className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                      />
-                      <span>
-                        I am responsible for conduct, venue rule compliance, local laws, and taxes.
-                      </span>
-                    </label>
-                  </>
-                ) : null}
-                <LegalLinksInline />
-              </fieldset>
-            )}
-
-            {mode === "signup" && (
-              <p className="text-xs leading-relaxed text-slate-600">
-                We&apos;ll email you a verification link and code before you can
-                access your dashboard.
-              </p>
-            )}
-
-            {state && "error" in state && state.mode === mode && (
+            {state && "error" in state && (
               <p className="text-sm text-red-600" role="alert">
                 {state.error}
               </p>
@@ -729,6 +467,13 @@ export function AuthForm({ initialIntent }: AuthFormProps) {
               </div>
             )}
           </form>
+
+          <p className="mt-6 text-center text-sm text-slate-600 sm:text-left">
+            New here?{" "}
+            <Link href="/onboarding" className={linkTextClass}>
+              Create account
+            </Link>
+          </p>
             </>
           )}
 

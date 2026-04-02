@@ -22,6 +22,7 @@ import {
   waiterAcceptSetupShortfallMessage,
 } from "@/lib/waiter-profile-complete";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
+import { ReportJobIssueForm } from "@/components/report-job-issue-form";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -313,25 +314,25 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
                 {status === "refunded" &&
                   "This booking was refunded. No further actions are available."}
               </p>
-              <button
-                type="button"
-                disabled
-                title="Reporting will be available in a future update"
-                className="w-full min-h-[48px] max-w-lg cursor-not-allowed rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-400 touch-manipulation"
-              >
-                Report issue
-                <span className="mt-0.5 block text-xs font-normal text-slate-400">
-                  Coming soon
-                </span>
-              </button>
+              {isAssigned && (
+                <div className="max-w-lg">
+                  <ReportJobIssueForm
+                    jobId={job.id}
+                    reporterRole="waiter"
+                    variant="compact"
+                  />
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
               <LineHolderStatusPanel
+                key={job.id}
                 jobId={job.id}
                 currentStatus={status}
                 acceptSetupReady={canAcceptJobs}
                 acceptSetupHint={acceptSetupHint}
+                allowReportIssue={isAssigned}
               />
               {(status === "near_front" ||
                 status === "customer_on_the_way" ||

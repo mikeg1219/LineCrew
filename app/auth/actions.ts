@@ -1,13 +1,8 @@
 "use server";
 
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
-import { sendEmailVerificationForNewUser } from "@/lib/email-verification-service";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createClient } from "@/lib/supabase/server";
-import { normalizeEmail } from "@/lib/password-reset-crypto";
-import { POLICY_VERSIONS } from "@/lib/legal";
-import type { UserRole } from "@/lib/types";
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -27,6 +22,13 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
     .eq("id", user.id)
     .maybeSingle();
 
+  const onboardingRedirect = needsOnboardingRedirect(profile ?? null, user);
+  if (onboardingRedirect) {
+    const q = new URLSearchParams({ pending: "1" });
+    if (user.email) q.set("email", user.email);
+    redirect(`${onboardingRedirect}?${q.toString()}`);
+  }
+
   if (profile?.role === "customer" || profile?.role === "waiter") {
     redirect(`/dashboard/${profile.role}`);
   }
@@ -34,220 +36,22 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
   redirect("/dashboard");
 }
 
-export type AuthActionState =
-  | { error: string; mode: "signin" | "signup" }
-  | null;
+export type AuthActionState = { error: string } | null;
 
 export async function authAction(
   _prev: AuthActionState,
   formData: FormData
 ): Promise<AuthActionState> {
-  const mode = formData.get("mode");
-  const authMode: "signin" | "signup" =
-    mode === "signup" ? "signup" : "signin";
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
   if (!email || !password) {
     return {
       error: "Email and password are required.",
-      mode: authMode,
     };
   }
 
   const supabase = await createClient();
-
-  if (mode === "signup") {
-    const confirm = String(formData.get("confirm_password") ?? "");
-    if (password !== confirm) {
-      return {
-        error: "Passwords do not match.",
-        mode: authMode,
-      };
-    }
-
-    const roleRaw = formData.get("role");
-    const role: UserRole =
-      roleRaw === "waiter" || roleRaw === "customer" ? roleRaw : "customer";
-    const acceptedTermsPrivacy = formData.get("accept_terms_privacy") === "on";
-    if (!acceptedTermsPrivacy) {
-      return {
-        error: "You must accept Terms and Privacy to create an account.",
-        mode: authMode,
-      };
-    }
-    const acceptedIndependentContractor =
-      formData.get("ack_independent_contractor") === "on";
-    const acceptedWorkerResponsibilities =
-      formData.get("ack_worker_responsibilities") === "on";
-    if (
-      role === "waiter" &&
-      (!acceptedIndependentContractor || !acceptedWorkerResponsibilities)
-    ) {
-      return {
-        error: "Line Holder onboarding requires independent contractor acknowledgments.",
-        mode: authMode,
-      };
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { role },
-      },
-    });
-
-    if (error) {
-      return { error: error.message, mode: authMode };
-    }
-
-    let userId =
-      data.user?.id ?? data.session?.user?.id ?? null;
-
-    if (!userId) {
-      try {
-        const admin = createAdminClient();
-        const { data: uid, error: rpcErr } = await admin.rpc(
-          "auth_user_id_by_email",
-          { p_email: normalizeEmail(email) }
-        );
-        if (rpcErr) {
-          console.error(
-            "[auth] auth_user_id_by_email failed after sign-up:",
-            rpcErr.message
-          );
-        } else if (typeof uid === "string") {
-          userId = uid;
-        }
-      } catch (e) {
-        console.error(
-          "[auth] Could not resolve user id after sign-up (admin client):",
-          e
-        );
-      }
-    }
-
-    if (userId) {
-      try {
-        const admin = createAdminClient();
-        const h = await headers();
-        const ipAddress = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
-        const userAgent = h.get("user-agent") ?? null;
-        const acceptedAt = new Date().toISOString();
-        const acceptanceRows = [
-          {
-            user_id: userId,
-            policy_type: "terms",
-            policy_version: POLICY_VERSIONS.terms,
-            accepted_at: acceptedAt,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            role,
-            acceptance_context: "signup",
-          },
-          {
-            user_id: userId,
-            policy_type: "privacy",
-            policy_version: POLICY_VERSIONS.privacy,
-            accepted_at: acceptedAt,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            role,
-            acceptance_context: "signup",
-          },
-          {
-            user_id: userId,
-            policy_type: "refund_policy",
-            policy_version: POLICY_VERSIONS.refund,
-            accepted_at: acceptedAt,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            role,
-            acceptance_context: "signup",
-          },
-          {
-            user_id: userId,
-            policy_type: "guidelines",
-            policy_version: POLICY_VERSIONS.guidelines,
-            accepted_at: acceptedAt,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            role,
-            acceptance_context: "signup",
-          },
-        ];
-        if (role === "waiter") {
-          acceptanceRows.push({
-            user_id: userId,
-            policy_type: "worker_agreement",
-            policy_version: POLICY_VERSIONS.workerAgreement,
-            accepted_at: acceptedAt,
-            ip_address: ipAddress,
-            user_agent: userAgent,
-            role,
-            acceptance_context: "worker_onboarding",
-          });
-        }
-        await admin.from("policy_acceptances").insert(acceptanceRows);
-        await admin
-          .from("profiles")
-          .update({
-            accepted_terms_version: POLICY_VERSIONS.terms,
-            accepted_privacy_version: POLICY_VERSIONS.privacy,
-            accepted_refund_policy_version: POLICY_VERSIONS.refund,
-            accepted_guidelines_version: POLICY_VERSIONS.guidelines,
-            accepted_terms_at: acceptedAt,
-            accepted_privacy_at: acceptedAt,
-            accepted_refund_policy_at: acceptedAt,
-            accepted_guidelines_at: acceptedAt,
-            ...(role === "waiter"
-              ? {
-                  accepted_worker_agreement_version:
-                    POLICY_VERSIONS.workerAgreement,
-                  independent_contractor_acknowledged_at: acceptedAt,
-                  tax_responsibility_acknowledged_at: acceptedAt,
-                }
-              : {}),
-          })
-          .eq("id", userId);
-      } catch (legalErr) {
-        console.error("[auth] legal acceptance write failed", legalErr);
-      }
-    }
-
-    let verificationSent = false;
-    if (userId) {
-      verificationSent = await sendEmailVerificationForNewUser(
-        userId,
-        email,
-        role
-      );
-      if (!verificationSent) {
-        console.error(
-          "[auth] Verification email was not sent after sign-up. Check RESEND_API_KEY, RESEND_FROM, SUPABASE_SERVICE_ROLE_KEY, email_verification_tokens table, and server logs above for token insert or Resend errors."
-        );
-      }
-    } else {
-      console.error(
-        "[auth] Sign-up returned no user id and lookup failed; verification email was not sent. Email:",
-        normalizeEmail(email),
-        "If Supabase requires email confirmation, ensure the user row exists in auth.users or run auth_user_id_by_email migration."
-      );
-    }
-
-    revalidatePath("/", "layout");
-
-    const intentQ =
-      role === "customer" || role === "waiter"
-        ? `&intent=${encodeURIComponent(role)}`
-        : "";
-    const sendFailedQ =
-      userId && !verificationSent ? "&send_failed=1" : "";
-    redirect(
-      `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}${intentQ}${sendFailedQ}`
-    );
-  }
 
   const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email,
@@ -255,7 +59,7 @@ export async function authAction(
   });
 
   if (error) {
-    return { error: error.message, mode: authMode };
+    return { error: error.message };
   }
 
   revalidatePath("/", "layout");
@@ -274,9 +78,19 @@ export async function authAction(
     }
 
     if (!isEmailVerifiedForApp(profileError ? null : profile, sessionUser)) {
-      redirect(
-        `/auth/verify-email?pending=1&email=${encodeURIComponent(email)}`
-      );
+      const q = new URLSearchParams({ pending: "1" });
+      q.set("email", email);
+      redirect(`/onboarding/verify?${q.toString()}`);
+    }
+
+    const onboardingRedirect = needsOnboardingRedirect(
+      profile ?? null,
+      sessionUser
+    );
+    if (onboardingRedirect) {
+      const q = new URLSearchParams({ pending: "1" });
+      if (sessionUser.email) q.set("email", sessionUser.email);
+      redirect(`${onboardingRedirect}?${q.toString()}`);
     }
   }
 

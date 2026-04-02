@@ -2,6 +2,7 @@
 
 import {
   filterAirportsByQuery,
+  US_AIRPORTS_TOP_20,
   type AirportEntry,
 } from "@/lib/airports";
 import { useEffect, useId, useRef, useState } from "react";
@@ -12,9 +13,15 @@ const inputClass =
 type Props = {
   name?: string;
   onAirportChange?: (code: string | null) => void;
+  /** Pre-fill from a saved draft (IATA code). */
+  initialAirportCode?: string | null;
 };
 
-export function AirportCombobox({ name = "airport", onAirportChange }: Props) {
+export function AirportCombobox({
+  name = "airport",
+  onAirportChange,
+  initialAirportCode,
+}: Props) {
   const listId = useId();
   const containerRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -22,6 +29,19 @@ export function AirportCombobox({ name = "airport", onAirportChange }: Props) {
   const [selectedCode, setSelectedCode] = useState<string | null>(null);
 
   const filtered = filterAirportsByQuery(inputValue);
+
+  useEffect(() => {
+    if (!initialAirportCode?.trim()) return;
+    const entry = US_AIRPORTS_TOP_20.find(
+      (a) => a.code === initialAirportCode.trim()
+    );
+    if (entry) {
+      setSelectedCode(entry.code);
+      setInputValue(entry.label);
+      onAirportChange?.(entry.code);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount for draft prefill
+  }, [initialAirportCode]);
 
   useEffect(() => {
     function handleDoc(e: MouseEvent) {

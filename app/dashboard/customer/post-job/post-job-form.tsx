@@ -13,8 +13,8 @@ import {
   PAYMENT_METHOD_LABEL,
   type PaymentMethodCode,
 } from "@/lib/payment-methods";
-import { POLICY_VERSIONS, categoryDisclaimerCopy } from "@/lib/legal";
-import { LegalLinksInline } from "@/components/legal-links";
+import { POLICY_VERSIONS } from "@/lib/legal";
+import type { BookingDraftV1 } from "@/lib/booking-draft-cookie";
 import Link from "next/link";
 import { useActionState, useState } from "react";
 
@@ -44,22 +44,43 @@ const urgencyOptions = [
   { value: "schedule", title: "Schedule", sub: "pick date & time" },
 ] as const;
 
-export function PostJobForm() {
+type PostJobFormProps = {
+  initialDraft?: BookingDraftV1 | null;
+};
+
+export function PostJobForm({ initialDraft }: PostJobFormProps) {
   const [state, formAction, isPending] = useActionState(
     postJobAction,
     initialState
   );
-  const [airportCode, setAirportCode] = useState<string | null>(null);
-  const [urgencyType, setUrgencyType] = useState<string>("asap");
-  const [offeredPrice, setOfferedPrice] = useState(DEFAULT_OFFER);
-  const [overageRate, setOverageRate] = useState("10");
-  const [estimatedWait, setEstimatedWait] = useState<string>(
-    ESTIMATED_WAIT_OPTIONS[0] ?? ""
+  const [airportCode, setAirportCode] = useState<string | null>(
+    initialDraft?.booking_category === "Airports"
+      ? initialDraft.airport || null
+      : null
   );
-  const [bookingCategory, setBookingCategory] =
-    useState<BookingCategory>("Concerts & Festivals");
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethodCode>("stripe_card");
+  const [urgencyType, setUrgencyType] = useState<string>(
+    initialDraft?.urgency_type ?? "asap"
+  );
+  const [offeredPrice, setOfferedPrice] = useState(
+    initialDraft != null
+      ? String(initialDraft.offered_price)
+      : DEFAULT_OFFER
+  );
+  const [overageRate, setOverageRate] = useState(
+    initialDraft != null ? String(initialDraft.overage_rate) : "10"
+  );
+  const [estimatedWait, setEstimatedWait] = useState<string>(
+    initialDraft?.estimated_wait ??
+      ESTIMATED_WAIT_OPTIONS[0] ??
+      ""
+  );
+  const [bookingCategory, setBookingCategory] = useState<BookingCategory>(
+    (initialDraft?.booking_category as BookingCategory) ??
+      "Concerts & Festivals"
+  );
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodCode>(
+    (initialDraft?.payment_method_code as PaymentMethodCode) ?? "stripe_card"
+  );
   const lineTypeGroups = LINE_TYPE_GROUPS_BY_CATEGORY[bookingCategory];
   const isAirportCategory = bookingCategory === "Airports";
 
@@ -122,6 +143,18 @@ export function PostJobForm() {
                   id="urgency_schedule"
                   name="urgency_schedule"
                   type="datetime-local"
+                  defaultValue={
+                    initialDraft?.urgency_type === "schedule" &&
+                    initialDraft.urgency_schedule
+                      ? (() => {
+                          const d = new Date(initialDraft.urgency_schedule);
+                          if (Number.isNaN(d.getTime())) return undefined;
+                          const pad = (n: number) =>
+                            String(n).padStart(2, "0");
+                          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                        })()
+                      : undefined
+                  }
                   className={inputClass}
                 />
               </div>
@@ -164,7 +197,14 @@ export function PostJobForm() {
                 <label htmlFor="airport-search" className={labelClass}>
                   Airport
                 </label>
-                <AirportCombobox onAirportChange={setAirportCode} />
+                <AirportCombobox
+                  onAirportChange={setAirportCode}
+                  initialAirportCode={
+                    initialDraft?.booking_category === "Airports"
+                      ? initialDraft.airport
+                      : null
+                  }
+                />
                 <p className={hintClass}>
                   Type a city name, airport code, or part of the airport name.
                 </p>
@@ -174,7 +214,10 @@ export function PostJobForm() {
                 <label htmlFor="terminal" className={labelClass}>
                   Terminal
                 </label>
-                <TerminalSelect airportCode={airportCode} />
+                <TerminalSelect
+                  airportCode={airportCode}
+                  initialTerminal={initialDraft?.terminal}
+                />
               </div>
             </>
           ) : (
@@ -187,6 +230,7 @@ export function PostJobForm() {
                 name="venue_location"
                 type="text"
                 placeholder="Venue name, address, or city"
+                defaultValue={initialDraft?.venue_location ?? ""}
                 className={inputClass}
               />
             </div>
@@ -204,6 +248,7 @@ export function PostJobForm() {
                 placeholder={
                   isAirportCategory ? "e.g. Delta" : "e.g. Live Nation, Disney, Nike"
                 }
+                defaultValue={initialDraft?.airline ?? ""}
                 className={inputClass}
               />
             </div>
@@ -217,6 +262,7 @@ export function PostJobForm() {
                 name="event_queue_name"
                 type="text"
                 placeholder="e.g. TSA PreCheck, GA entry, sneaker drop"
+                defaultValue={initialDraft?.event_queue_name ?? ""}
                 className={inputClass}
               />
             </div>
@@ -242,7 +288,7 @@ export function PostJobForm() {
               name="line_type"
               required
               className={inputClass}
-              defaultValue=""
+              defaultValue={initialDraft?.line_type ?? ""}
             >
               <option value="" disabled>
                 Select line type
@@ -291,6 +337,7 @@ export function PostJobForm() {
             name="description"
             rows={4}
             placeholder="Describe what you need: line type, gate/area, what the Line Holder should do, and when you will arrive."
+            defaultValue={initialDraft?.description_notes ?? ""}
             className={`${inputClass} min-h-[108px] resize-y`}
           />
         </div>
@@ -411,12 +458,12 @@ export function PostJobForm() {
       {/* Summary & actions */}
       <section className={sectionClass} aria-labelledby="section-review">
         <h2 id="section-review" className={sectionTitle}>
-          Review &amp; pay
+          Continue
         </h2>
         <div className="mt-5 space-y-5">
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 sm:p-5">
             <p className="text-sm font-semibold text-slate-900">
-              Checkout summary
+              Offer summary
             </p>
             <dl className="mt-4 space-y-3 text-sm">
               <div className="flex items-baseline justify-between gap-4">
@@ -437,9 +484,8 @@ export function PostJobForm() {
               total.
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
-              No Stripe account signup is required. Pay as guest in Stripe Checkout
-              with card/wallet methods; bank-link options appear in Checkout when
-              available for your device and region.
+              Next you&apos;ll review pricing, confirm terms, and pay securely with
+              Stripe (card or wallets when available).
             </p>
             <p className="mt-2 text-xs leading-relaxed text-slate-500">
               LineCrew.ai is a marketplace connecting you with independent line holders.
@@ -450,38 +496,12 @@ export function PostJobForm() {
           <input
             type="hidden"
             name="category_disclaimer_version"
-            value={POLICY_VERSIONS.categoryDisclaimer[bookingCategory] ?? "2026-03-31.default.1"}
+            value={
+              (POLICY_VERSIONS.categoryDisclaimer as Record<string, string>)[
+                bookingCategory
+              ] ?? "2026-03-31.default.1"
+            }
           />
-
-          <div className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
-              Booking acknowledgment
-            </p>
-            <p className="mt-2 text-sm text-slate-700">{categoryDisclaimerCopy(bookingCategory)}</p>
-            <div className="mt-3 space-y-2">
-              <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-                <input
-                  type="checkbox"
-                  name="booking_disclaimer_ack"
-                  required
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                />
-                <span>
-                  I understand LineCrew.ai does not guarantee venue access, queue transfer success, or service outcomes.
-                </span>
-              </label>
-              <label className="flex items-start gap-2 text-xs leading-relaxed text-slate-700">
-                <input
-                  type="checkbox"
-                  name="booking_terms_ack"
-                  required
-                  className="mt-0.5 h-4 w-4 rounded border-slate-300"
-                />
-                <span>I understand the assigned line holder is an independent third party.</span>
-              </label>
-            </div>
-            <LegalLinksInline className="mt-3" />
-          </div>
 
           {/* Test-only payment method selector (does not change Stripe flow yet) */}
           {SHOW_PAYMENT_METHOD_SELECTOR && (
@@ -552,7 +572,7 @@ export function PostJobForm() {
               disabled={isPending}
               className="order-1 w-full rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:order-none sm:w-auto sm:py-2.5"
             >
-              {isPending ? "Redirecting to checkout…" : "Continue to checkout"}
+              {isPending ? "Saving…" : "Review booking →"}
             </button>
             <Link
               href="/dashboard/customer"

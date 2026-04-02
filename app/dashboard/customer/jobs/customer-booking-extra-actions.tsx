@@ -1,7 +1,10 @@
 "use client";
 
 import { CancelJobButton } from "@/app/dashboard/customer/jobs/cancel-job-button";
+import { ReportIssueModal } from "@/components/report-issue-modal";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 type Props = {
   jobId: string;
@@ -9,6 +12,10 @@ type Props = {
 };
 
 export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
+  const router = useRouter();
+  const [showReport, setShowReport] = useState(false);
+  const [issueReported, setIssueReported] = useState(false);
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:p-6">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -25,19 +32,40 @@ export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
         </Link>{" "}
         is available in the Line Holder card when eligible.
       </p>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+      {issueReported && (
+        <div
+          className="mt-4 rounded-xl border border-emerald-200/90 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900 ring-1 ring-emerald-100/80"
+          role="status"
+        >
+          Your issue has been reported. We&apos;ll respond within 2 hours.
+        </div>
+      )}
+      <div className="mt-4">
         <button
           type="button"
-          disabled
-          title="Reporting will be available in a future update"
-          className="inline-flex min-h-[44px] cursor-not-allowed items-center justify-center rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-400"
+          onClick={() => setShowReport(true)}
+          disabled={issueReported}
+          className={`inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition ${
+            issueReported
+              ? "cursor-not-allowed border-emerald-200 bg-emerald-50/80 text-emerald-700"
+              : "border-slate-200 bg-white text-slate-900 ring-1 ring-slate-900/5 hover:border-slate-300 hover:bg-slate-50"
+          }`}
         >
-          Report issue
-          <span className="ml-2 rounded-md bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
-            Soon
-          </span>
+          {issueReported ? "Issue reported ✓" : "Report issue"}
         </button>
       </div>
+      {showReport && (
+        <ReportIssueModal
+          jobId={jobId}
+          reporterRole="customer"
+          onClose={() => setShowReport(false)}
+          onSuccess={() => {
+            setShowReport(false);
+            setIssueReported(true);
+            router.refresh();
+          }}
+        />
+      )}
       {canCancel && (
         <div className="mt-6">
           <CancelJobButton jobId={jobId} />

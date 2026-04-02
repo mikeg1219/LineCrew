@@ -5,9 +5,11 @@ import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { getBookingCategoryForLineType } from "@/lib/jobs/options";
 import { WaiterStripeSyncErrorBanner } from "@/app/dashboard/waiter/stripe-sync-error-banner";
 import { syncWaiterStripeIfNeeded } from "@/lib/stripe-account-sync";
+import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import {
   isWaiterAcceptSetupComplete,
   waiterAcceptSetupShortfallMessage,
+  waiterProfileBasicsAndOnboardingComplete,
 } from "@/lib/waiter-profile-complete";
 import { createClient } from "@/lib/supabase/server";
 import type { Job } from "@/lib/types/job";
@@ -87,9 +89,34 @@ export default async function BrowseJobsPage({
   const canAcceptJobs = isWaiterAcceptSetupComplete(profile, user);
   const acceptHint = waiterAcceptSetupShortfallMessage(profile, user);
 
+  const emailVerified = isEmailVerifiedForApp(
+    profile as { email_verified_at: string | null } | null,
+    user
+  );
+  const profileBasicsComplete = waiterProfileBasicsAndOnboardingComplete(profile);
+  const profileGates = profile as {
+    gate1_unlocked?: boolean | null;
+    gate2_unlocked?: boolean | null;
+    avatar_url?: string | null;
+  };
+  const gate1Unlocked =
+    profileGates.gate1_unlocked != null
+      ? Boolean(profileGates.gate1_unlocked)
+      : emailVerified && profileBasicsComplete;
+
   const serving =
     (profile as { serving_airports?: string[] | null }).serving_airports ??
     [];
+  const hasAirports = serving.length > 0;
+  const gate2Unlocked =
+    profileGates.gate2_unlocked != null
+      ? Boolean(profileGates.gate2_unlocked)
+      : Boolean(
+          gate1Unlocked &&
+            hasAirports &&
+            (profile.bio?.trim() ?? "") !== "" &&
+            (profileGates.avatar_url?.trim() ?? "") !== ""
+        );
   const preferredCategories =
     (profile as { preferred_categories?: string[] | null }).preferred_categories ??
     [];
@@ -220,6 +247,7 @@ export default async function BrowseJobsPage({
                 <div className="min-w-0 flex-1 sm:max-w-xs">
                   <AcceptJobForm
                     jobId={job.id}
+                    gate2Unlocked={gate2Unlocked}
                     canAccept={canAcceptJobs}
                     setupHint={acceptHint}
                   />

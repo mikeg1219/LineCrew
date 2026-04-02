@@ -29,6 +29,13 @@ function searchBlob(a: AirportEntry): string {
   return [a.code, a.label, ...a.aliases].join(" ").toLowerCase();
 }
 
+export function airportShortLabel(code: string): string {
+  const entry = US_AIRPORTS_TOP_20.find((a) => a.code === code);
+  if (!entry) return code;
+  const parts = entry.label.split("—");
+  return parts[0]?.trim() ?? entry.label;
+}
+
 export function filterAirportsByQuery(query: string): AirportEntry[] {
   const q = query.trim().toLowerCase();
   if (!q) return [...US_AIRPORTS_TOP_20];

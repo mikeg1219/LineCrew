@@ -8,7 +8,7 @@ import {
   reportHandoffIssueAction,
   type HandoffActionState,
 } from "@/app/dashboard/handoff/actions";
-import { QrScannerPlaceholder } from "@/app/dashboard/handoff/qr-scanner-placeholder";
+import { QRScannerLive } from "@/app/dashboard/handoff/qr-scanner-placeholder";
 import type { JobStatus } from "@/lib/types/job";
 import { useActionState, useState } from "react";
 
@@ -135,7 +135,7 @@ export function CustomerHandoffPanel({
               {scannerOpen ? "Hide scanner" : "Open scanner"}
             </button>
             {scannerOpen && (
-              <QrScannerPlaceholder
+              <QRScannerLive
                 onParsed={(token) => {
                   setParsedToken(token);
                   setMode("qr");

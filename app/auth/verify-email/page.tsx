@@ -1,6 +1,7 @@
 import { VerifyEmailClient } from "@/app/auth/verify-email/verify-email-client";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { parseAuthIntent } from "@/lib/auth-intent";
+import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { verifyEmailTokenFromLink } from "@/lib/email-verification-service";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -31,10 +32,8 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
     const intentQ = intent ? `&intent=${encodeURIComponent(intent)}` : "";
     const result = await verifyEmailTokenFromLink(token);
     if (result.ok) {
-      const q = intent
-        ? `?verified=1&intent=${encodeURIComponent(intent)}`
-        : "?verified=1";
-      redirect(`/auth${q}`);
+      const q = intent ? `?intent=${encodeURIComponent(intent)}` : "";
+      redirect(`/onboarding/profile${q}`);
     }
     redirect(
       `/auth/verify-email?error=${encodeURIComponent(result.reason)}${intentQ}&pending=1${emailQ}`
@@ -55,6 +54,10 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
       console.error("[verify-email page] profiles select:", profileErr.message);
     }
     if (isEmailVerifiedForApp(profileErr ? null : profile, user)) {
+      const onboardingRedirect = needsOnboardingRedirect(profile ?? null, user);
+      if (onboardingRedirect) {
+        redirect(onboardingRedirect);
+      }
       redirect("/dashboard");
     }
   }

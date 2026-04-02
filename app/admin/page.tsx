@@ -37,7 +37,7 @@ export default async function AdminPage() {
   if (!isEmailVerifiedForApp(verifyErr ? null : verifyProfile, user)) {
     const q = new URLSearchParams({ pending: "1" });
     if (user.email) q.set("email", user.email);
-    redirect(`/auth/verify-email?${q.toString()}`);
+    redirect(`/onboarding/verify?${q.toString()}`);
   }
 
   if (!user?.email || !isAdminEmail(user.email)) {

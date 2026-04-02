@@ -5,10 +5,12 @@ import {
   updateWaiterJobStatusAction,
   type JobActionState,
 } from "@/app/dashboard/waiter/jobs/actions";
+import { ReportIssueModal } from "@/components/report-issue-modal";
 import { canTransitionTo } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useRouter } from "next/navigation";
+import { useActionState, useState } from "react";
 
 const initial: JobActionState = null;
 
@@ -65,13 +67,20 @@ export function LineHolderStatusPanel({
   currentStatus,
   acceptSetupReady = true,
   acceptSetupHint = "",
+  allowReportIssue = false,
 }: {
   jobId: string;
   currentStatus: JobStatus;
   /** When false, Accept booking is disabled until setup (profile, payouts, etc.). */
   acceptSetupReady?: boolean;
   acceptSetupHint?: string;
+  /** False for open-preview (not yet assigned); RLS requires assigned waiter. */
+  allowReportIssue?: boolean;
 }) {
+  const router = useRouter();
+  const [showReport, setShowReport] = useState(false);
+  const [issueReported, setIssueReported] = useState(false);
+
   const [acceptState, acceptAction, acceptPending] = useActionState(
     acceptJobAction,
     initial
@@ -206,19 +215,43 @@ export function LineHolderStatusPanel({
         </>
       )}
 
-      <div className="border-t border-slate-100 pt-6">
-        <button
-          type="button"
-          disabled
-          title="Reporting will be available in a future update"
-          className="w-full min-h-[48px] max-w-full cursor-not-allowed rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-400 sm:max-w-lg touch-manipulation"
-        >
-          Report issue
-          <span className="mt-0.5 block text-xs font-normal text-slate-400">
-            Coming soon
-          </span>
-        </button>
-      </div>
+      {allowReportIssue && (
+        <div className="border-t border-slate-100 pt-6">
+          {issueReported && (
+            <div
+              className="mb-4 rounded-2xl border border-emerald-200/90 bg-emerald-50 px-4 py-3 text-sm leading-relaxed text-emerald-900 ring-1 ring-emerald-100/80"
+              role="status"
+            >
+              Issue reported. Our team will review and follow up with both
+              parties.
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setShowReport(true)}
+            disabled={issueReported}
+            className={`w-full min-h-[48px] max-w-full rounded-2xl border px-4 py-3 text-left text-sm font-semibold shadow-sm transition touch-manipulation sm:max-w-lg ${
+              issueReported
+                ? "cursor-not-allowed border-emerald-200 bg-emerald-50/80 text-emerald-800"
+                : "border-slate-200 bg-white text-slate-900 ring-1 ring-slate-900/5 hover:border-slate-300 hover:bg-slate-50"
+            }`}
+          >
+            {issueReported ? "Issue reported ✓" : "Report issue"}
+          </button>
+          {showReport && (
+            <ReportIssueModal
+              jobId={jobId}
+              reporterRole="waiter"
+              onClose={() => setShowReport(false)}
+              onSuccess={() => {
+                setShowReport(false);
+                setIssueReported(true);
+                router.refresh();
+              }}
+            />
+          )}
+        </div>
+      )}
 
       {err && (
         <p className="text-sm text-red-600" role="alert">

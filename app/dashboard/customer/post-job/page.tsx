@@ -1,6 +1,7 @@
 import { DashboardFinishingSetup } from "@/app/dashboard/finishing-setup";
 import { PostJobForm } from "@/app/dashboard/customer/post-job/post-job-form";
 import { LegalLinksInline } from "@/components/legal-links";
+import { getBookingDraftCookie } from "@/lib/booking-draft-cookie";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -100,6 +101,8 @@ export default async function PostJobPage({ searchParams }: PageProps) {
     redirect("/dashboard/profile?profile_required=1");
   }
 
+  const bookingDraft = await getBookingDraftCookie();
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-5 sm:py-10 lg:px-6">
       <header className="mb-8 max-w-3xl space-y-3 sm:mb-10">
@@ -139,9 +142,22 @@ export default async function PostJobPage({ searchParams }: PageProps) {
         </div>
       )}
 
+      {bookingDraft ? (
+        <div className="mb-6 rounded-xl border border-emerald-200/90 bg-emerald-50/90 px-4 py-3.5 text-sm leading-relaxed text-emerald-950 sm:mb-8 sm:px-5">
+          <span className="font-semibold">You have a booking ready to review.</span>{" "}
+          <Link
+            href="/dashboard/customer/booking-review"
+            className="font-semibold text-blue-800 underline decoration-blue-800/30 underline-offset-2 hover:text-blue-900"
+          >
+            Continue to review &amp; pay
+          </Link>
+          {" — "}or edit this form and save again.
+        </div>
+      ) : null}
+
       <div className="flex flex-col gap-10 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(16rem,18rem)] lg:items-start lg:gap-x-10 lg:gap-y-0 xl:gap-x-12">
         <div className="order-2 min-w-0 lg:order-1">
-          <PostJobForm />
+          <PostJobForm initialDraft={bookingDraft} />
         </div>
         <aside className="order-1 lg:sticky lg:top-20 lg:order-2 lg:self-start">
           <HowItWorksPanel />

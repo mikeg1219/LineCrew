@@ -177,6 +177,8 @@ export function WaiterPayoutSetup({
   returnTo = "/dashboard/waiter",
   onStripeRefreshSuccess,
   onManualPayoutSaved,
+  /** Compact copy + layout for profile “Get paid” tab (no outer section title). */
+  layoutVariant = "default",
 }: {
   stripeAccountId: string | null;
   stripeDetailsSubmitted?: boolean | null;
@@ -188,6 +190,7 @@ export function WaiterPayoutSetup({
   onStripeRefreshSuccess?: () => void;
   /** e.g. refresh profile form state after saving manual payout */
   onManualPayoutSaved?: () => void;
+  layoutVariant?: "default" | "profileTab";
 }) {
   const router = useRouter();
   const [refreshPending, setRefreshPending] = useState(false);
@@ -274,6 +277,20 @@ export function WaiterPayoutSetup({
     serverManualReady && !manualEditing ? cardActiveRing : cardNeutral
   }`;
 
+  const profileTab = layoutVariant === "profileTab";
+  const stripeConnectMode: "onboarding" | "update" =
+    stripeAccountId?.trim() && stripeDetailsSubmitted === true
+      ? "update"
+      : "onboarding";
+  const stripePrimaryLabel = profileTab
+    ? stripePayoutReady
+      ? "Manage Stripe"
+      : "Set up Stripe"
+    : stripePayoutReady
+      ? "Manage Stripe payouts"
+      : "Set up Stripe payouts";
+  const stripePendingLabel = profileTab ? "Opening Stripe…" : "Opening Stripe…";
+
   function saveManualPayout() {
     setManualError(null);
     startManualTransition(async () => {
@@ -323,33 +340,47 @@ export function WaiterPayoutSetup({
 
   return (
     <>
-    <section className="mt-7 sm:mt-8" aria-labelledby="payout-heading">
-      <h2
-        id="payout-heading"
-        className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
-      >
-        How do you want to get paid?
-      </h2>
-      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
-        Choose automatic bank payouts through Stripe or a manual method. A
-        platform service fee applies at checkout. You need at least one active
-        payout option before accepting bookings.
-      </p>
+    <section
+      className={profileTab ? "mt-0" : "mt-7 sm:mt-8"}
+      aria-labelledby={profileTab ? undefined : "payout-heading"}
+    >
+      {!profileTab ? (
+        <>
+          <h2
+            id="payout-heading"
+            className="text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl"
+          >
+            How do you want to get paid?
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[15px]">
+            Choose automatic bank payouts through Stripe or a manual method. A
+            platform service fee applies at checkout. You need at least one active
+            payout option before accepting bookings.
+          </p>
+        </>
+      ) : null}
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-2 lg:gap-6">
+      <div className={profileTab ? "grid gap-5 lg:grid-cols-2 lg:gap-6" : "mt-8 grid gap-5 lg:grid-cols-2 lg:gap-6"}>
         {/* Option A — Stripe */}
         <div className={stripeCardClass}>
           {stripePayoutReady ? (
             <div className="mb-3">
-              <ConfiguredBadge label="Stripe payouts active" />
+              <ConfiguredBadge
+                label={profileTab ? "Connected ✓" : "Stripe payouts active"}
+              />
             </div>
+          ) : profileTab ? (
+            <p className="mb-3 text-sm font-medium text-slate-500">Not set up</p>
           ) : null}
           <h3 className="text-base font-semibold text-slate-900">
-            Automatic bank transfer via Stripe
+            {profileTab
+              ? "Automatic bank transfer"
+              : "Automatic bank transfer via Stripe"}
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Connect your bank account for automatic payouts after each completed
-            booking.
+            {profileTab
+              ? "Get paid automatically after each booking"
+              : "Connect your bank account for automatic payouts after each completed booking."}
           </p>
           {!stripePayoutReady && stripeAccountId?.trim() ? (
             <p className="mt-3 text-sm font-medium text-amber-900" role="status">
@@ -367,9 +398,9 @@ export function WaiterPayoutSetup({
           <div className="mt-5 flex flex-col gap-3">
             <WaiterPayoutConnectForm
               returnTo={returnTo}
-              mode="onboarding"
-              label="Set up Stripe payouts"
-              pendingLabel="Opening Stripe…"
+              mode={stripeConnectMode}
+              label={stripePrimaryLabel}
+              pendingLabel={stripePendingLabel}
               buttonClassName="min-h-[48px] w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
             />
             <p className="text-xs leading-relaxed text-slate-500">
@@ -432,14 +463,22 @@ export function WaiterPayoutSetup({
         <div className={manualCardClass}>
           {serverManualReady && !manualEditing ? (
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <ConfiguredBadge label="Manual payout saved" />
+              <ConfiguredBadge
+                label={profileTab ? "Configured ✓" : "Manual payout saved"}
+              />
             </div>
+          ) : profileTab ? (
+            <p className="mb-3 text-sm font-medium text-slate-500">
+              Not configured
+            </p>
           ) : null}
           <h3 className="text-base font-semibold text-slate-900">
-            Manual payment (Zelle, PayPal, Cash App, Venmo)
+            {profileTab ? "Manual payment" : "Manual payment (Zelle, PayPal, Cash App, Venmo)"}
           </h3>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Customer pays you directly after booking confirmation.
+            {profileTab
+              ? "Customer pays you directly via your preferred method"
+              : "Customer pays you directly after booking confirmation."}
           </p>
 
           {!showManualForm && serverManualReady ? (

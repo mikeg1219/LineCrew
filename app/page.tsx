@@ -1,5 +1,5 @@
-import Link from "next/link";
 import Image from "next/image";
+import { HomeHeroCTAs } from "@/components/home-hero-ctas";
 import { HomeHeaderNav } from "@/components/home-header-nav";
 import { MARKETPLACE_CATEGORIES } from "@/lib/marketplace-categories";
 import { Suspense } from "react";
@@ -43,20 +43,16 @@ export default function Home() {
             amusement parks, product drops, airports, DMV visits, restaurants,
             and other high-wait situations.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-            <Link
-              href="/auth?intent=customer"
-              className="rounded-[14px] bg-white px-8 py-4 text-center text-sm font-bold text-[#1E4FAF] shadow-[0_16px_40px_rgba(30,79,175,0.12)] transition hover:bg-slate-100 sm:text-base"
-            >
-              Book a Line Holder
-            </Link>
-            <Link
-              href="/auth?intent=waiter"
-              className="rounded-[14px] border border-white/40 bg-white/10 px-8 py-4 text-center text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/20 sm:text-base"
-            >
-              Become a Line Holder
-            </Link>
-          </div>
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+                <div className="h-[52px] w-full max-w-xs animate-pulse rounded-[14px] bg-white/20 sm:max-w-none" />
+                <div className="h-[52px] w-full max-w-xs animate-pulse rounded-[14px] bg-white/10 sm:max-w-none" />
+              </div>
+            }
+          >
+            <HomeHeroCTAs />
+          </Suspense>
           <div className="mt-10 flex max-w-lg flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/85">
             <span className="inline-flex items-center gap-1.5">
               <span className="text-emerald-400" aria-hidden>
@@ -169,7 +165,7 @@ export default function Home() {
                 For customers
               </h3>
               <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                <li>1. Click “Book a Line Holder” at the top of this page.</li>
+                <li>1. Click “Book a Line Holder” in the hero (or Get started in the header).</li>
                 <li>2. Create your account with email and password.</li>
                 <li>3. Open your email and verify your address.</li>
                 <li>4. Go to Dashboard → Customer and complete your profile.</li>
@@ -181,7 +177,7 @@ export default function Home() {
                 For Line Holders (LineWaiters)
               </h3>
               <ol className="mt-3 space-y-2 text-sm leading-relaxed text-slate-600">
-                <li>1. Click “Become a Line Holder” at the top of this page.</li>
+                <li>1. Click “Become a Line Holder” in the hero or start from Get started.</li>
                 <li>2. Create your account and verify your email.</li>
                 <li>3. In Dashboard → Line Holder, set profile, service areas, and preferred categories.</li>
                 <li>4. Set up payouts when Stripe Connect is ready, or continue in test mode.</li>

@@ -1,7 +1,25 @@
-import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
+import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createServerClient } from "@supabase/ssr";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase/constants";
 import { NextResponse, type NextRequest } from "next/server";
+
+function isExemptFromOnboardingGuard(pathname: string): boolean {
+  if (pathname.startsWith("/api")) return true;
+  if (pathname.startsWith("/legal")) return true;
+  if (pathname.startsWith("/onboarding")) return true;
+  if (pathname.startsWith("/auth/callback")) return true;
+  if (pathname.startsWith("/auth/verify-email")) return true;
+  if (pathname.startsWith("/auth/reset-password")) return true;
+  return false;
+}
+
+function appendVerifyQuery(
+  url: URL,
+  email: string | undefined
+): void {
+  url.searchParams.set("pending", "1");
+  if (email) url.searchParams.set("email", email);
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -32,81 +50,93 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const isDashboard = pathname.startsWith("/dashboard");
-  const isAdmin = pathname.startsWith("/admin");
-  const isAuth = pathname.startsWith("/auth");
   const isResetPassword = pathname.startsWith("/auth/reset-password");
   const isVerifyEmail = pathname.startsWith("/auth/verify-email");
+  const isAuthRoot = pathname === "/auth" || pathname === "/auth/";
 
-  const isProfile = pathname === "/profile";
+  if (!user) {
+    if (pathname.startsWith("/dashboard")) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+    const isAdmin = pathname.startsWith("/admin");
+    const isProfile = pathname === "/profile";
+    if (isAdmin || isProfile) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/auth";
+      url.searchParams.set("next", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+    return supabaseResponse;
+  }
 
-  if ((isDashboard || isAdmin || isProfile) && !user) {
+  const { data: profile, error: profileErr } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (profileErr) {
+    console.error("[middleware] profiles select:", profileErr.message);
+    if (user && (isVerifyEmail || isResetPassword)) {
+      return supabaseResponse;
+    }
+    return supabaseResponse;
+  }
+
+  const requiredOnboardingPath = needsOnboardingRedirect(
+    profile ?? null,
+    user
+  );
+  const onboardingComplete = requiredOnboardingPath === null;
+
+  if (onboardingComplete && pathname.startsWith("/onboarding")) {
+    const role = profile?.role;
     const url = request.nextUrl.clone();
-    url.pathname = "/auth";
-    url.searchParams.set("next", request.nextUrl.pathname);
+    if (role === "customer" || role === "waiter") {
+      url.pathname = `/dashboard/${role}`;
+    } else {
+      url.pathname = "/dashboard";
+    }
+    url.search = "";
     return NextResponse.redirect(url);
+  }
+
+  if (!onboardingComplete) {
+    if (isExemptFromOnboardingGuard(pathname)) {
+      return supabaseResponse;
+    }
+
+    const isProtected =
+      pathname.startsWith("/dashboard") ||
+      pathname === "/profile" ||
+      pathname.startsWith("/admin");
+
+    if (isProtected || isAuthRoot) {
+      const url = request.nextUrl.clone();
+      url.pathname = requiredOnboardingPath;
+      url.search = "";
+      appendVerifyQuery(url, user.email ?? undefined);
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
   }
 
   if (user && (isVerifyEmail || isResetPassword)) {
     return supabaseResponse;
   }
 
-  if ((isDashboard || isAdmin || isProfile) && user) {
-    const { data: profile, error: profileErr } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileErr) {
-      console.error("[middleware] profiles select:", profileErr.message);
-      // Do not send to verify-email here — server layouts/pages can read profiles reliably.
-      // Otherwise verify-email may redirect to /dashboard while proxy still treats user as unverified (loop).
-      return supabaseResponse;
-    }
-
-    if (!isEmailVerifiedForApp(profile, user)) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/auth/verify-email";
-      url.searchParams.set("pending", "1");
-      if (user.email) {
-        url.searchParams.set("email", user.email);
-      }
-      return NextResponse.redirect(url);
-    }
-  }
-
-  if (isAuth && user && !isResetPassword && !isVerifyEmail) {
-    const { data: authProfile, error: authProfileErr } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (authProfileErr) {
-      console.error("[middleware] profiles select (auth):", authProfileErr.message);
-    }
-
-    const needsVerify = !isEmailVerifiedForApp(
-      authProfileErr ? null : authProfile,
-      user
-    );
-
-    if (needsVerify) {
-      if (pathname === "/auth" || pathname === "/auth/") {
-        return supabaseResponse;
-      }
-      const url = request.nextUrl.clone();
-      url.pathname = "/auth/verify-email";
-      url.searchParams.set("pending", "1");
-      if (user.email) {
-        url.searchParams.set("email", user.email);
-      }
-      return NextResponse.redirect(url);
-    }
-
+  if (user && isAuthRoot) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const role = profile?.role;
+    if (role === "customer" || role === "waiter") {
+      url.pathname = `/dashboard/${role}`;
+    } else {
+      url.pathname = "/dashboard";
+    }
     url.searchParams.delete("next");
     return NextResponse.redirect(url);
   }

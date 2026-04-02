@@ -17,6 +17,7 @@ export type Profile = {
   stripe_account_id?: string | null;
   stripe_details_submitted?: boolean | null;
   stripe_payouts_enabled?: boolean | null;
+  manual_payout_method?: string | null;
   serving_airports?: string[] | null;
   preferred_categories?: string[] | null;
   preferred_airport?: string | null;
@@ -26,6 +27,8 @@ export type Profile = {
   airports_served?: string[] | null;
   is_available?: boolean;
   onboarding_completed?: boolean | null;
+  onboarding_step?: number | null;
+  onboarding_completed_at?: string | null;
   email_verified_at?: string | null;
   jobs_completed?: number;
   average_rating?: number | null;
@@ -40,4 +43,11 @@ export type Profile = {
   accepted_guidelines_at?: string | null;
   independent_contractor_acknowledged_at?: string | null;
   tax_responsibility_acknowledged_at?: string | null;
+  /** Waiter progressive onboarding (DB trigger `update_waiter_gates`). */
+  gate1_unlocked?: boolean | null;
+  gate2_unlocked?: boolean | null;
+  gate3_unlocked?: boolean | null;
+  earnings_total?: number | null;
+  jobs_completed_count?: number | null;
+  jobs_accepted_count?: number | null;
 };

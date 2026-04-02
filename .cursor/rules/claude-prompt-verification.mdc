@@ -1,0 +1,22 @@
+---
+description: Redesign phase — run full verification after substantive implementation work
+alwaysApply: true
+---
+
+# Post–Claude-prompt verification (redesign process)
+
+The project owner is **not a developer** and relies on the AI to ship a reliable app during the **redesign / testing** phase.
+
+After **substantive implementation work** in a turn (features, fixes, refactors, new routes, dependency changes—not pure Q&A or docs-only with no code), the assistant should **run verification in the terminal** before closing the turn:
+
+1. `npx tsc --noEmit`
+2. `npm run lint`
+3. `npx next build`
+
+If `next build` fails on Windows with **EPERM** on `.next`, delete the `.next` folder and run `npx next build` again once.
+
+Report pass/fail briefly. If something fails, **fix what you can** in the same turn or clearly state what is blocked.
+
+**Do not** rely on the user to run these unless they explicitly ask to skip verification for this turn.
+
+This complements `.cursor/rules/post-change-testing.mdc` (user-facing test steps and manual flows)—automation first for TypeScript, ESLint, and production build.
