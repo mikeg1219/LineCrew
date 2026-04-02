@@ -1,5 +1,6 @@
 import { OnboardingProgress } from "@/app/onboarding/_components/onboarding-progress";
 import { OnboardingVerifyForm } from "@/app/onboarding/_components/onboarding-verify-form";
+import { CenteredGradientCardShell } from "@/components/centered-gradient-card-shell";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import { createClient } from "@/lib/supabase/server";
@@ -43,13 +44,15 @@ export default async function OnboardingVerifyAliasPage({ searchParams }: Props)
   }
 
   return (
-    <div>
-      <OnboardingProgress currentStep={2} title="Verify email" />
-      <OnboardingVerifyForm
-        role={role}
-        initialEmail={initialEmail}
-        initiallyVerified={initiallyVerified}
-      />
-    </div>
+    <CenteredGradientCardShell>
+      <div>
+        <OnboardingProgress currentStep={2} title="Verify email" />
+        <OnboardingVerifyForm
+          role={role}
+          initialEmail={initialEmail}
+          initiallyVerified={initiallyVerified}
+        />
+      </div>
+    </CenteredGradientCardShell>
   );
 }

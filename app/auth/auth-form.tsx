@@ -24,7 +24,7 @@ export function AuthForm() {
   const passwordId = useId();
 
   return (
-    <div className="linecrew-card-marketing w-full max-w-md p-6 shadow-xl sm:p-8">
+    <div className="w-full">
       <div className="mb-8 flex flex-col items-center text-center">
         <Image
           src="/linecrew-logo.png"

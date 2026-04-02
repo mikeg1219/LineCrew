@@ -1,5 +1,6 @@
 import { OnboardingAccountForm } from "@/app/onboarding/_components/onboarding-account-form";
 import { OnboardingProgress } from "@/app/onboarding/_components/onboarding-progress";
+import { CenteredGradientCardShell } from "@/components/centered-gradient-card-shell";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createClient } from "@/lib/supabase/server";
@@ -32,20 +33,22 @@ export default async function OnboardingAccountPage({ searchParams }: Props) {
   }
 
   return (
-    <div>
-      <OnboardingProgress currentStep={1} title="Create account" />
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        Create your account
-      </h1>
-      <p className="mt-2 text-sm text-slate-600">
-        You&apos;re signing up as a{" "}
-        <span className="font-medium text-slate-800">
-          {intent === "customer" ? "Customer" : "Line Holder"}
-        </span>
-      </p>
-      <div className="mt-5">
-        <OnboardingAccountForm role={intent} />
+    <CenteredGradientCardShell>
+      <div>
+        <OnboardingProgress currentStep={1} title="Create account" />
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Create your account
+        </h1>
+        <p className="mt-2 text-sm text-slate-600">
+          You&apos;re signing up as a{" "}
+          <span className="font-medium text-slate-800">
+            {intent === "customer" ? "Customer" : "Line Holder"}
+          </span>
+        </p>
+        <div className="mt-5">
+          <OnboardingAccountForm role={intent} />
+        </div>
       </div>
-    </div>
+    </CenteredGradientCardShell>
   );
 }

@@ -7,9 +7,8 @@ function isExemptFromOnboardingGuard(pathname: string): boolean {
   if (pathname.startsWith("/api")) return true;
   if (pathname.startsWith("/legal")) return true;
   if (pathname.startsWith("/onboarding")) return true;
-  if (pathname.startsWith("/auth/callback")) return true;
-  if (pathname.startsWith("/auth/verify-email")) return true;
-  if (pathname.startsWith("/auth/reset-password")) return true;
+  /** Sign-in and related flows must never be hijacked by onboarding redirects. */
+  if (pathname === "/auth" || pathname.startsWith("/auth/")) return true;
   return false;
 }
 
@@ -114,7 +113,7 @@ export async function updateSession(request: NextRequest) {
       pathname === "/profile" ||
       pathname.startsWith("/admin");
 
-    if (isProtected || isAuthRoot) {
+    if (isProtected) {
       const url = request.nextUrl.clone();
       url.pathname = requiredOnboardingPath;
       url.search = "";

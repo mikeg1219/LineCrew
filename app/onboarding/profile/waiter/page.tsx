@@ -1,5 +1,6 @@
 import { OnboardingProgress } from "@/app/onboarding/_components/onboarding-progress";
 import { WaiterOnboardingProfileForm } from "@/app/onboarding/_components/waiter-onboarding-profile-form";
+import { CenteredGradientCardShell } from "@/components/centered-gradient-card-shell";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
@@ -38,20 +39,22 @@ export default async function WaiterOnboardingProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-md">
-      <OnboardingProgress currentStep={3} title="Profile" />
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-        Set up your Line Holder profile
-      </h1>
-      <p className="mt-2 text-sm leading-relaxed text-slate-600">
-        Complete your profile to start accepting bookings
-      </p>
-      <div className="mt-6">
-        <WaiterOnboardingProfileForm
-          userId={user.id}
-          initialAvatarUrl={avatarPublic}
-        />
+    <CenteredGradientCardShell>
+      <div>
+        <OnboardingProgress currentStep={3} title="Profile" />
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Set up your Line Holder profile
+        </h1>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Complete your profile to start accepting bookings
+        </p>
+        <div className="mt-6">
+          <WaiterOnboardingProfileForm
+            userId={user.id}
+            initialAvatarUrl={avatarPublic}
+          />
+        </div>
       </div>
-    </div>
+    </CenteredGradientCardShell>
   );
 }
