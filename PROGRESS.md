@@ -2,12 +2,19 @@
 
 ## Phase 5 — Pre-Launch (April 2, 2026)
 
+**Status:** Shipped to production — https://linecrew.ai
+
 ### Completed
 - Mobile optimization across all key pages
 - Loading skeletons and error boundaries
 - SEO meta tags and social sharing
 - Sitemap.xml and robots.txt
-- Go-live checklist created
+- Go-live checklist created (`GO_LIVE_CHECKLIST.md`)
+- Middleware matcher updated so static `.xml` / `.txt` (e.g. `/sitemap.xml`, `/robots.txt`) bypass Supabase session edge logic
+
+### Deployment
+- **Commits:** `Phase 5: Mobile optimization, SEO, performance, go-live checklist` · `fix: skip middleware for sitemap.xml and robots.txt static files`
+- **Post-deploy checks:** Homepage, `/auth`, `/onboarding`, `/sitemap.xml`, `/robots.txt` — HTTP 200 and expected content
 
 ### Remaining Before Launch
 - Switch Stripe to live mode
