@@ -1,4 +1,4 @@
-import { isAdminEmail } from "@/lib/admin-config";
+import { isAdminUser } from "@/lib/admin-config";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse, type NextRequest } from "next/server";
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user?.email || !isAdminEmail(user.email)) {
+  if (!user?.email || !isAdminUser(user.email)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

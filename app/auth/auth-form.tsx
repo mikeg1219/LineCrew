@@ -3,6 +3,7 @@
 import { authAction, type AuthActionState } from "@/app/auth/actions";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useActionState, useId, useState } from "react";
 
 const initialAuthState: AuthActionState = null;
@@ -16,6 +17,8 @@ const linkClass =
   "text-sm font-medium text-blue-600 transition hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600/30 focus-visible:ring-offset-2 rounded-sm";
 
 export function AuthForm() {
+  const searchParams = useSearchParams();
+  const nextParam = searchParams.get("next") ?? "";
   const [state, formAction, isPending] = useActionState(
     authAction,
     initialAuthState
@@ -43,6 +46,7 @@ export function AuthForm() {
       </div>
 
       <form action={formAction} className="space-y-5">
+        <input type="hidden" name="next" value={nextParam} />
         <div>
           <label htmlFor="email" className={labelClass}>
             Email address

@@ -65,7 +65,10 @@ export async function updateSession(request: NextRequest) {
     if (isAdmin || isProfile) {
       const url = request.nextUrl.clone();
       url.pathname = "/auth";
-      url.searchParams.set("next", request.nextUrl.pathname);
+      /** e.g. /admin → next=/admin so sign-in can return to the portal */
+      const returnTo =
+        request.nextUrl.pathname + (request.nextUrl.search || "");
+      url.searchParams.set("next", returnTo);
       return NextResponse.redirect(url);
     }
     return supabaseResponse;

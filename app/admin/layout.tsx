@@ -1,10 +1,44 @@
+import { isAdminUser } from "@/lib/admin-config";
+import { createClient } from "@/lib/supabase/server";
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 
-/**
- * Dedicated layout for /admin so the route is a stable App Router segment
- * (same pattern as dashboard routes).
- */
-export default function AdminLayout({ children }: { children: ReactNode }) {
-  return <div className="linecrew-zone-admin min-h-screen">{children}</div>;
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth?next=/admin");
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const email = user.email ?? "";
+  if (!isAdminUser(email)) {
+    const r = profile?.role;
+    if (r === "customer" || r === "waiter") {
+      redirect(`/dashboard/${r}`);
+    }
+    redirect("/dashboard");
+  }
+
+  return (
+    <div className="linecrew-zone-admin relative min-h-screen">
+      <div
+        className="pointer-events-none absolute right-4 top-4 z-[100] sm:right-6 sm:top-5"
+        aria-hidden
+      >
+        <span className="inline-block rounded-md border border-red-600 bg-red-950 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-100 shadow-lg">
+          ADMIN MODE
+        </span>
+      </div>
+      {children}
+    </div>
+  );
 }
- 

@@ -1,6 +1,12 @@
-/** Single admin for dispute panel and notifications (must match session email). */
-export const ADMIN_EMAIL = "mikeg1219@yahoo.com";
+export const ADMIN_EMAILS = [
+  "mikeg1219@yahoo.com",
+  "mikeg1219@hotmail.com",
+] as const;
 
-export function isAdminEmail(email: string | undefined | null): boolean {
-  return (email ?? "").toLowerCase() === ADMIN_EMAIL.toLowerCase();
+const ADMIN_EMAIL_SET = new Set(
+  ADMIN_EMAILS.map((e) => e.toLowerCase().trim())
+);
+
+export function isAdminUser(email: string): boolean {
+  return ADMIN_EMAIL_SET.has(email.toLowerCase().trim());
 }

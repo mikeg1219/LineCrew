@@ -3,7 +3,7 @@ import { JobActionButtons } from "@/app/admin/job-action-buttons";
 import { OwnerDashboardControls } from "@/app/admin/owner-dashboard-controls";
 import { OwnerOperationsMap } from "@/app/admin/owner-operations-map";
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
-import { isAdminEmail } from "@/lib/admin-config";
+import { isAdminUser } from "@/lib/admin-config";
 import {
   BOOKING_CATEGORIES,
   getBookingCategoryForLineType,
@@ -40,7 +40,7 @@ export default async function AdminPage() {
     redirect(`/onboarding/verify?${q.toString()}`);
   }
 
-  if (!user?.email || !isAdminEmail(user.email)) {
+  if (!user?.email || !isAdminUser(user.email)) {
     redirect("/dashboard");
   }
 

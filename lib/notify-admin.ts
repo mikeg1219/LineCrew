@@ -1,4 +1,4 @@
-import { ADMIN_EMAIL } from "@/lib/admin-config";
+import { ADMIN_EMAILS } from "@/lib/admin-config";
 
 /** Optional Resend API — set RESEND_API_KEY in production. */
 export async function sendAdminEmail(subject: string, html: string) {
@@ -18,7 +18,7 @@ export async function sendAdminEmail(subject: string, html: string) {
     },
     body: JSON.stringify({
       from,
-      to: [ADMIN_EMAIL],
+      to: [...ADMIN_EMAILS],
       subject,
       html,
     }),

@@ -1,12 +1,19 @@
 "use server";
 
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
-import { isAdminEmail } from "@/lib/admin-config";
+import { isAdminUser } from "@/lib/admin-config";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+function safeAppPath(raw: string): string | null {
+  const s = raw.trim();
+  if (!s || !s.startsWith("/") || s.startsWith("//")) return null;
+  if (s.startsWith("/api")) return null;
+  return s;
+}
 
 async function redirectToRoleDashboard(supabase: SupabaseClient) {
   const {
@@ -17,7 +24,7 @@ async function redirectToRoleDashboard(supabase: SupabaseClient) {
     redirect("/auth");
   }
 
-  if (user.email && isAdminEmail(user.email)) {
+  if (user.email && isAdminUser(user.email)) {
     redirect("/admin");
   }
 
@@ -49,6 +56,7 @@ export async function authAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const nextRaw = String(formData.get("next") ?? "");
 
   if (!email || !password) {
     return {
@@ -90,7 +98,12 @@ export async function authAction(
 
   revalidatePath("/", "layout");
 
-  if (sessionUser.email && isAdminEmail(sessionUser.email)) {
+  const nextPath = safeAppPath(nextRaw);
+
+  if (sessionUser.email && isAdminUser(sessionUser.email)) {
+    if (nextPath?.startsWith("/admin")) {
+      redirect(nextPath);
+    }
     redirect("/admin");
   }
 
@@ -102,6 +115,10 @@ export async function authAction(
     const q = new URLSearchParams({ pending: "1" });
     if (sessionUser.email) q.set("email", sessionUser.email);
     redirect(`${onboardingRedirect}?${q.toString()}`);
+  }
+
+  if (nextPath) {
+    redirect(nextPath);
   }
 
   await redirectToRoleDashboard(supabase);

@@ -1,6 +1,6 @@
 "use server";
 
-import { isAdminEmail } from "@/lib/admin-config";
+import { isAdminUser } from "@/lib/admin-config";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,7 +14,7 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user?.email || !isAdminEmail(user.email)) {
+  if (!user?.email || !isAdminUser(user.email)) {
     return { error: "Unauthorized" as const, user: null };
   }
   return { error: null, user };
