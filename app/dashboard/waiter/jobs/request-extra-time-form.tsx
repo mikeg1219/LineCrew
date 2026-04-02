@@ -4,6 +4,7 @@ import {
   requestOverageAction,
   type RequestOverageState,
 } from "@/app/dashboard/waiter/jobs/overage-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 
@@ -33,16 +34,17 @@ export function RequestExtraTimeForm({ jobId }: { jobId: string }) {
           Extra time request sent to customer
         </p>
       )}
-      <button
-        type="submit"
+      <FormSubmitButton
+        pending={pending}
+        loadingLabel="Sending…"
         disabled={
           pending ||
           Boolean(state && "success" in state && state.success === true)
         }
         className="w-full rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600 disabled:opacity-60"
       >
-        {pending ? "Sending…" : "Request extra time (+30 min)"}
-      </button>
+        Request extra time (+30 min)
+      </FormSubmitButton>
     </form>
   );
 }

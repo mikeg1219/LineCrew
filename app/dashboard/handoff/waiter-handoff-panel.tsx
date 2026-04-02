@@ -7,6 +7,7 @@ import {
   waiterReadyForHandoffAction,
   type HandoffActionState,
 } from "@/app/dashboard/handoff/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import type { JobStatus } from "@/lib/types/job";
 import { useActionState, useState } from "react";
 
@@ -51,20 +52,27 @@ export function WaiterHandoffPanel({
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <form action={readyAction}>
           <input type="hidden" name="jobId" value={jobId} />
-          <button className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white" disabled={busy}>
+          <FormSubmitButton
+            pending={readyPending}
+            loadingLabel="Updating…"
+            disabled={busy}
+            className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
             Ready for handoff
-          </button>
+          </FormSubmitButton>
         </form>
         <form action={qrAction}>
           <input type="hidden" name="jobId" value={jobId} />
           <input type="hidden" name="lat" value={loc?.lat ?? ""} />
           <input type="hidden" name="lng" value={loc?.lng ?? ""} />
-          <button
-            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          <FormSubmitButton
+            pending={qrPending}
+            loadingLabel="Generating…"
             disabled={!canGenerateQr || busy}
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             Show Handoff QR
-          </button>
+          </FormSubmitButton>
         </form>
       </div>
 
@@ -93,12 +101,14 @@ export function WaiterHandoffPanel({
 
       <form action={confirmAction} className="mt-3">
         <input type="hidden" name="jobId" value={jobId} />
-        <button
-          className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        <FormSubmitButton
+          pending={confirmPending}
+          loadingLabel="Confirming…"
           disabled={!canConfirm || busy}
+          className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           I transferred the place successfully
-        </button>
+        </FormSubmitButton>
       </form>
 
       <form action={issueAction} className="mt-4 grid gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -116,9 +126,14 @@ export function WaiterHandoffPanel({
           placeholder="Optional notes / photo proof placeholder"
           className="min-h-20 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
         />
-        <button className="rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900" disabled={busy}>
+        <FormSubmitButton
+          pending={issuePending}
+          loadingLabel="Submitting…"
+          disabled={busy}
+          className="rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900 disabled:opacity-60"
+        >
           Report issue
-        </button>
+        </FormSubmitButton>
       </form>
 
       {err && <p className="mt-2 text-sm text-red-600">{err}</p>}

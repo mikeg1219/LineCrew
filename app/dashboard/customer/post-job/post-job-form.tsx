@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { AirportCombobox } from "@/app/dashboard/customer/post-job/airport-combobox";
 import { TerminalSelect } from "@/app/dashboard/customer/post-job/terminal-select";
 import { postJobAction, type PostJobState } from "@/app/dashboard/customer/post-job/actions";
@@ -28,13 +29,13 @@ const SHOW_PAYMENT_METHOD_SELECTOR =
   process.env.NODE_ENV !== "production";
 
 const inputClass =
-  "w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20";
+  "min-h-[44px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20";
 
 const labelClass = "mb-2 block text-sm font-medium text-slate-800";
 const hintClass = "mt-1.5 text-xs leading-relaxed text-slate-500";
 
 const sectionClass =
-  "rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6";
+  "w-full max-w-full rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:p-6";
 const sectionInner = "space-y-5";
 const sectionTitle = "text-base font-semibold tracking-tight text-slate-900";
 
@@ -91,7 +92,7 @@ export function PostJobForm({ initialDraft }: PostJobFormProps) {
     <form
       action={formAction}
       noValidate
-      className="mx-auto max-w-2xl space-y-6 sm:space-y-8"
+      className="mx-auto max-w-2xl space-y-6 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:space-y-8 md:pb-0"
     >
       {/* Timing */}
       <section className={sectionClass} aria-labelledby="section-timing">
@@ -381,7 +382,7 @@ export function PostJobForm({ initialDraft }: PostJobFormProps) {
               required
               value={offeredPrice}
               onChange={(e) => setOfferedPrice(e.target.value)}
-              className={inputClass}
+              className={`${inputClass} min-h-[52px] text-lg font-semibold tabular-nums`}
             />
             <p className={hintClass}>
               Minimum $10.00. Your card is charged this amount at checkout and
@@ -566,23 +567,42 @@ export function PostJobForm({ initialDraft }: PostJobFormProps) {
             </p>
           )}
 
-          <div className="flex flex-col gap-3 border-t border-slate-100 pt-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="order-1 w-full rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:order-none sm:w-auto sm:py-2.5"
+          <div className="hidden flex-col gap-3 border-t border-slate-100 pt-2 md:flex md:flex-row md:flex-wrap md:items-center md:gap-3">
+            <FormSubmitButton
+              pending={isPending}
+              loadingLabel="Saving…"
+              className="order-1 w-full rounded-lg bg-blue-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 md:order-none md:w-auto"
             >
-              {isPending ? "Saving…" : "Review booking →"}
-            </button>
+              Review booking →
+            </FormSubmitButton>
             <Link
               href="/dashboard/customer"
-              className="order-2 w-full rounded-lg border border-slate-200 px-5 py-3 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:order-none sm:w-auto sm:py-2.5"
+              className="order-2 flex w-full min-h-[44px] items-center justify-center rounded-lg border border-slate-200 px-5 py-3 text-center text-base font-medium text-slate-700 transition hover:bg-slate-50 md:order-none md:w-auto"
             >
               Cancel
             </Link>
           </div>
         </div>
       </section>
+
+      {/* Mobile: sticky actions above bottom tab bar */}
+      <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] z-30 border-t border-slate-200/90 bg-white/95 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-md supports-[padding:max(0px)]:pb-[max(0.75rem,env(safe-area-inset-bottom))] md:hidden">
+        <div className="mx-auto flex max-w-2xl flex-col gap-2">
+          <FormSubmitButton
+            pending={isPending}
+            loadingLabel="Saving…"
+            className="min-h-[48px] w-full rounded-xl bg-blue-600 px-5 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-blue-700 disabled:opacity-60"
+          >
+            Review booking →
+          </FormSubmitButton>
+          <Link
+            href="/dashboard/customer"
+            className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-base font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+          >
+            Cancel
+          </Link>
+        </div>
+      </div>
     </form>
   );
 }

@@ -6,6 +6,7 @@ import {
 } from "@/app/onboarding/actions";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect, useMemo, useState } from "react";
 
 const inputClass =
@@ -111,13 +112,13 @@ export function OnboardingAccountForm({ role }: { role: UserRole }) {
           {state.formError}
         </p>
       ) : null}
-      <button
-        type="submit"
-        disabled={pending}
+      <FormSubmitButton
+        pending={pending}
+        loadingLabel="Creating account..."
         className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
       >
-        {pending ? "Creating account..." : "Create account ->"}
-      </button>
+        Create account →
+      </FormSubmitButton>
       <p className="text-center text-sm text-slate-600">
         <Link href="/onboarding" className="font-medium text-blue-700 hover:text-blue-800">
           Back

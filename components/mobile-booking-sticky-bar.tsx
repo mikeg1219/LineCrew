@@ -18,7 +18,7 @@ export function MobileBookingStickyBar({ actions }: Props) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden"
+      className="fixed bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 border-t border-slate-200/90 bg-white/95 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 shadow-[0_-4px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm md:hidden"
       aria-label="Booking quick actions"
     >
       <div className="mx-auto flex max-w-3xl gap-2">
@@ -26,7 +26,7 @@ export function MobileBookingStickyBar({ actions }: Props) {
           <a
             key={`${a.href}-${a.label}`}
             href={a.href}
-            className={`flex min-h-[50px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl px-1.5 text-center text-[11px] font-semibold leading-tight transition active:scale-[0.99] sm:px-2.5 sm:text-sm ${
+            className={`flex min-h-[44px] min-w-0 flex-1 touch-manipulation items-center justify-center rounded-xl px-2 text-center text-[13px] font-semibold leading-tight transition active:scale-[0.99] sm:px-2.5 sm:text-sm ${
               a.emphasis
                 ? "bg-blue-600 text-white shadow-sm shadow-blue-600/25 hover:bg-blue-700"
                 : "border border-slate-200 bg-white text-slate-800 shadow-sm hover:bg-slate-50"

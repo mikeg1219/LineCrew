@@ -5,12 +5,17 @@ import {
   updateWaiterJobStatusAction,
   type JobActionState,
 } from "@/app/dashboard/waiter/jobs/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { ReportIssueModal } from "@/components/report-issue-modal";
-import { canTransitionTo } from "@/lib/job-status";
+import {
+  canTransitionTo,
+  PROVIDER_LINE_STATUS_LABELS,
+} from "@/lib/job-status";
 import type { JobStatus } from "@/lib/types/job";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 const initial: JobActionState = null;
 
@@ -71,10 +76,8 @@ export function LineHolderStatusPanel({
 }: {
   jobId: string;
   currentStatus: JobStatus;
-  /** When false, Accept booking is disabled until setup (profile, payouts, etc.). */
   acceptSetupReady?: boolean;
   acceptSetupHint?: string;
-  /** False for open-preview (not yet assigned); RLS requires assigned waiter. */
   allowReportIssue?: boolean;
 }) {
   const router = useRouter();
@@ -85,13 +88,47 @@ export function LineHolderStatusPanel({
     acceptJobAction,
     initial
   );
-  const [updateState, updateAction, updatePending] = useActionState(
-    updateWaiterJobStatusAction,
-    initial
-  );
 
-  const pending = acceptPending || updatePending;
-  const err = acceptState?.error ?? updateState?.error;
+  const [optimisticStatus, setOptimisticStatus] = useState<JobStatus | null>(
+    null
+  );
+  const [statusBusy, setStatusBusy] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOptimisticStatus(null);
+    setStatusError(null);
+  }, [currentStatus]);
+
+  const pending = acceptPending || statusBusy;
+  const err = acceptState?.error ?? statusError;
+
+  async function handleStatusUpdate(nextStatus: JobStatus) {
+    if (!canTransitionTo(currentStatus, nextStatus) || statusBusy) return;
+    setStatusError(null);
+    setOptimisticStatus(nextStatus);
+    setStatusBusy(true);
+    const fd = new FormData();
+    fd.set("jobId", jobId);
+    fd.set("nextStatus", nextStatus);
+    try {
+      const result = await updateWaiterJobStatusAction(null, fd);
+      if (result?.error) {
+        setOptimisticStatus(null);
+        setStatusError(result.error);
+      }
+    } catch (e) {
+      if (isRedirectError(e)) {
+        throw e;
+      }
+      setOptimisticStatus(null);
+      setStatusError(
+        e instanceof Error ? e.message : "Could not update status. Try again."
+      );
+    } finally {
+      setStatusBusy(false);
+    }
+  }
 
   if (
     currentStatus === "completed" ||
@@ -115,6 +152,22 @@ export function LineHolderStatusPanel({
         Status update actions for this booking. Only the next step is active.
       </span>
 
+      {optimisticStatus && optimisticStatus !== currentStatus && (
+        <div
+          className="rounded-xl border border-blue-200 bg-blue-50/90 px-4 py-3 text-sm font-medium text-blue-900 shadow-sm ring-1 ring-blue-100/80"
+          role="status"
+          aria-live="polite"
+        >
+          Showing:{" "}
+          <span className="font-semibold">
+            {PROVIDER_LINE_STATUS_LABELS[optimisticStatus]}
+          </span>
+          {statusBusy ? (
+            <span className="ml-2 text-blue-700/90">Saving…</span>
+          ) : null}
+        </div>
+      )}
+
       {currentStatus === "open" && (
         <form action={acceptAction} className="w-full">
           <input type="hidden" name="jobId" value={jobId} />
@@ -136,13 +189,14 @@ export function LineHolderStatusPanel({
               </Link>
             </p>
           )}
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={acceptPending}
+            loadingLabel="Accepting…"
             disabled={pending || !acceptSetupReady}
             className="w-full min-h-[52px] rounded-2xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 touch-manipulation"
           >
-            {acceptPending ? "Accepting…" : "Accept booking"}
-          </button>
+            Accept booking
+          </FormSubmitButton>
         </form>
       )}
 
@@ -160,58 +214,60 @@ export function LineHolderStatusPanel({
             </div>
           )}
           <ol className="flex list-none flex-col gap-2 sm:gap-2.5" aria-label="Progress steps">
-          {STEPS.map(({ nextStatus, label, hint }, idx) => {
-            const stepNum = idx + 1;
-            const enabled = canTransitionTo(currentStatus, nextStatus);
-            const handoffCompleteStep =
-              enabled && nextStatus === "pending_confirmation";
-            return (
-              <li key={nextStatus} className="flex gap-3 sm:gap-4">
-                <span
-                  className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums sm:size-11 sm:text-sm ${
-                    enabled
-                      ? handoffCompleteStep
-                        ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/40"
-                        : "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
-                      : "border border-slate-200 bg-slate-50 text-slate-400"
-                  }`}
-                  aria-hidden
-                >
-                  {stepNum}
-                </span>
-                <form action={updateAction} className="min-w-0 flex-1">
-                  <input type="hidden" name="jobId" value={jobId} />
-                  <input type="hidden" name="nextStatus" value={nextStatus} />
-                  <button
-                    type="submit"
-                    disabled={!enabled || pending}
-                    className={`flex w-full min-h-[56px] flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 touch-manipulation sm:min-h-0 sm:py-3.5 ${
+            {STEPS.map(({ nextStatus, label, hint }, idx) => {
+              const stepNum = idx + 1;
+              const enabled =
+                canTransitionTo(currentStatus, nextStatus) && !pending;
+              const handoffCompleteStep =
+                enabled && nextStatus === "pending_confirmation";
+              const isUpdatingThis =
+                optimisticStatus === nextStatus && statusBusy;
+              return (
+                <li key={nextStatus} className="flex gap-3 sm:gap-4">
+                  <span
+                    className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums sm:size-11 sm:text-sm ${
                       enabled
                         ? handoffCompleteStep
-                          ? "border-amber-500 bg-amber-50/90 shadow-md ring-2 ring-amber-400/50 hover:bg-amber-50"
-                          : "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/20 hover:bg-blue-50"
-                        : "border-slate-200 bg-white ring-1 ring-slate-900/5 hover:border-slate-300 disabled:hover:border-slate-200"
+                          ? "bg-amber-600 text-white shadow-sm ring-2 ring-amber-500/40"
+                          : "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/30"
+                        : "border border-slate-200 bg-slate-50 text-slate-400"
                     }`}
+                    aria-hidden
                   >
-                    <span className="text-sm font-semibold text-slate-900">
-                      {label}
-                      {enabled && (
-                        <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-blue-700">
-                          Next
+                    {stepNum}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      disabled={!enabled || pending}
+                      onClick={() => void handleStatusUpdate(nextStatus)}
+                      className={`flex w-full min-h-[56px] flex-col items-start justify-center rounded-2xl border px-4 py-3 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100 touch-manipulation sm:min-h-0 sm:py-3.5 ${
+                        enabled
+                          ? handoffCompleteStep
+                            ? "border-amber-500 bg-amber-50/90 shadow-md ring-2 ring-amber-400/50 hover:bg-amber-50"
+                            : "border-blue-500 bg-blue-50/60 shadow-sm ring-2 ring-blue-500/20 hover:bg-blue-50"
+                          : "border-slate-200 bg-white ring-1 ring-slate-900/5 hover:border-slate-300 disabled:hover:border-slate-200"
+                      } ${isUpdatingThis ? "ring-2 ring-blue-400/60" : ""}`}
+                    >
+                      <span className="text-sm font-semibold text-slate-900">
+                        {label}
+                        {enabled && (
+                          <span className="ml-2 text-xs font-semibold uppercase tracking-wide text-blue-700">
+                            Next
+                          </span>
+                        )}
+                      </span>
+                      {hint && (
+                        <span className="mt-1 text-xs leading-snug text-slate-500">
+                          {hint}
                         </span>
                       )}
-                    </span>
-                    {hint && (
-                      <span className="mt-1 text-xs leading-snug text-slate-500">
-                        {hint}
-                      </span>
-                    )}
-                  </button>
-                </form>
-              </li>
-            );
-          })}
-        </ol>
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
         </>
       )}
 

@@ -15,7 +15,7 @@ function StepDot({
 }) {
   return (
     <span
-      className={`relative flex size-10 shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-colors ${
+      className={`relative flex size-11 min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full text-xs font-bold shadow-sm transition-colors ${
         isDone
           ? "bg-emerald-600 text-white"
           : isCurrent
@@ -133,7 +133,7 @@ export function BookingProgressTracker({ status }: { status: JobStatus }) {
                 </div>
                 {i < BOOKING_PROGRESS_STEPS.length - 1 && (
                   <div
-                    className={`mx-1 mt-5 h-0.5 min-w-[0.75rem] flex-1 rounded-full sm:mx-2 ${
+                    className={`mx-1 mt-[1.375rem] h-0.5 min-w-[0.75rem] flex-1 rounded-full sm:mx-2 ${
                       isDone ? "bg-emerald-500/80" : "bg-slate-200"
                     }`}
                     aria-hidden
@@ -166,7 +166,7 @@ export function BookingProgressTracker({ status }: { status: JobStatus }) {
             <li key={step.key} className="relative flex gap-4 pb-8 last:pb-0">
               {!isLast && (
                 <span
-                  className={`absolute left-5 top-10 h-[calc(100%-0.5rem)] w-0.5 -translate-x-1/2 ${
+                  className={`absolute left-[1.375rem] top-11 h-[calc(100%-0.5rem)] w-0.5 -translate-x-1/2 ${
                     isDone ? "bg-emerald-500/80" : "bg-slate-200"
                   }`}
                   aria-hidden
@@ -179,7 +179,7 @@ export function BookingProgressTracker({ status }: { status: JobStatus }) {
               />
               <div className="min-w-0 flex-1 pt-1.5">
                 <p
-                  className={`text-sm font-semibold ${
+                  className={`text-base font-semibold leading-snug sm:text-sm ${
                     isCurrent || isDone ? "text-slate-900" : "text-slate-400"
                   }`}
                 >

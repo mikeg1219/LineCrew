@@ -35,6 +35,21 @@ body {
   font-family: var(--font-inter), system-ui, sans-serif;
 }
 
+/**
+ * Prevent iOS Safari from zooming inputs on focus (font-size must be ≥16px).
+ * Components still use `text-base` on inputs for explicit Tailwind parity.
+ */
+@layer base {
+  :where(
+      input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="file"]),
+      textarea,
+      select
+    ) {
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
 @layer components {
   /** Zone 2 — dashboard cards */
   .linecrew-card {

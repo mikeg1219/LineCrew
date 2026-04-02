@@ -1,6 +1,7 @@
 "use client";
 
 import { saveServiceAreasAction } from "@/app/dashboard/waiter/service-areas/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { US_AIRPORTS_TOP_20 } from "@/lib/airports";
 import { useActionState } from "react";
 
@@ -37,13 +38,13 @@ export function ServiceAreasForm({
         ))}
       </ul>
       {state?.error && <p className="text-sm text-red-600">{state.error}</p>}
-      <button
-        type="submit"
-        disabled={pending}
+      <FormSubmitButton
+        pending={pending}
+        loadingLabel="Saving…"
         className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
       >
-        {pending ? "Saving…" : "Save service areas"}
-      </button>
+        Save service areas
+      </FormSubmitButton>
     </form>
   );
 }

@@ -28,16 +28,16 @@ export async function HomeHeroCTAs() {
 
   return (
     <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+      <div className="flex w-full max-w-md flex-col gap-3 sm:mx-auto sm:max-w-none sm:flex-row sm:gap-4">
         <Link
           href={bookHref}
-          className="rounded-2xl bg-white px-8 py-4 text-center text-sm font-bold text-blue-600 shadow-lg shadow-blue-900/15 transition hover:bg-blue-50 sm:text-base"
+          className="inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-2xl bg-white px-8 py-4 text-center text-base font-bold text-blue-600 shadow-lg shadow-blue-900/15 transition hover:bg-blue-50 sm:w-auto"
         >
           Book a Line Holder
         </Link>
         <Link
           href={becomeHref}
-          className="rounded-2xl border-2 border-white bg-transparent px-8 py-4 text-center text-sm font-semibold text-white transition hover:bg-white/10 sm:text-base"
+          className="inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-2xl border-2 border-white bg-transparent px-8 py-4 text-center text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
         >
           Start earning
         </Link>
@@ -46,7 +46,7 @@ export async function HomeHeroCTAs() {
         Already have an account?{" "}
         <Link
           href="/auth"
-          className="font-medium text-white underline decoration-white/40 underline-offset-2 transition hover:text-white hover:decoration-white"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-medium text-white underline decoration-white/40 underline-offset-2 transition hover:text-white hover:decoration-white"
         >
           Sign in
         </Link>

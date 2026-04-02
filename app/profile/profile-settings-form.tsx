@@ -28,6 +28,7 @@ import {
   validateProcessedAvatarBlob,
 } from "@/lib/avatar-storage";
 import { AvatarCropModal } from "@/components/avatar-crop-modal";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { getCroppedSquareJpegBlob } from "@/lib/crop-image";
 import { AVATAR_MAX_DIMENSION, processAvatarImageToJpeg } from "@/lib/process-avatar-image";
 import type { Area } from "react-easy-crop";
@@ -143,7 +144,7 @@ type ProfileSaveFeedback =
     };
 
 const inputClass =
-  "min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:min-h-0 sm:text-sm";
+  "min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:min-h-0";
 
 const labelClass =
   "mb-1.5 block text-sm font-medium leading-snug text-slate-700";
@@ -1104,7 +1105,7 @@ export function ProfileSettingsForm({
       )}
 
       <nav
-        className="flex gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
+        className="flex snap-x snap-mandatory gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
         role="tablist"
         aria-label="Profile sections"
       >
@@ -1117,7 +1118,7 @@ export function ProfileSettingsForm({
             aria-selected={activeTab === t.id}
             tabIndex={activeTab === t.id ? 0 : -1}
             onClick={() => navigateToTab(t.id)}
-            className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition sm:px-4 ${
+            className={`snap-start shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition sm:min-h-0 sm:px-4 sm:py-2.5 ${
               activeTab === t.id
                 ? "border-blue-600 text-blue-700"
                 : "border-transparent text-slate-600 hover:text-slate-900"
@@ -1461,13 +1462,14 @@ export function ProfileSettingsForm({
         ) : null}
 
         <div className="mt-6 flex justify-end">
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={savingTab === "info"}
+            loadingLabel="Saving…"
             disabled={savingTab === "info"}
             className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
           >
-            {savingTab === "info" ? "Saving…" : "Save info"}
-          </button>
+            Save info
+          </FormSubmitButton>
         </div>
       </section>
       </form>
@@ -1529,13 +1531,14 @@ export function ProfileSettingsForm({
             </p>
           ) : null}
           <div className="mt-6 flex justify-end">
-            <button
-              type="submit"
+            <FormSubmitButton
+              pending={savingTab === "settings"}
+              loadingLabel="Saving…"
               disabled={savingTab === "settings"}
               className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
             >
-              {savingTab === "settings" ? "Saving…" : "Save settings"}
-            </button>
+              Save settings
+            </FormSubmitButton>
           </div>
         </section>
         </form>
@@ -1812,13 +1815,14 @@ export function ProfileSettingsForm({
             </p>
           ) : null}
           <div className="mt-6 flex justify-end">
-            <button
-              type="submit"
+            <FormSubmitButton
+              pending={savingTab === "settings"}
+              loadingLabel="Saving…"
               disabled={savingTab === "settings"}
               className="min-h-[48px] w-full rounded-xl bg-blue-600 px-6 text-sm font-semibold text-white shadow-md shadow-blue-600/20 transition hover:bg-blue-700 disabled:opacity-60 sm:w-auto sm:min-w-[11rem]"
             >
-              {savingTab === "settings" ? "Saving…" : "Save settings"}
-            </button>
+              Save settings
+            </FormSubmitButton>
           </div>
         </section>
         </form>

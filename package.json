@@ -23,7 +23,8 @@
     "mobile:android:open": "npx cap open android",
     "mobile:ios:add": "npx cap add ios",
     "mobile:ios:sync": "npx cap sync ios",
-    "mobile:ios:open": "npx cap open ios"
+    "mobile:ios:open": "npx cap open ios",
+    "og:image": "node scripts/generate-og-image.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.0",
@@ -48,6 +49,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

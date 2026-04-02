@@ -18,6 +18,7 @@ import {
 } from "@/lib/phone";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useMemo, useState } from "react";
 
 const inputClass =
@@ -230,13 +231,13 @@ export function WaiterOnboardingProfileForm({
         </p>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
+      <FormSubmitButton
+        pending={pending}
+        loadingLabel="Saving…"
         className="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
       >
-        {pending ? "Saving..." : "Start earning →"}
-      </button>
+        Start earning →
+      </FormSubmitButton>
 
       <p className="text-center text-sm text-slate-600">
         <Link href="/onboarding/verify" className="font-medium text-blue-700 hover:text-blue-800">

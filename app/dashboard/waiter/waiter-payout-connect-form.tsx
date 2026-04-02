@@ -4,32 +4,11 @@ import {
   startStripeConnectOnboardingAction,
   type ConnectState,
 } from "@/app/dashboard/waiter/connect/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
-import { useFormStatus } from "react-dom";
 import { useState } from "react";
 
 const initial: ConnectState = null;
-
-function ConnectSubmitButton({
-  buttonClassName,
-  label,
-  pendingLabel,
-}: {
-  buttonClassName: string;
-  label: string;
-  pendingLabel: string;
-}) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className={buttonClassName}
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
 
 export function WaiterPayoutConnectForm({
   buttonClassName,
@@ -70,11 +49,12 @@ export function WaiterPayoutConnectForm({
       <form action={submitAction}>
         <input type="hidden" name="returnTo" value={returnTo} />
         <input type="hidden" name="mode" value={mode} />
-        <ConnectSubmitButton
-          buttonClassName={buttonClassName}
-          label={label}
-          pendingLabel={pendingLabel}
-        />
+        <FormSubmitButton
+          loadingLabel={pendingLabel}
+          className={buttonClassName}
+        >
+          {label}
+        </FormSubmitButton>
       </form>
       {state?.error ? (
         <p className="mt-2 text-sm text-red-600">{state.error}</p>

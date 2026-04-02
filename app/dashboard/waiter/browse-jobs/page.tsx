@@ -146,7 +146,7 @@ export default async function BrowseJobsPage({
     <div className="pb-12">
       <Link
         href="/dashboard/waiter"
-        className="text-sm font-medium text-blue-700 hover:text-blue-800"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"
       >
         ← Back to dashboard
       </Link>
@@ -211,11 +211,11 @@ export default async function BrowseJobsPage({
       )}
 
       {!error && list.length > 0 && (
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {list.map((job) => (
             <li
               key={job.id}
-              className="linecrew-card p-5 transition hover:border-blue-200/80 hover:shadow-md"
+              className="linecrew-card w-full max-w-full p-5 transition hover:border-blue-200/80 hover:shadow-md"
             >
               <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
                 {airportLabel(job.airport)}
@@ -236,14 +236,8 @@ export default async function BrowseJobsPage({
                 Location {job.terminal}
                 {job.description ? ` · ${job.description}` : ""}
               </p>
-              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <Link
-                  href={`/dashboard/waiter/jobs/${job.id}`}
-                  className="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:flex-none sm:min-w-[10rem]"
-                >
-                  View booking
-                </Link>
-                <div className="min-w-0 flex-1 sm:max-w-xs">
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="order-1 w-full sm:order-2 sm:max-w-xs">
                   <AcceptJobForm
                     jobId={job.id}
                     gate2Unlocked={gate2Unlocked}
@@ -251,6 +245,12 @@ export default async function BrowseJobsPage({
                     setupHint={acceptHint}
                   />
                 </div>
+                <Link
+                  href={`/dashboard/waiter/jobs/${job.id}`}
+                  className="order-2 inline-flex min-h-[44px] w-full flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-center text-sm font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50 sm:order-1 sm:w-auto sm:flex-none sm:min-w-[10rem]"
+                >
+                  View booking
+                </Link>
               </div>
             </li>
           ))}

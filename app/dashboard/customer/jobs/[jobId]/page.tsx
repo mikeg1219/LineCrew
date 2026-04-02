@@ -24,6 +24,7 @@ import { profileResolvedLabel } from "@/lib/profile-display-name";
 import { createClient } from "@/lib/supabase/server";
 import type { Job, JobStatus } from "@/lib/types/job";
 import type { OverageRequest } from "@/lib/types/overage";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
 import Link from "next/link";
@@ -181,12 +182,17 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
   const handoffUrgent =
     status === "near_front" || status === "pending_confirmation";
 
+  const stickyPad =
+    stickyActions.length > 0
+      ? "pb-[calc(10rem+env(safe-area-inset-bottom))] md:pb-12"
+      : "pb-12";
+
   return (
-    <div className="mx-auto w-full max-w-3xl pb-12 pt-8">
+    <div className={`mx-auto w-full max-w-3xl pt-8 ${stickyPad}`}>
       <BookingTrackingLive jobId={job.id} />
       <Link
         href="/dashboard/customer"
-        className="text-sm font-medium text-blue-700 hover:text-blue-800"
+        className="inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"
       >
         ← Back to dashboard
       </Link>
@@ -446,7 +452,9 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
         </div>
 
         <div id="booking-more-actions" className="scroll-mt-28">
-          <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
+          <ErrorBoundary sectionLabel="Booking actions">
+            <CustomerBookingExtraActions jobId={job.id} canCancel={canCancel} />
+          </ErrorBoundary>
         </div>
       </div>
 

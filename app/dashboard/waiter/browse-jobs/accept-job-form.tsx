@@ -1,6 +1,7 @@
 "use client";
 
 import { acceptJobAction, type JobActionState } from "@/app/dashboard/waiter/jobs/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState } from "react";
 
 const initial: JobActionState = null;
@@ -30,24 +31,25 @@ export function AcceptJobForm({
       {blockedByGate2 ? null : !canAccept && setupHint ? (
         <p className="text-xs leading-snug text-amber-900/90">{setupHint}</p>
       ) : null}
-      <button
-        type="submit"
+      <FormSubmitButton
+        pending={pending}
+        loadingLabel="Accepting…"
         title={
           blockedByGate2
             ? "Complete your profile to accept bookings"
             : undefined
         }
         disabled={disabled}
-        className={`w-full rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+        className={`w-full min-h-[52px] rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition touch-manipulation active:scale-[0.99] ${
           disabled
             ? blockedByGate2
               ? "cursor-not-allowed bg-slate-300 text-slate-600"
               : "bg-blue-600 text-white opacity-60"
-            : "bg-blue-600 text-white hover:bg-blue-700"
+            : "bg-blue-600 text-white shadow-blue-600/25 hover:bg-blue-700"
         }`}
       >
-        {pending ? "Accepting…" : "Accept booking"}
-      </button>
+        Accept booking
+      </FormSubmitButton>
     </form>
   );
 }

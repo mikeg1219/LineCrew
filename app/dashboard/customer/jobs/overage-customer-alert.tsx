@@ -5,6 +5,7 @@ import {
   declineOverageAction,
   type OverageDecisionState,
 } from "@/app/dashboard/customer/jobs/overage-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect, useState } from "react";
 
 const initial: OverageDecisionState = null;
@@ -74,24 +75,26 @@ export function OverageCustomerAlert({
         <form action={approveAction}>
           <input type="hidden" name="jobId" value={jobId} />
           <input type="hidden" name="requestId" value={requestId} />
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={approvePending}
+            loadingLabel="Approving…"
             disabled={approvePending || declinePending}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
           >
-            {approvePending ? "…" : "Approve"}
-          </button>
+            Approve
+          </FormSubmitButton>
         </form>
         <form action={declineAction}>
           <input type="hidden" name="jobId" value={jobId} />
           <input type="hidden" name="requestId" value={requestId} />
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={declinePending}
+            loadingLabel="Declining…"
             disabled={approvePending || declinePending}
             className="rounded-lg border border-amber-800/30 bg-white px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-100 disabled:opacity-60"
           >
-            {declinePending ? "…" : "Decline"}
-          </button>
+            Decline
+          </FormSubmitButton>
         </form>
       </div>
     </div>

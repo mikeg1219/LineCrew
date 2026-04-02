@@ -1,5 +1,22 @@
 # LineCrew Progress Log
 
+## Phase 5 — Pre-Launch (April 2, 2026)
+
+### Completed
+- Mobile optimization across all key pages
+- Loading skeletons and error boundaries
+- SEO meta tags and social sharing
+- Sitemap.xml and robots.txt
+- Go-live checklist created
+
+### Remaining Before Launch
+- Switch Stripe to live mode
+- Complete Stripe Connect setup
+- Legal review
+- Final E2E testing
+
+---
+
 ## Phase 4 — Complete (April 2, 2026)
 
 **Status:** Shipped to production — https://linecrew.ai

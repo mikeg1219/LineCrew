@@ -1,8 +1,28 @@
 import { OnboardingProgress } from "@/app/onboarding/_components/onboarding-progress";
 import { CenteredGradientCardShell } from "@/components/centered-gradient-card-shell";
+import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: { absolute: "Create your LineCrew account" },
+  description:
+    "Create your LineCrew.ai account as a customer or Line Holder in a few guided steps.",
+  openGraph: {
+    url: "https://linecrew.ai/onboarding",
+    title: "Create your LineCrew account",
+    description:
+      "Sign up to book line holders or earn as a Line Holder on LineCrew.ai.",
+  },
+  twitter: {
+    title: "Create your LineCrew account",
+    description:
+      "Sign up to book line holders or earn as a Line Holder on LineCrew.ai.",
+  },
+  alternates: { canonical: "https://linecrew.ai/onboarding" },
+};
 
 type OnboardingIndexProps = {
   searchParams: Promise<{ role?: string | string[] }>;
@@ -62,6 +82,8 @@ export default async function OnboardingIndexPage({
             height={52}
             className="h-10 w-auto"
             priority
+            placeholder="blur"
+            blurDataURL={TINY_BLUR_DATA_URL}
           />
         </div>
         <OnboardingProgress currentStep={1} title="Create account" />

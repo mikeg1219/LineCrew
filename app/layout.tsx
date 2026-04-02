@@ -14,9 +14,38 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LineCrew — On-demand line holding marketplace",
+  metadataBase: new URL("https://linecrew.ai"),
+  title: {
+    default: "LineCrew.ai — On-demand line holding marketplace",
+    template: "%s | LineCrew.ai",
+  },
   description:
-    "Book trusted Line Holders for airports, events, retail drops, services, and other high-wait situations.",
+    "Book trusted Line Holders for airports, concerts, theme parks, and more. We hold your spot so you don't have to.",
+  keywords: [
+    "line holder",
+    "airport security",
+    "skip the line",
+    "line waiting service",
+    "concert line",
+    "theme park",
+  ],
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://linecrew.ai",
+    siteName: "LineCrew.ai",
+    title: "LineCrew.ai — Save your spot. Keep your day moving.",
+    description:
+      "Book trusted Line Holders for airports, concerts, theme parks, and more.",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LineCrew.ai — Save your spot. Keep your day moving.",
+    description:
+      "Book trusted Line Holders for airports, concerts, theme parks, and more.",
+    images: ["/og-image.png"],
+  },
   icons: {
     icon: "/linecrew-logo.png",
     shortcut: "/linecrew-logo.png",

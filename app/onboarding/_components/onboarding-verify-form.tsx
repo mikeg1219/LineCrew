@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/lib/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect, useState } from "react";
 
 export function OnboardingVerifyForm({
@@ -110,8 +111,9 @@ export function OnboardingVerifyForm({
         {resendState && "success" in resendState ? (
           <p className="mb-2 text-sm text-slate-600">{resendState.message}</p>
         ) : null}
-        <button
-          type="submit"
+        <FormSubmitButton
+          pending={resendPending}
+          loadingLabel="Sending…"
           disabled={resendPending || cooldown > 0}
           onClick={() => {
             if (cooldown === 0) {
@@ -120,12 +122,8 @@ export function OnboardingVerifyForm({
           }}
           className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 hover:bg-slate-50 disabled:opacity-60"
         >
-          {cooldown > 0
-            ? `Resend in ${cooldown}s`
-            : resendPending
-              ? "Sending..."
-              : "Resend email"}
-        </button>
+          {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend email"}
+        </FormSubmitButton>
       </form>
 
       <p className="text-center text-sm text-slate-600">

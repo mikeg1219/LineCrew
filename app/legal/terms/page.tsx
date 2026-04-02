@@ -1,4 +1,23 @@
 import { PolicyShell } from "@/app/legal/policy-shell";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description:
+    "Terms of Service for the LineCrew.ai marketplace and independent Line Holders.",
+  openGraph: {
+    url: "https://linecrew.ai/legal/terms",
+    title: "Terms of Service | LineCrew.ai",
+    description:
+      "Terms of Service for the LineCrew.ai marketplace and independent Line Holders.",
+  },
+  twitter: {
+    title: "Terms of Service | LineCrew.ai",
+    description:
+      "Terms of Service for the LineCrew.ai marketplace and independent Line Holders.",
+  },
+  alternates: { canonical: "https://linecrew.ai/legal/terms" },
+};
 
 export default function TermsPage() {
   return (

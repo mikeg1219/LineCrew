@@ -21,6 +21,7 @@ import {
   isWaiterAcceptSetupComplete,
   waiterAcceptSetupShortfallMessage,
 } from "@/lib/waiter-profile-complete";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { MobileBookingStickyBar } from "@/components/mobile-booking-sticky-bar";
 import { ReportJobIssueForm } from "@/components/report-job-issue-form";
 import { isProfileCompleteForBookings } from "@/lib/profile-booking-gate";
@@ -326,14 +327,16 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
             </div>
           ) : (
             <div className="space-y-4">
-              <LineHolderStatusPanel
-                key={job.id}
-                jobId={job.id}
-                currentStatus={status}
-                acceptSetupReady={canAcceptJobs}
-                acceptSetupHint={acceptSetupHint}
-                allowReportIssue={isAssigned}
-              />
+              <ErrorBoundary sectionLabel="Status updates">
+                <LineHolderStatusPanel
+                  key={job.id}
+                  jobId={job.id}
+                  currentStatus={status}
+                  acceptSetupReady={canAcceptJobs}
+                  acceptSetupHint={acceptSetupHint}
+                  allowReportIssue={isAssigned}
+                />
+              </ErrorBoundary>
               {(status === "near_front" ||
                 status === "customer_on_the_way" ||
                 status === "ready_for_handoff" ||

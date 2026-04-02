@@ -5,28 +5,16 @@ import {
   contactLineHolderForBooking,
   type BookingContactFormState,
 } from "@/app/dashboard/booking-contact/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect, useRef } from "react";
 
 const initial = null as BookingContactFormState;
 
-function SubmitLabel({
-  target,
-  pending,
-}: {
-  target: "line_holder" | "customer";
-  pending: boolean;
-}) {
-  const label =
-    target === "line_holder" ? "Notify Line Holder" : "Notify customer";
-  return (
-    <>
-      {pending ? "Sending…" : label}
-      <span className="ml-2 rounded-md bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-        One-way
-      </span>
-    </>
-  );
-}
+const oneWayBadge = (
+  <span className="ml-2 rounded-md bg-slate-200/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+    One-way
+  </span>
+);
 
 type Props = {
   jobId: string;
@@ -89,13 +77,20 @@ export function BookingContactPanel({
           placeholder="Optional short message (max 200 characters)"
           className="min-h-[88px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-[15px] text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:text-sm"
         />
-        <button
-          type="submit"
+        <FormSubmitButton
+          pending={pending}
+          loadingLabel={
+            <>
+              Sending…
+              {oneWayBadge}
+            </>
+          }
           disabled={pending}
           className="flex w-full min-h-[48px] touch-manipulation items-center justify-center rounded-xl border border-blue-600 bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-70"
         >
-          <SubmitLabel target={contactTarget} pending={pending} />
-        </button>
+          {contactTarget === "line_holder" ? "Notify Line Holder" : "Notify customer"}
+          {oneWayBadge}
+        </FormSubmitButton>
       </form>
       {state?.error ? (
         <p className="mt-3 text-sm text-red-600" role="alert">

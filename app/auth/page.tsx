@@ -1,6 +1,25 @@
 import { AuthForm } from "@/app/auth/auth-form";
 import { CenteredGradientCardShell } from "@/components/centered-gradient-card-shell";
+import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: { absolute: "Sign in to LineCrew.ai" },
+  description:
+    "Sign in to book trusted Line Holders or manage your Line Holder account on LineCrew.ai.",
+  openGraph: {
+    url: "https://linecrew.ai/auth",
+    title: "Sign in to LineCrew.ai",
+    description:
+      "Sign in to book trusted Line Holders or manage your Line Holder account.",
+  },
+  twitter: {
+    title: "Sign in to LineCrew.ai",
+    description:
+      "Sign in to book trusted Line Holders or manage your Line Holder account.",
+  },
+  alternates: { canonical: "https://linecrew.ai/auth" },
+};
 
 export default function AuthPage() {
   return (

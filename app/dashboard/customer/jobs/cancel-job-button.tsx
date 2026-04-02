@@ -4,6 +4,7 @@ import {
   cancelJobAction,
   type CustomerJobActionState,
 } from "@/app/dashboard/customer/jobs/customer-job-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useState } from "react";
 
 const initial: CustomerJobActionState = null;
@@ -18,7 +19,7 @@ export function CancelJobButton({ jobId }: { jobId: string }) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="text-sm font-medium text-red-700 underline-offset-2 hover:underline"
+          className="inline-flex min-h-[44px] w-full items-center justify-center rounded-lg text-sm font-medium text-red-700 underline-offset-2 hover:bg-red-50 hover:underline sm:inline sm:w-auto sm:justify-start"
         >
           Cancel booking
         </button>
@@ -30,25 +31,25 @@ export function CancelJobButton({ jobId }: { jobId: string }) {
             <textarea
               name="reason"
               rows={2}
-              className="mt-1 w-full rounded border border-slate-200 px-2 py-1.5 text-sm"
+              className="mt-1 min-h-[44px] w-full rounded border border-slate-200 px-3 py-2.5 text-base"
               placeholder="Why are you cancelling?"
             />
           </label>
           {state?.error && (
             <p className="text-sm text-red-700">{state.error}</p>
           )}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={pending}
-              className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <FormSubmitButton
+              pending={pending}
+              loadingLabel="Cancelling…"
+              className="min-h-[44px] w-full rounded-lg bg-red-600 px-4 py-3 text-base font-semibold text-white hover:bg-red-700 disabled:opacity-60 sm:w-auto"
             >
-              {pending ? "Cancelling…" : "Confirm cancel"}
-            </button>
+              Confirm cancel
+            </FormSubmitButton>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700"
+              className="min-h-[44px] w-full rounded-lg border border-slate-200 px-4 py-3 text-base text-slate-700 sm:w-auto"
             >
               Back
             </button>

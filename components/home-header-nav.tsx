@@ -1,3 +1,4 @@
+import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
 import Image from "next/image";
 import Link from "next/link";
 import { getBookingDraftCookie } from "@/lib/booking-draft-cookie";
@@ -38,9 +39,10 @@ export async function HomeHeaderNav() {
         ? "/dashboard/customer"
         : "/dashboard";
 
-  const linkMuted = "text-sm font-medium text-white/90 transition hover:text-white";
+  const linkMuted =
+    "inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-sm font-medium text-white/90 transition hover:text-white";
   const ctaClass =
-    "inline-flex min-h-[44px] shrink-0 items-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-900/20 transition hover:bg-blue-500";
+    "inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-blue-900/20 transition hover:bg-blue-500";
 
   return (
     <div className="flex w-full items-center justify-between gap-4">
@@ -52,6 +54,8 @@ export async function HomeHeaderNav() {
           height={54}
           className="h-8 w-auto"
           priority
+          placeholder="blur"
+          blurDataURL={TINY_BLUR_DATA_URL}
         />
       </Link>
 
@@ -62,7 +66,7 @@ export async function HomeHeaderNav() {
         {user && customerHasBookingDraft ? (
           <Link
             href="/dashboard/customer/booking-review"
-            className="inline-flex min-h-[40px] shrink-0 items-center rounded-lg border border-amber-200/80 bg-amber-400/20 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-400/30 sm:text-sm"
+            className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-lg border border-amber-200/80 bg-amber-400/20 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-400/30 sm:text-sm"
           >
             Continue to review
           </Link>

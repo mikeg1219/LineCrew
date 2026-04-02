@@ -1,5 +1,6 @@
 "use client";
 
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   useCallback,
@@ -34,6 +35,7 @@ export function QRScannerLive({ onParsed, onError }: QRScannerLiveProps) {
   const [successFlash, setSuccessFlash] = useState(false);
   const [finished, setFinished] = useState(false);
   const [manualCode, setManualCode] = useState("");
+  const [manualVerifyBusy, setManualVerifyBusy] = useState(false);
 
   const skipCamera = permissionDenied || useCodeInstead || finished;
 
@@ -133,14 +135,19 @@ export function QRScannerLive({ onParsed, onError }: QRScannerLiveProps) {
     setUseCodeInstead(true);
   };
 
-  const handleManualSubmit = (e: React.FormEvent) => {
+  const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const v = manualCode.trim();
     if (!v) return;
-    void stopScanner();
-    setFinished(true);
-    onParsed(v);
-    setSuccessFlash(true);
+    setManualVerifyBusy(true);
+    try {
+      await stopScanner();
+      setFinished(true);
+      onParsed(v);
+      setSuccessFlash(true);
+    } finally {
+      setManualVerifyBusy(false);
+    }
   };
 
   const showManualBlock =
@@ -253,12 +260,14 @@ export function QRScannerLive({ onParsed, onError }: QRScannerLiveProps) {
             onChange={(e) => setManualCode(e.target.value)}
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400"
           />
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700"
+          <FormSubmitButton
+            pending={manualVerifyBusy}
+            loadingLabel="Verifying…"
+            disabled={manualVerifyBusy}
+            className="w-full rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:opacity-70"
           >
             Verify code
-          </button>
+          </FormSubmitButton>
         </form>
       )}
     </div>

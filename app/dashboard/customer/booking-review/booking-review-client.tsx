@@ -4,10 +4,10 @@ import {
   confirmAndCheckout,
   type ConfirmBookingState,
 } from "@/app/dashboard/customer/booking-review/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { PLATFORM_FEE_RATE } from "@/lib/booking-pricing";
 import Link from "next/link";
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 
 const initialState: ConfirmBookingState = null;
 
@@ -16,29 +16,6 @@ function formatMoney(n: number): string {
     style: "currency",
     currency: "USD",
   });
-}
-
-function ConfirmButtonInner({ total }: { total: number }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:min-h-[48px] sm:py-3"
-    >
-      {pending ? (
-        <>
-          <span
-            className="size-5 shrink-0 animate-spin rounded-full border-2 border-white border-t-transparent"
-            aria-hidden
-          />
-          <span>Opening checkout…</span>
-        </>
-      ) : (
-        <>Confirm &amp; Pay {formatMoney(total)}</>
-      )}
-    </button>
-  );
 }
 
 type Props = {
@@ -227,7 +204,12 @@ export function BookingReviewClient({
         )}
 
         <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-slate-200 bg-white/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(15,23,42,0.08)] backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none sm:backdrop-blur-none">
-          <ConfirmButtonInner total={totalCharged} />
+          <FormSubmitButton
+            loadingLabel="Opening checkout…"
+            className="min-h-[52px] w-full rounded-xl bg-blue-600 px-4 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:min-h-[48px] sm:py-3"
+          >
+            Confirm &amp; Pay {formatMoney(totalCharged)}
+          </FormSubmitButton>
         </div>
       </form>
 

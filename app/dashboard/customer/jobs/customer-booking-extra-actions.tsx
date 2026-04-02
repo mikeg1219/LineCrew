@@ -26,7 +26,7 @@ export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
         required.{" "}
         <Link
           href="#booking-line-holder-contact"
-          className="font-medium text-blue-700 underline-offset-2 hover:text-blue-800 hover:underline"
+          className="inline-flex min-h-[44px] items-center font-medium text-blue-700 underline-offset-2 hover:text-blue-800 hover:underline"
         >
           Optional SMS
         </Link>{" "}
@@ -40,12 +40,12 @@ export function CustomerBookingExtraActions({ jobId, canCancel }: Props) {
           Your issue has been reported. We&apos;ll respond within 2 hours.
         </div>
       )}
-      <div className="mt-4">
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <button
           type="button"
           onClick={() => setShowReport(true)}
           disabled={issueReported}
-          className={`inline-flex min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold shadow-sm transition ${
+          className={`inline-flex w-full min-h-[44px] cursor-pointer items-center justify-center rounded-xl border px-4 py-3 text-sm font-semibold shadow-sm transition sm:w-auto ${
             issueReported
               ? "cursor-not-allowed border-emerald-200 bg-emerald-50/80 text-emerald-700"
               : "border-slate-200 bg-white text-slate-900 ring-1 ring-slate-900/5 hover:border-slate-300 hover:bg-slate-50"

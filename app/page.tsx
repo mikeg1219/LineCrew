@@ -1,7 +1,26 @@
 import { HomeHeroCTAs } from "@/components/home-hero-ctas";
 import { HomeHeaderNav } from "@/components/home-header-nav";
 import { HomeWaiterCtaLink } from "@/components/home-waiter-cta-link";
+import type { Metadata } from "next";
 import { Suspense } from "react";
+
+export const metadata: Metadata = {
+  title: "Save your spot. Keep your day moving.",
+  description:
+    "Book trusted Line Holders for airports, concerts, theme parks, and more. We hold your spot so you don't have to.",
+  openGraph: {
+    url: "https://linecrew.ai/",
+    title: "LineCrew.ai — Save your spot. Keep your day moving.",
+    description:
+      "Book trusted Line Holders for airports, concerts, theme parks, and more.",
+  },
+  twitter: {
+    title: "LineCrew.ai — Save your spot. Keep your day moving.",
+    description:
+      "Book trusted Line Holders for airports, concerts, theme parks, and more.",
+  },
+  alternates: { canonical: "https://linecrew.ai/" },
+};
 
 const TRUST_ITEMS = [
   "Verified Line Holders",
@@ -104,7 +123,7 @@ export default function Home() {
           <p className="mb-5 inline-flex items-center justify-center self-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:text-sm">
             Now available at major US airports
           </p>
-          <h1 className="text-balance text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+          <h1 className="text-balance text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl">
             Save your spot. Keep your day moving.
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-white/90 sm:text-lg md:text-xl">
@@ -126,11 +145,11 @@ export default function Home() {
           </div>
 
           <ul
-            className="mx-auto mt-12 flex max-w-4xl flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-white/90 sm:mt-14 sm:text-base"
+            className="mx-auto mt-12 grid max-w-lg grid-cols-2 gap-x-4 gap-y-3 text-left text-sm text-white/90 sm:mt-14 sm:flex sm:max-w-4xl sm:flex-wrap sm:justify-center sm:text-base"
             aria-label="Trust highlights"
           >
             {TRUST_ITEMS.map((label) => (
-              <li key={label} className="flex items-center gap-2">
+              <li key={label} className="flex min-h-[44px] items-center gap-2">
                 <span className="shrink-0 text-emerald-300" aria-hidden>
                   ✓
                 </span>
@@ -233,7 +252,7 @@ export default function Home() {
                 <div className="h-12 w-56 animate-pulse rounded-2xl bg-white/25" aria-hidden />
               }
             >
-              <HomeWaiterCtaLink className="inline-flex min-h-[52px] items-center justify-center rounded-2xl bg-white px-10 py-3.5 text-sm font-bold text-blue-600 shadow-lg shadow-blue-900/20 transition hover:bg-blue-50 sm:text-base">
+              <HomeWaiterCtaLink className="inline-flex min-h-[44px] w-full max-w-xs min-w-[44px] items-center justify-center rounded-2xl bg-white px-10 py-3.5 text-base font-bold text-blue-600 shadow-lg shadow-blue-900/20 transition hover:bg-blue-50 sm:w-auto sm:min-h-[52px]">
                 Start earning today
               </HomeWaiterCtaLink>
             </Suspense>

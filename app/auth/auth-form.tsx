@@ -1,6 +1,8 @@
 "use client";
 
 import { authAction, type AuthActionState } from "@/app/auth/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
+import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -36,6 +38,8 @@ export function AuthForm() {
           height={60}
           className="h-10 w-auto"
           priority
+          placeholder="blur"
+          blurDataURL={TINY_BLUR_DATA_URL}
         />
         <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900 sm:text-[1.75rem]">
           Welcome back
@@ -98,13 +102,13 @@ export function AuthForm() {
           </p>
         )}
 
-        <button
-          type="submit"
-          disabled={isPending}
+        <FormSubmitButton
+          pending={isPending}
+          loadingLabel="Signing in…"
           className="min-h-[48px] w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60"
         >
-          {isPending ? "Signing in…" : "Sign in"}
-        </button>
+          Sign in
+        </FormSubmitButton>
       </form>
 
       <p className="mt-8 text-center text-sm text-slate-600">

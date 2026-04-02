@@ -5,6 +5,7 @@ import {
   disputeJobAction,
   type CustomerJobActionState,
 } from "@/app/dashboard/customer/jobs/customer-job-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect, useState } from "react";
 
 const initial: CustomerJobActionState = null;
@@ -59,23 +60,25 @@ export function CompletionConfirmationPanel({
       <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-stretch">
         <form action={confirmAction} className="w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-md">
           <input type="hidden" name="jobId" value={jobId} />
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={confirmPending}
             disabled={confirmPending || disputePending}
+            loadingLabel="Confirming…"
             className="w-full min-h-[52px] touch-manipulation rounded-2xl bg-emerald-600 px-5 py-3.5 text-base font-semibold text-white shadow-md shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:opacity-60 active:scale-[0.99]"
           >
-            {confirmPending ? "…" : "Confirm handoff"}
-          </button>
+            Confirm handoff
+          </FormSubmitButton>
         </form>
         <form action={disputeAction} className="w-full min-w-0 sm:w-auto sm:flex-1 sm:max-w-md">
           <input type="hidden" name="jobId" value={jobId} />
-          <button
-            type="submit"
+          <FormSubmitButton
+            pending={disputePending}
             disabled={confirmPending || disputePending}
-            className="w-full min-h-[48px] touch-manipulation rounded-2xl border-2 border-violet-300 bg-white px-5 py-3 text-sm font-semibold text-violet-950 hover:bg-violet-100 disabled:opacity-60 active:scale-[0.99]"
+            loadingLabel="Submitting…"
+            className="w-full min-h-[52px] touch-manipulation rounded-2xl border-2 border-violet-300 bg-white px-5 py-3.5 text-base font-semibold text-violet-950 hover:bg-violet-100 disabled:opacity-60 active:scale-[0.99]"
           >
-            {disputePending ? "…" : "Dispute"}
-          </button>
+            Dispute
+          </FormSubmitButton>
         </form>
       </div>
       <p className="mt-4 text-xs leading-relaxed text-violet-900/80">

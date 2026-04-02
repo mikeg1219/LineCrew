@@ -4,6 +4,7 @@ import {
   submitJobIssueFormAction,
   type SubmitJobIssueState,
 } from "@/app/dashboard/customer/jobs/report-issue-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { JOB_ISSUE_REASON_LABELS, JOB_ISSUE_REASONS } from "@/lib/job-issues";
 import type { JobIssueReporterRole } from "@/lib/types/job-issue";
 import {
@@ -287,23 +288,14 @@ export function ReportIssueModal({
                 >
                   Cancel
                 </button>
-                <button
-                  type="submit"
+                <FormSubmitButton
+                  pending={pending}
+                  loadingLabel="Submitting…"
                   disabled={pending || !formValid}
-                  className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+                  className="inline-flex min-h-[48px] w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
-                  {pending ? (
-                    <>
-                      <span
-                        className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"
-                        aria-hidden
-                      />
-                      Submitting…
-                    </>
-                  ) : (
-                    "Submit report"
-                  )}
-                </button>
+                  Submit report
+                </FormSubmitButton>
               </div>
             </form>
           )}

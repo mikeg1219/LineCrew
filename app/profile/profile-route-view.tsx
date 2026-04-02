@@ -1,5 +1,7 @@
 import { ProfileSettingsForm } from "@/app/profile/profile-settings-form";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { SkeletonAvatar, SkeletonCard, SkeletonText } from "@/components/skeleton";
 import { Suspense } from "react";
 import { AVATAR_STORAGE_BUCKET, avatarPublicUrlWithBust } from "@/lib/avatar-storage";
 import { createClient } from "@/lib/supabase/server";
@@ -99,7 +101,7 @@ export default async function ProfileRouteView({
         : "Manage how you show up across LineCrew.";
 
   return (
-    <div className="mx-auto max-w-2xl pb-12">
+    <div className="mx-auto w-full max-w-2xl pb-12">
       {profileRequiredGate ? (
         <div
           className="mb-6 rounded-xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm"
@@ -119,20 +121,40 @@ export default async function ProfileRouteView({
 
       <Suspense
         fallback={
-          <p className="text-center text-sm text-slate-500">Loading settings…</p>
+          <div aria-hidden>
+            <SkeletonCard className="mt-2">
+              <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+                <SkeletonAvatar size="lg" />
+                <div className="w-full flex-1 space-y-3">
+                  <SkeletonText className="h-6 w-48" />
+                  <SkeletonText className="h-4 w-64" />
+                </div>
+              </div>
+            </SkeletonCard>
+            <div className="mt-8 flex gap-2 border-b border-slate-200 pb-px">
+              <SkeletonText className="h-10 w-24 shrink-0" />
+              <SkeletonText className="h-10 w-28 shrink-0" />
+            </div>
+            <SkeletonCard className="mt-8">
+              <SkeletonText className="h-5 w-40" />
+              <SkeletonText className="mt-6 h-11 w-full rounded-xl" />
+            </SkeletonCard>
+          </div>
         }
       >
-        <ProfileSettingsForm
-          compactAvatar
-          stripeSyncForce={stripeSyncForce}
-          heroFallback={{
-            display,
-            email: user.email ?? null,
-            roleLabel,
-            initial: display.slice(0, 1).toUpperCase(),
-            avatarUrl: avatarPublic,
-          }}
-        />
+        <ErrorBoundary sectionLabel="Profile settings">
+          <ProfileSettingsForm
+            compactAvatar
+            stripeSyncForce={stripeSyncForce}
+            heroFallback={{
+              display,
+              email: user.email ?? null,
+              roleLabel,
+              initial: display.slice(0, 1).toUpperCase(),
+              avatarUrl: avatarPublic,
+            }}
+          />
+        </ErrorBoundary>
       </Suspense>
     </div>
   );

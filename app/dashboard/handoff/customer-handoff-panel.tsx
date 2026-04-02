@@ -9,6 +9,7 @@ import {
   type HandoffActionState,
 } from "@/app/dashboard/handoff/actions";
 import { QRScannerLive } from "@/app/dashboard/handoff/qr-scanner-placeholder";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import type { JobStatus } from "@/lib/types/job";
 import { useActionState, useState } from "react";
 
@@ -86,15 +87,25 @@ export function CustomerHandoffPanel({
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <form action={onWayAction}>
           <input type="hidden" name="jobId" value={jobId} />
-          <button className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white" disabled={busy}>
+          <FormSubmitButton
+            pending={onWayPending}
+            loadingLabel="Updating…"
+            disabled={busy}
+            className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
             I&apos;m on my way
-          </button>
+          </FormSubmitButton>
         </form>
         <form action={arrivedAction}>
           <input type="hidden" name="jobId" value={jobId} />
-          <button className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white" disabled={busy}>
+          <FormSubmitButton
+            pending={arrivedPending}
+            loadingLabel="Updating…"
+            disabled={busy}
+            className="w-full rounded-xl bg-cyan-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+          >
             I&apos;m here
-          </button>
+          </FormSubmitButton>
         </form>
       </div>
 
@@ -151,22 +162,26 @@ export function CustomerHandoffPanel({
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
           />
         )}
-        <button
-          className="w-full rounded-xl border border-cyan-300 bg-cyan-50 px-4 py-2.5 text-sm font-semibold text-cyan-900"
+        <FormSubmitButton
+          pending={verifyPending}
+          loadingLabel="Verifying…"
           disabled={!canVerify || busy}
+          className="w-full rounded-xl border border-cyan-300 bg-cyan-50 px-4 py-2.5 text-sm font-semibold text-cyan-900 disabled:opacity-50"
         >
           Scan QR to complete handoff
-        </button>
+        </FormSubmitButton>
       </form>
 
       <form action={confirmAction} className="mt-3">
         <input type="hidden" name="jobId" value={jobId} />
-        <button
-          className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+        <FormSubmitButton
+          pending={confirmPending}
+          loadingLabel="Confirming…"
           disabled={!canConfirm || busy}
+          className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
           I received my place in line
-        </button>
+        </FormSubmitButton>
       </form>
 
       <form action={issueAction} className="mt-4 grid gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
@@ -184,9 +199,14 @@ export function CustomerHandoffPanel({
           placeholder="Optional notes / photo proof placeholder"
           className="min-h-20 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm"
         />
-        <button className="rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900" disabled={busy}>
+        <FormSubmitButton
+          pending={issuePending}
+          loadingLabel="Submitting…"
+          disabled={busy}
+          className="rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900 disabled:opacity-60"
+        >
           Report issue
-        </button>
+        </FormSubmitButton>
       </form>
 
       {msg && <p className="mt-3 text-sm text-emerald-700">{msg}</p>}

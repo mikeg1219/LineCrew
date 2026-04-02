@@ -6,6 +6,7 @@ import {
   type ConfirmVerificationCodeState,
   type ResendVerificationState,
 } from "@/app/auth/verification-actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { parseAuthIntent } from "@/lib/auth-intent";
 import type { UserRole } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
@@ -209,13 +210,14 @@ export function VerifyEmailClient() {
                 {resendState.message}
               </p>
             )}
-            <button
-              type="submit"
+            <FormSubmitButton
+              pending={resendPending}
+              loadingLabel="Sending…"
               disabled={resendPending || (!lockedEmail && !trimmed)}
               className="w-full min-h-[48px] rounded-lg border border-blue-200 bg-white px-4 py-3 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-50 active:bg-blue-50/80 disabled:opacity-60 sm:min-h-[44px] touch-manipulation"
             >
-              {resendPending ? "Sending…" : "Resend verification email"}
-            </button>
+              Resend verification email
+            </FormSubmitButton>
           </form>
         </section>
 
@@ -275,13 +277,14 @@ export function VerifyEmailClient() {
                 {codeState.error}
               </p>
             )}
-            <button
-              type="submit"
+            <FormSubmitButton
+              pending={codePending}
+              loadingLabel="Please wait…"
               disabled={codePending || !trimmed}
               className="w-full min-h-[48px] rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 sm:min-h-[44px] touch-manipulation"
             >
-              {codePending ? "Please wait…" : "Verify and continue"}
-            </button>
+              Verify and continue
+            </FormSubmitButton>
           </form>
         </section>
       </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import { signOut } from "@/app/dashboard/actions";
+import { FormSubmitButton } from "@/components/form-submit-button";
+import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -147,6 +149,8 @@ function AuthenticatedAppHeaderInner({
                 height={40}
                 className="h-7 w-auto"
                 priority
+                placeholder="blur"
+                blurDataURL={TINY_BLUR_DATA_URL}
               />
             </Link>
             {breadcrumbCurrent ? (
@@ -275,7 +279,7 @@ function AuthenticatedAppHeaderInner({
                   <nav className="py-1" aria-label="Account">
                     <Link
                       href="/profile"
-                      className="block px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
+                      className="block min-h-[44px] px-4 py-3 text-sm font-medium leading-snug text-slate-800 transition hover:bg-slate-50"
                       role="menuitem"
                       onClick={() => setAccountOpen(false)}
                     >
@@ -285,13 +289,13 @@ function AuthenticatedAppHeaderInner({
 
                   <div className="border-t border-slate-100 px-2 py-2">
                     <form action={signOut}>
-                      <button
-                        type="submit"
-                        className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                      <FormSubmitButton
+                        loadingLabel="Signing out…"
+                        className="min-h-[44px] w-full rounded-xl px-3 py-3 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50"
                         role="menuitem"
                       >
                         Sign out
-                      </button>
+                      </FormSubmitButton>
                     </form>
                   </div>
                 </div>
@@ -320,30 +324,48 @@ function AuthenticatedAppHeaderInner({
         <>
           <button
             type="button"
-            className="fixed inset-0 top-14 z-40 bg-slate-900/40 backdrop-blur-[2px] md:hidden"
-            aria-hidden
-            tabIndex={-1}
+            className="fixed inset-0 z-[55] bg-slate-900/50 backdrop-blur-[2px] md:hidden"
+            aria-label="Close menu"
             onClick={() => setMenuOpen(false)}
           />
           <aside
             id="app-nav-drawer"
-            className="fixed left-0 top-14 z-50 flex h-[calc(100dvh-3.5rem)] w-[min(100vw-2rem,20rem)] flex-col overflow-y-auto border-r border-slate-200 bg-white shadow-2xl md:hidden"
+            className="fixed inset-0 z-[60] flex flex-col overflow-hidden bg-white md:hidden"
             role="dialog"
             aria-modal="true"
             aria-label="Navigation"
           >
-            <div className="border-b border-slate-100 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Menu
-              </p>
-              <p className="mt-2">
-                <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-blue-100">
-                  {roleBadgeText}
-                </span>
-              </p>
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Menu
+                </p>
+                <p className="mt-2">
+                  <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-800 ring-1 ring-blue-100">
+                    {roleBadgeText}
+                  </span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-800 shadow-sm transition hover:bg-slate-50"
+                aria-label="Close menu"
+              >
+                <svg
+                  className="size-5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden
+                >
+                  <path d="M6 18L18 6M6 6l12 12" strokeLinecap="round" />
+                </svg>
+              </button>
             </div>
 
-            <nav className="flex flex-1 flex-col gap-0.5 p-3" aria-label="Main navigation">
+            <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3" aria-label="Main navigation">
               {role === "customer" ? (
                 <>
                   <DrawerLink
@@ -398,14 +420,14 @@ function AuthenticatedAppHeaderInner({
               </DrawerLink>
             </nav>
 
-            <div className="border-t border-slate-100 p-3">
+            <div className="border-t border-slate-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <form action={signOut}>
-                <button
-                  type="submit"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
+                <FormSubmitButton
+                  loadingLabel="Signing out…"
+                  className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
                 >
                   Sign out
-                </button>
+                </FormSubmitButton>
               </form>
             </div>
           </aside>
@@ -487,7 +509,7 @@ function DrawerLink({
     <Link
       href={href}
       onClick={onNavigate}
-      className={`flex items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+      className={`flex min-h-[44px] items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition ${
         active
           ? "bg-blue-50 text-blue-900 ring-1 ring-blue-100"
           : "text-slate-800 hover:bg-slate-100"

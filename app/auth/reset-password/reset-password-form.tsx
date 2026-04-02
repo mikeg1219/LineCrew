@@ -2,6 +2,7 @@
 
 import { completePasswordResetAction } from "@/app/auth/reset-actions";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FormSubmitButton } from "@/components/form-submit-button";
 import { useActionState, useEffect } from "react";
 
 const inputClass =
@@ -107,13 +108,13 @@ export function ResetPasswordForm() {
         </p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
+      <FormSubmitButton
+        pending={isPending}
+        loadingLabel="Please wait…"
         className="min-h-[44px] w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 sm:py-2.5"
       >
-        {isPending ? "Please wait…" : "Save new password"}
-      </button>
+        Save new password
+      </FormSubmitButton>
     </form>
   );
 }
