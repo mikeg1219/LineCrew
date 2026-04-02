@@ -1,5 +1,6 @@
 "use server";
 
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
 import { getStripe } from "@/lib/stripe";
 import { sendAdminEmail } from "@/lib/notify-admin";
@@ -69,8 +70,8 @@ export async function disputeJobAction(
   _prev: CustomerJobActionState | undefined,
   formData: FormData
 ): Promise<CustomerJobActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
 
   const supabase = await createClient();
   const {
@@ -122,9 +123,9 @@ export async function cancelJobAction(
   _prev: CustomerJobActionState | undefined,
   formData: FormData
 ): Promise<CustomerJobActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   const reason = String(formData.get("reason") ?? "").trim();
-  if (!jobId) return { error: "Missing booking." };
+  if (!jobId) return { error: "Invalid booking." };
 
   const supabase = await createClient();
   const {

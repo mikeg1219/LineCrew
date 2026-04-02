@@ -1,3 +1,4 @@
+import { notifyBookingCompletedAndPayout } from "@/lib/emails";
 import { getStripe } from "@/lib/stripe";
 import { isPaymentCapturedForPayout } from "@/lib/payment-status";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -23,7 +24,7 @@ export async function finalizeJobPayout(
   const { data: job, error: jErr } = await supabase
     .from("jobs")
     .select(
-      "offered_price, payout_transfer_id, stripe_payment_intent_id, waiter_id, status"
+      "offered_price, payout_transfer_id, stripe_payment_intent_id, waiter_id, status, customer_id, airport, line_type"
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -95,6 +96,16 @@ export async function finalizeJobPayout(
         error: `Transfer created but booking update failed: ${upErr.message}`,
       };
     }
+
+    await notifyBookingCompletedAndPayout({
+      jobId,
+      customerId: String(job.customer_id),
+      waiterId: String(job.waiter_id),
+      airport: String(job.airport),
+      lineType: String(job.line_type),
+      amountCharged: offered,
+      waiterPayoutAmount: waiterShareCents / 100,
+    });
 
     return { ok: true, transferId: transfer.id };
   } catch (e) {

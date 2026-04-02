@@ -1,5 +1,9 @@
 "use server";
 
+import {
+  parseJobIdFromFormData,
+  parseRequestIdFromFormData,
+} from "@/lib/server-input";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -23,8 +27,8 @@ async function updateOverageDecision(
   formData: FormData,
   next: "approved" | "declined"
 ): Promise<OverageDecisionState> {
-  const requestId = String(formData.get("requestId") ?? "");
-  const jobId = String(formData.get("jobId") ?? "");
+  const requestId = parseRequestIdFromFormData(formData);
+  const jobId = parseJobIdFromFormData(formData);
   if (!requestId || !jobId) {
     return { error: "Invalid request." };
   }

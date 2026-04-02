@@ -1,5 +1,6 @@
 "use server";
 
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { executeBookingScopedContactOutbound } from "@/lib/contact-service";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -69,8 +70,8 @@ export async function contactCustomerForBooking(
   _prev: BookingContactFormState,
   formData: FormData
 ): Promise<BookingContactFormState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  const note = String(formData.get("note") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
+  const note = String(formData.get("note") ?? "").trim();
 
   const supabase = await createClient();
   const {
@@ -79,6 +80,9 @@ export async function contactCustomerForBooking(
 
   if (!user) {
     return { error: "You must be signed in." };
+  }
+  if (!jobId) {
+    return { error: "Invalid booking." };
   }
 
   const { data: profile } = await supabase

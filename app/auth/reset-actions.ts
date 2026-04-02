@@ -1,5 +1,6 @@
 "use server";
 
+import { isValidEmail } from "@/lib/server-input";
 import {
   completePasswordReset,
   requestPasswordResetFlow,
@@ -22,6 +23,9 @@ export async function requestPasswordResetAction(
   const email = String(formData.get("email") ?? "").trim();
   if (!email) {
     return { error: "Email is required." };
+  }
+  if (!isValidEmail(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const intentRaw = formData.get("intent");
@@ -82,6 +86,9 @@ export async function completePasswordResetAction(
   } else {
     if (!email) {
       return { error: "Email is required when using a verification code." };
+    }
+    if (!isValidEmail(email)) {
+      return { error: "Enter a valid email address." };
     }
     const v = await validateResetCode(email, code);
     if (!v.ok) {

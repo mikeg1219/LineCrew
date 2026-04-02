@@ -1,5 +1,10 @@
 "use server";
 
+import {
+  clipToMaxLength,
+  isValidEmail,
+  MAX_PROFILE_BIO_CHARS,
+} from "@/lib/server-input";
 import { createClient } from "@/lib/supabase/server";
 import { sendEmailVerificationForNewUser } from "@/lib/email-verification-service";
 import { isValidE164ForStorage, normalizePhoneE164 } from "@/lib/phone";
@@ -37,6 +42,9 @@ export async function onboardingAccountAction(
         confirm_password: !confirm ? "Confirm password is required." : undefined,
       },
     };
+  }
+  if (!isValidEmail(email)) {
+    return { fieldErrors: { email: "Enter a valid email address." } };
   }
   if (password.length < 8) {
     return {
@@ -197,7 +205,10 @@ export async function onboardingWaiterProfileAction(
   const countryId = String(formData.get("phone_country_id") ?? "US").trim();
   const national = String(formData.get("phone_national") ?? "").trim();
   const avatarUrl = String(formData.get("avatar_url") ?? "").trim();
-  const bio = String(formData.get("bio") ?? "").trim();
+  const bio = clipToMaxLength(
+    String(formData.get("bio") ?? "").trim(),
+    MAX_PROFILE_BIO_CHARS
+  );
   const serviceAreasRaw = String(formData.get("service_areas") ?? "").trim();
   const serviceAreas = serviceAreasRaw
     .split(/[,;\n]+/)
@@ -224,8 +235,6 @@ export async function onboardingWaiterProfileAction(
 
   if (!bio) {
     fieldErrors.bio = "Short bio is required.";
-  } else if (bio.length > 200) {
-    fieldErrors.bio = "Bio must be 200 characters or fewer.";
   }
 
   if (serviceAreas.length === 0) {
@@ -325,7 +334,10 @@ export async function onboardingProfileAction(
   const firstName = String(formData.get("first_name") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
   const avatarUrl = String(formData.get("avatar_url") ?? "").trim();
-  const bio = String(formData.get("bio") ?? "").trim();
+  const bio = clipToMaxLength(
+    String(formData.get("bio") ?? "").trim(),
+    MAX_PROFILE_BIO_CHARS
+  );
   const serviceAreasRaw = String(formData.get("service_areas") ?? "").trim();
   const serviceAreas = serviceAreasRaw
     .split(/[,;\n]+/)

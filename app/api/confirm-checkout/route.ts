@@ -1,3 +1,4 @@
+import { notifyJobCreated } from "@/lib/emails";
 import { createServiceRoleClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { chargeIdFromPaymentIntent } from "@/lib/stripe-charge";
@@ -179,5 +180,6 @@ export async function GET(req: Request) {
   if (!newJob?.id) {
     return NextResponse.json({ ok: false, pending: true, reason: "retry_insert" });
   }
+  await notifyJobCreated(newJob.id);
   return NextResponse.json({ ok: true, jobId: newJob.id });
 }

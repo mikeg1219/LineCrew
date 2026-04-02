@@ -1,5 +1,6 @@
 "use server";
 
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/lib/types/job";
 import { revalidatePath } from "next/cache";
@@ -15,9 +16,9 @@ export async function requestOverageAction(
   _prev: RequestOverageState,
   formData: FormData
 ): Promise<RequestOverageState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   if (!jobId) {
-    return { error: "Missing booking." };
+    return { error: "Invalid booking." };
   }
 
   const supabase = await createClient();

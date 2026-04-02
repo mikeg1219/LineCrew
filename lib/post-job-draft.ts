@@ -1,3 +1,5 @@
+import "server-only";
+
 import { AIRPORT_CODES } from "@/lib/airports";
 import { isValidTerminalForAirport } from "@/lib/airport-terminals";
 import {
@@ -7,6 +9,10 @@ import {
 } from "@/lib/jobs/options";
 import { POLICY_VERSIONS } from "@/lib/legal";
 import type { BookingDraftV1 } from "@/lib/booking-draft-cookie";
+import {
+  MAX_JOB_DESCRIPTION_CHARS,
+  validatePositiveUsdAmount,
+} from "@/lib/server-input";
 
 const urgencyLabels: Record<string, string> = {
   asap: "ASAP (within 15 minutes)",
@@ -14,7 +20,6 @@ const urgencyLabels: Record<string, string> = {
   schedule: "Scheduled",
 };
 
-const MAX_DESCRIPTION_DRAFT = 1800;
 
 export type PostJobParseResult =
   | { ok: true; draft: Omit<BookingDraftV1, "v" | "createdAt"> }
@@ -80,12 +85,14 @@ export function parseAndValidatePostJobFormData(
     typeof overageRaw === "string" && overageRaw.trim() !== ""
       ? parseFloat(overageRaw)
       : 10;
-  if (Number.isNaN(overage_rate) || overage_rate < 5) {
-    return {
-      ok: false,
-      error: "Extra time rate must be at least $5.00 per 30 minutes.",
-    };
+  const overageCheck = validatePositiveUsdAmount(overage_rate, {
+    min: 5,
+    fieldLabel: "Extra time rate",
+  });
+  if (!overageCheck.ok) {
+    return { ok: false, error: overageCheck.error };
   }
+  const overage_rate_valid = overageCheck.value;
 
   if (!(BOOKING_CATEGORIES as readonly string[]).includes(booking_category)) {
     return { ok: false, error: "Please choose a request category." };
@@ -116,21 +123,25 @@ export function parseAndValidatePostJobFormData(
 
   const offered_price =
     typeof priceRaw === "string" ? parseFloat(priceRaw) : Number(priceRaw);
-  if (Number.isNaN(offered_price) || offered_price < 10) {
-    return { ok: false, error: "Offered price must be at least $10." };
+  const priceCheck = validatePositiveUsdAmount(offered_price, {
+    min: 10,
+    fieldLabel: "Offered price",
+  });
+  if (!priceCheck.ok) {
+    return { ok: false, error: priceCheck.error };
   }
 
   let descriptionStored = description;
-  if (descriptionStored.length > MAX_DESCRIPTION_DRAFT) {
+  if (descriptionStored.length > MAX_JOB_DESCRIPTION_CHARS) {
     descriptionStored =
-      descriptionStored.slice(0, MAX_DESCRIPTION_DRAFT - 1) + "…";
+      descriptionStored.slice(0, MAX_JOB_DESCRIPTION_CHARS - 1) + "…";
   }
 
   const notesTrim = descriptionRaw.trim();
   let descriptionNotesStored = notesTrim;
-  if (descriptionNotesStored.length > MAX_DESCRIPTION_DRAFT) {
+  if (descriptionNotesStored.length > MAX_JOB_DESCRIPTION_CHARS) {
     descriptionNotesStored =
-      descriptionNotesStored.slice(0, MAX_DESCRIPTION_DRAFT - 1) + "…";
+      descriptionNotesStored.slice(0, MAX_JOB_DESCRIPTION_CHARS - 1) + "…";
   }
 
   return {
@@ -150,8 +161,8 @@ export function parseAndValidatePostJobFormData(
       flight_number,
       exact_location,
       payment_method_code: payment_method_code_raw || "stripe_card",
-      offered_price,
-      overage_rate,
+      offered_price: priceCheck.value,
+      overage_rate: overage_rate_valid,
       estimated_wait,
       overage_agreed: true,
       category_disclaimer_version:

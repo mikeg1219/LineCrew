@@ -4,6 +4,7 @@ import { isAdminUser } from "@/lib/admin-config";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -80,8 +81,8 @@ export async function adminPayWaiterAction(
   _prev: AdminActionState,
   formData: FormData
 ): Promise<AdminActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
 
   const auth = await requireAdmin();
   if (auth.error) return { error: auth.error };
@@ -100,9 +101,9 @@ export async function adminMarkFraudReviewedAction(
   _prev: AdminActionState,
   formData: FormData
 ): Promise<AdminActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   const notes = String(formData.get("notes") ?? "").trim();
-  if (!jobId) return { error: "Missing booking." };
+  if (!jobId) return { error: "Invalid booking." };
 
   const auth = await requireAdmin();
   if (auth.error || !auth.user) return { error: auth.error ?? "Unauthorized" };

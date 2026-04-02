@@ -1,3 +1,4 @@
+import { validatePositiveUsdAmount } from "@/lib/server-input";
 import { appBaseUrl } from "@/lib/app-url";
 import type { BookingDraftV1 } from "@/lib/booking-draft-cookie";
 import { POLICY_VERSIONS } from "@/lib/legal";
@@ -95,6 +96,17 @@ export async function createBookingCheckoutSession(
     };
   }
 
+  const priceCheck = validatePositiveUsdAmount(draft.offered_price, {
+    min: 10,
+    fieldLabel: "Offered price",
+  });
+  if (!priceCheck.ok) return { error: priceCheck.error };
+  const overageCheck = validatePositiveUsdAmount(draft.overage_rate, {
+    min: 5,
+    fieldLabel: "Extra time rate",
+  });
+  if (!overageCheck.ok) return { error: overageCheck.error };
+
   const isAirportCategory = draft.booking_category === "Airports";
   const meta = buildJobPaymentMetadata({
     customerId: user.id,
@@ -104,8 +116,8 @@ export async function createBookingCheckoutSession(
     lineType: draft.line_type,
     description: draft.description,
     estimatedWait: draft.estimated_wait,
-    overageRate: draft.overage_rate,
-    offeredPrice: draft.offered_price,
+    overageRate: overageCheck.value,
+    offeredPrice: priceCheck.value,
     overageAgreed: draft.overage_agreed,
     paymentMethodCode: draft.payment_method_code || "stripe_card",
     bookingTermsAcknowledgedAt: acknowledgedAt,
@@ -131,7 +143,7 @@ export async function createBookingCheckoutSession(
               name: "LineCrew booking",
               description: `${locationLabel} · ${draft.line_type}`,
             },
-            unit_amount: Math.round(draft.offered_price * 100),
+            unit_amount: Math.round(priceCheck.value * 100),
           },
           quantity: 1,
         },

@@ -15,6 +15,7 @@ import {
   verifySignedHandoffPayload,
   verifyHandoffSecret,
 } from "@/lib/handoff-security";
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { finalizeJobPayout } from "@/lib/stripe-release-payout";
 import { createClient } from "@/lib/supabase/server";
 import type { JobStatus } from "@/lib/types/job";
@@ -53,8 +54,8 @@ export async function customerOnMyWayAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -81,8 +82,8 @@ export async function customerArrivedAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -109,8 +110,8 @@ export async function waiterReadyForHandoffAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -138,8 +139,8 @@ export async function generateHandoffQrAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -191,12 +192,12 @@ export async function customerVerifyHandoffAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   const token = String(formData.get("handoffToken") ?? "").trim();
   const code = String(formData.get("handoffCode") ?? "").trim();
   const lat = parseLatLon(formData.get("lat"));
   const lng = parseLatLon(formData.get("lng"));
-  if (!jobId) return { error: "Missing booking." };
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -334,8 +335,8 @@ export async function confirmWorkerTransferAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const { supabase, job } = await getJobForUser(
     jobId,
     "waiter",
@@ -364,8 +365,8 @@ export async function confirmCustomerReceivedAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  if (!jobId) return { error: "Missing booking." };
+  const jobId = parseJobIdFromFormData(formData);
+  if (!jobId) return { error: "Invalid booking." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -393,10 +394,10 @@ export async function reportHandoffIssueAction(
   _prev: HandoffActionState,
   formData: FormData
 ): Promise<HandoffActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   const reason = String(formData.get("reason") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
-  if (!jobId) return { error: "Missing booking." };
+  if (!jobId) return { error: "Invalid booking." };
   if (!reason) return { error: "Select a reason." };
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();

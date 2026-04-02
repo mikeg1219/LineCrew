@@ -1,3 +1,5 @@
+import "server-only";
+
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 function sha256(value: string): Buffer {

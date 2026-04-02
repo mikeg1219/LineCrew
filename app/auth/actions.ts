@@ -3,6 +3,7 @@
 import { isEmailVerifiedForApp } from "@/lib/auth-email-verified";
 import { isAdminUser } from "@/lib/admin-config";
 import { needsOnboardingRedirect } from "@/lib/onboarding-progress";
+import { isValidEmail } from "@/lib/server-input";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -62,6 +63,9 @@ export async function authAction(
     return {
       error: "Email and password are required.",
     };
+  }
+  if (!isValidEmail(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const supabase = await createClient();

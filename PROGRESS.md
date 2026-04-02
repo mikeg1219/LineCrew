@@ -1,5 +1,24 @@
 # LineCrew Progress Log
 
+## Phase 4 — Complete (April 2, 2026)
+
+**Status:** Shipped to production — https://linecrew.ai
+
+### Delivered
+- **Admin & access:** Admin routes gated; non-admins redirected to dashboard; unauthenticated `/admin` → `/auth`
+- **Email notifications:** Transactional flows (booking confirmed, Line Holder assigned, new job to waiters, completion / payout) via unified email layer
+- **SMS notifications:** Twilio-backed customer + Line Holder texts on accept, status milestones, new job alerts, and payout completion; failures never block core flows
+- **Security hardening:** Supabase RLS migration (`security-hardening-rls-migration.sql`), server-side input validation (UUID, email, positive amounts, bio/description limits), security headers in `next.config.ts`, `server-only` on secret-adjacent modules
+
+### Deployment
+- **Commit message:** `Phase 4: Admin security, email notifications, SMS, security hardening`
+- **Post-deploy checks (manual):** Sign-in redirects for customer vs Line Holder test accounts; `/admin` when logged out vs non-admin; test booking → confirmation email; accept booking → customer email + SMS (requires Twilio + profiles phone + env)
+
+### Ops note
+- Run `supabase/security-hardening-rls-migration.sql` in Supabase when applying DB policy updates to the linked project.
+
+---
+
 ## Phase 3 — Complete (April 2, 2026)
 
 **Status:** Shipped to production — https://linecrew.ai
@@ -47,7 +66,6 @@
 ## Remaining Work
 - Stripe Connect Express account setup (for automatic payouts to Line Holders)
 - Profile save error fix (if any regressions)
-- Admin portal access control hardening
 - Ongoing UX polish
 
 ## Environment

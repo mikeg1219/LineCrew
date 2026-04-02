@@ -13,6 +13,10 @@ import {
   buildManualPayoutPreference,
   type ManualPayoutMethod,
 } from "@/lib/waiter-profile-complete";
+import {
+  clipToMaxLength,
+  MAX_PROFILE_BIO_CHARS,
+} from "@/lib/server-input";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 
 export type SaveProfileSettingsInput = {
@@ -262,6 +266,8 @@ export async function saveProfileSettingsAction(
       (BOOKING_CATEGORIES as readonly string[]).includes(c)
     );
 
+  const bioClipped = clipToMaxLength(input.bio.trim(), MAX_PROFILE_BIO_CHARS);
+
   let payload: Record<string, unknown>;
   try {
     payload = sanitizePayload(
@@ -273,7 +279,7 @@ export async function saveProfileSettingsAction(
           traveler_notes: input.travelerNotes.trim() || null,
         },
         {
-          bio: input.bio.trim() || null,
+          bio: bioClipped || null,
           home_airport: input.homeAirport.trim() || null,
           serving_airports: unique,
           preferred_categories: preferredCategories,
@@ -298,7 +304,7 @@ export async function saveProfileSettingsAction(
           onboarding_completed: Boolean(
             fn &&
               ph &&
-              input.bio.trim() &&
+              bioClipped &&
               unique.length > 0 &&
               input.avatarStoragePath
           ),

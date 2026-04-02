@@ -1,5 +1,6 @@
 "use server";
 
+import { isValidEmail } from "@/lib/server-input";
 import {
   resendEmailVerificationFlow,
   verifyEmailWithCode,
@@ -44,6 +45,10 @@ export async function resendVerificationEmailAction(
     };
   }
 
+  if (!isValidEmail(email)) {
+    return { error: "Enter a valid email address." };
+  }
+
   const result = await resendEmailVerificationFlow(email, role);
   if (!result.ok) {
     return { error: result.error };
@@ -70,6 +75,9 @@ export async function confirmVerificationCodeAction(
 
   if (!email || !code) {
     return { error: "Email and verification code are required." };
+  }
+  if (!isValidEmail(email)) {
+    return { error: "Enter a valid email address." };
   }
 
   const result = await verifyEmailWithCode(email, code);

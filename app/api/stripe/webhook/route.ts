@@ -1,3 +1,4 @@
+import { notifyJobCreated } from "@/lib/emails";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import {
@@ -263,7 +264,16 @@ async function handlePaymentIntentSucceeded(
     stripe_charge_id: stripeChargeId,
   };
 
-  const { error } = await admin.from("jobs").insert(baseInsert);
+  const { data: inserted, error } = await admin
+    .from("jobs")
+    .insert(baseInsert)
+    .select("id")
+    .maybeSingle();
+
+  if (!error && inserted?.id) {
+    await notifyJobCreated(inserted.id);
+    return;
+  }
 
   if (error) {
     if (error.code === "23505") return;
@@ -272,11 +282,19 @@ async function handlePaymentIntentSucceeded(
       const fallbackDescription = baseInsert.description
         ? `${baseInsert.description}\n\nOriginal line type: ${lineType}`
         : `Original line type: ${lineType}`;
-      const { error: retryErr } = await admin.from("jobs").insert({
-        ...baseInsert,
-        line_type: fallbackLineType,
-        description: fallbackDescription,
-      });
+      const { data: retryRow, error: retryErr } = await admin
+        .from("jobs")
+        .insert({
+          ...baseInsert,
+          line_type: fallbackLineType,
+          description: fallbackDescription,
+        })
+        .select("id")
+        .maybeSingle();
+      if (!retryErr && retryRow?.id) {
+        await notifyJobCreated(retryRow.id);
+        return;
+      }
       if (!retryErr || retryErr.code === "23505") return;
       throw retryErr;
     }

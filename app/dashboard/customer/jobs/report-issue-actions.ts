@@ -5,6 +5,7 @@ import {
   isJobIssueReason,
   JOB_ISSUE_REASON_LABELS,
 } from "@/lib/job-issues";
+import { parseUuidParam } from "@/lib/server-input";
 import { sendAdminEmail } from "@/lib/notify-admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -170,14 +171,14 @@ export async function submitJobIssueFormAction(
   _prev: SubmitJobIssueState,
   formData: FormData
 ): Promise<SubmitJobIssueState> {
-  const jobId = String(formData.get("jobId") ?? "").trim();
+  const jobId = parseUuidParam(formData.get("jobId"));
   const reporterRoleRaw = String(formData.get("reporterRole") ?? "").trim();
   const reasonRaw = String(formData.get("reason") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const photoEntry = formData.get("photo");
 
   if (!jobId) {
-    return { error: "Missing booking." };
+    return { error: "Invalid booking." };
   }
   if (reporterRoleRaw !== "customer" && reporterRoleRaw !== "waiter") {
     return { error: "Invalid reporter role." };

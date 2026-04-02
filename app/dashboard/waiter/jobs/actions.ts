@@ -1,13 +1,23 @@
 "use server";
 
+import { parseJobIdFromFormData } from "@/lib/server-input";
 import { canTransitionTo } from "@/lib/job-status";
+import { notifyLineHolderAssigned } from "@/lib/emails";
 import type { JobStatus } from "@/lib/types/job";
 import { syncStripeConnectFromStripeForUser } from "@/lib/stripe-account-sync";
+import {
+  getProfilePhone,
+  safeSendSms,
+  smsCustomerBookingAccepted,
+  smsCustomerNearFront,
+  smsCustomerReadyForHandoff,
+} from "@/lib/sms-job-notifications";
 import {
   isStripeConnectPayoutReady,
   isWaiterAcceptSetupComplete,
   type WaiterAcceptGateRow,
 } from "@/lib/waiter-profile-complete";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -30,9 +40,9 @@ export async function acceptJobAction(
   _prev: JobActionState,
   formData: FormData
 ): Promise<JobActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
   if (!jobId) {
-    return { error: "Missing booking." };
+    return { error: "Invalid booking." };
   }
 
   const supabase = await createClient();
@@ -90,7 +100,7 @@ export async function acceptJobAction(
     .eq("id", jobId)
     .eq("status", "open")
     .is("waiter_id", null)
-    .select("id")
+    .select("id, customer_id, airport, line_type, terminal, customer_email")
     .maybeSingle();
 
   if (error) {
@@ -103,6 +113,21 @@ export async function acceptJobAction(
         "This booking is no longer available — it may have been taken already.",
     };
   }
+
+  const admin = createAdminClient();
+  const customerPhone = await getProfilePhone(admin, data.customer_id);
+  await safeSendSms(
+    customerPhone,
+    smsCustomerBookingAccepted(data.airport, data.id)
+  );
+
+  await notifyLineHolderAssigned({
+    jobId: data.id,
+    customerId: data.customer_id,
+    airport: data.airport,
+    terminal: data.terminal?.trim() || "—",
+    waiterUserId: user.id,
+  });
 
   redirect(`/dashboard/waiter/jobs/${jobId}`);
   return null;
@@ -124,8 +149,8 @@ export async function updateWaiterJobStatusAction(
   _prev: JobActionState,
   formData: FormData
 ): Promise<JobActionState> {
-  const jobId = String(formData.get("jobId") ?? "");
-  const nextRaw = String(formData.get("nextStatus") ?? "");
+  const jobId = parseJobIdFromFormData(formData);
+  const nextRaw = String(formData.get("nextStatus") ?? "").trim();
   if (!jobId || !nextRaw) {
     return { error: "Invalid request." };
   }
@@ -146,7 +171,7 @@ export async function updateWaiterJobStatusAction(
 
   const { data: job, error: fetchErr } = await supabase
     .from("jobs")
-    .select("id, status, waiter_id")
+    .select("id, status, waiter_id, customer_id, airport, line_type, terminal")
     .eq("id", jobId)
     .maybeSingle();
 
@@ -214,6 +239,21 @@ export async function updateWaiterJobStatusAction(
 
   if (error) {
     return { error: error.message };
+  }
+
+  const admin = createAdminClient();
+  const customerPhone = await getProfilePhone(admin, job.customer_id);
+  if (nextStatus === "near_front") {
+    await safeSendSms(
+      customerPhone,
+      smsCustomerNearFront(job.airport)
+    );
+  } else if (nextStatus === "ready_for_handoff") {
+    const term = (job.terminal as string | null)?.trim() || "";
+    await safeSendSms(
+      customerPhone,
+      smsCustomerReadyForHandoff(term)
+    );
   }
 
   redirect(`/dashboard/waiter/jobs/${jobId}`);
