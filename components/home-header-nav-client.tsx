@@ -1,6 +1,5 @@
 "use client";
 
-import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -84,8 +83,8 @@ export function HomeHeaderNavClient() {
     "inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700";
 
   const logoImgClass = scrolled
-    ? "h-10 w-auto shrink-0 md:h-12"
-    : "h-10 w-auto shrink-0 brightness-0 invert md:h-12";
+    ? "h-10 w-auto shrink-0"
+    : "h-10 w-auto shrink-0 brightness-0 invert";
 
   return (
     <>
@@ -98,19 +97,17 @@ export function HomeHeaderNavClient() {
         <div className="mx-auto flex h-16 min-h-[64px] w-full max-w-7xl items-center justify-between px-6 md:px-12 lg:px-16">
           <Link
             href="/"
-            className="flex min-h-[44px] min-w-0 items-center gap-2 transition hover:opacity-95"
+            className="flex items-center gap-2"
             aria-label="LineCrew.ai home"
             onClick={closeMenu}
           >
             <Image
               src="/linecrew-logo.png"
-              alt=""
-              width={180}
-              height={48}
+              alt="LineCrew.ai"
+              width={140}
+              height={40}
               className={logoImgClass}
               priority
-              placeholder="blur"
-              blurDataURL={TINY_BLUR_DATA_URL}
             />
             <span
               className={`truncate text-xl font-bold tracking-tight sm:whitespace-normal ${

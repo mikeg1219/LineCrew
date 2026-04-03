@@ -41,7 +41,7 @@ const ctaBlue =
 
 /**
  * Marketing homepage nav — guest links only: How it works, Sign in, Get started.
- * Logo row has no white box (flex items-center gap-2 only).
+ * Logo row: flex items-center gap-2, no background on wrapper.
  */
 export function HomeHeaderNav() {
   const [scrolled, setScrolled] = useState(false);
@@ -81,8 +81,8 @@ export function HomeHeaderNav() {
   }`;
 
   const logoImgClass = scrolled
-    ? "h-10 w-10 shrink-0 object-contain"
-    : "h-10 w-10 shrink-0 object-contain brightness-0 invert";
+    ? "h-10 w-auto shrink-0"
+    : "h-10 w-auto shrink-0 brightness-0 invert";
 
   return (
     <>
@@ -95,14 +95,14 @@ export function HomeHeaderNav() {
         <div className="mx-auto flex h-16 min-h-[64px] w-full max-w-7xl items-center justify-between px-6 md:px-12 lg:px-16">
           <Link
             href="/"
-            className="flex items-center gap-3"
+            className="flex items-center gap-2"
             aria-label="LineCrew.ai home"
             onClick={closeMenu}
           >
             <Image
               src="/linecrew-logo.png"
               alt="LineCrew.ai"
-              width={40}
+              width={140}
               height={40}
               className={logoImgClass}
               priority
