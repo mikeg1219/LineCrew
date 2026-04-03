@@ -254,7 +254,13 @@ export function ProfileSettingsForm({
   const [saveFeedback, setSaveFeedback] = useState<ProfileSaveFeedback>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<UserRole | null>(() =>
+    heroFallback?.roleLabel === "Line Holder"
+      ? "waiter"
+      : heroFallback?.roleLabel === "Customer"
+        ? "customer"
+        : null
+  );
   const [avatarPublicUrl, setAvatarPublicUrl] = useState<string | null>(null);
   const [avatarStoragePath, setAvatarStoragePath] = useState<string | null>(null);
   const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
