@@ -139,7 +139,7 @@ function AuthenticatedAppHeaderInner({
           <div className="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
             <Link
               href={logoHref}
-              className="inline-flex min-w-0 max-w-[14rem] items-center gap-3 p-2 transition hover:opacity-90 sm:max-w-none"
+              className="flex min-w-0 max-w-[14rem] items-center gap-2 transition hover:opacity-90 sm:max-w-none"
               onClick={() => setMenuOpen(false)}
             >
               <Image
@@ -147,12 +147,12 @@ function AuthenticatedAppHeaderInner({
                 alt=""
                 width={180}
                 height={48}
-                className="h-10 w-auto shrink-0"
+                className="h-8 w-auto shrink-0"
                 priority
                 placeholder="blur"
                 blurDataURL={TINY_BLUR_DATA_URL}
               />
-              <span className="truncate text-lg font-bold tracking-tight text-slate-900">
+              <span className="truncate text-lg font-bold text-slate-900">
                 LineCrew.ai
               </span>
             </Link>

@@ -377,10 +377,7 @@ export function ProfileSettingsForm({
         { id: "legal" as const, label: "Legal & policies" },
       ];
     }
-    return [
-      { id: "info" as const, label: "Your info" },
-      { id: "legal" as const, label: "Legal & policies" },
-    ];
+    return [];
   }, [role]);
 
   const navigateToTab = useCallback(
@@ -1102,30 +1099,37 @@ export function ProfileSettingsForm({
         />
       )}
 
-      <nav
-        className="flex snap-x snap-mandatory gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
-        role="tablist"
-        aria-label="Profile sections"
-      >
-        {profileTabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            id={`profile-tab-${t.id}`}
-            aria-selected={activeTab === t.id}
-            tabIndex={activeTab === t.id ? 0 : -1}
-            onClick={() => navigateToTab(t.id)}
-            className={`snap-start shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition sm:min-h-0 sm:px-4 sm:py-2.5 ${
-              activeTab === t.id
-                ? "border-blue-600 font-semibold text-blue-600"
-                : "border-transparent text-slate-600 hover:text-slate-900"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
+      {loading && !role ? (
+        <div
+          className="mb-6 h-12 w-full max-w-md animate-pulse rounded-lg bg-slate-200"
+          aria-hidden
+        />
+      ) : profileTabs.length > 0 ? (
+        <nav
+          className="flex snap-x snap-mandatory gap-1 overflow-x-auto border-b border-slate-200 pb-px [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-2"
+          role="tablist"
+          aria-label="Profile sections"
+        >
+          {profileTabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              id={`profile-tab-${t.id}`}
+              aria-selected={activeTab === t.id}
+              tabIndex={activeTab === t.id ? 0 : -1}
+              onClick={() => navigateToTab(t.id)}
+              className={`snap-start shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition sm:min-h-0 sm:px-4 sm:py-2.5 ${
+                activeTab === t.id
+                  ? "border-blue-600 font-semibold text-blue-600"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </nav>
+      ) : null}
 
       {activeTab === "info" ? (
       <form

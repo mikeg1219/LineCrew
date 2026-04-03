@@ -458,6 +458,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
           </ErrorBoundary>
         </div>
       </div>
+    </div>
 
       <MobileBookingStickyBar actions={stickyActions} />
     </div>
