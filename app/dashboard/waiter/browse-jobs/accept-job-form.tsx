@@ -42,9 +42,7 @@ export function AcceptJobForm({
         disabled={disabled}
         className={`w-full min-h-[52px] rounded-xl px-4 py-3.5 text-base font-bold shadow-md transition touch-manipulation active:scale-[0.99] ${
           disabled
-            ? blockedByGate2
-              ? "cursor-not-allowed bg-slate-300 text-slate-600"
-              : "bg-blue-600 text-white opacity-60"
+            ? "cursor-not-allowed bg-slate-300 text-slate-600"
             : "bg-blue-600 text-white shadow-blue-600/25 hover:bg-blue-700"
         }`}
       >
