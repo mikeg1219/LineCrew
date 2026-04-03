@@ -75,7 +75,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
   >[];
 
   return (
-    <div className="pb-12">
+    <div className="min-h-screen bg-slate-50 pb-12">
       {showWelcome ? (
         <div
           className="mb-6 rounded-2xl border border-blue-200 bg-blue-50/95 px-4 py-4 text-sm leading-relaxed text-blue-950 shadow-sm sm:px-5 sm:py-4"
@@ -97,11 +97,17 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
         }
       />
 
-        <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
-        <div className="w-full rounded-2xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-medium leading-snug text-blue-700 shadow-sm sm:w-auto sm:max-w-md sm:text-left">
-          Most bookings are accepted in 3–10 minutes
-        </div>
-        <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-left">
+      <div className="mt-7 flex flex-col gap-2 sm:mt-8">
+        <p className="flex items-center gap-2 text-sm text-slate-600">
+          <span className="text-emerald-600" aria-hidden>
+            ✓
+          </span>
+          Most bookings accepted in 3–10 minutes
+        </p>
+        <p className="flex items-center gap-2 text-sm text-slate-600">
+          <span className="text-emerald-600" aria-hidden>
+            ✓
+          </span>
           Payment is held until your spot is secured
         </p>
       </div>
@@ -109,7 +115,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
       <div className="mt-8 sm:mt-9">
         <Link
           href="/dashboard/customer/post-job"
-          className="linecrew-btn-primary flex w-full justify-center px-6 py-3 text-base sm:w-auto"
+          className="inline-flex w-auto min-h-[44px] items-center justify-center rounded-xl bg-blue-600 px-8 py-3 text-base font-semibold text-white transition hover:bg-blue-700"
         >
           Book Now
         </Link>

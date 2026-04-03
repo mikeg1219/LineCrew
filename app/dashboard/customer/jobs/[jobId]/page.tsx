@@ -188,6 +188,7 @@ export default async function CustomerJobTrackingPage({ params }: PageProps) {
       : "pb-12";
 
   return (
+    <div className="min-h-screen bg-slate-50">
     <div className={`mx-auto w-full max-w-3xl pt-8 ${stickyPad}`}>
       <BookingTrackingLive jobId={job.id} />
       <Link

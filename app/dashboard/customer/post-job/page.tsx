@@ -105,7 +105,7 @@ export default async function PostJobPage({ searchParams }: PageProps) {
   const bookingDraft = await getBookingDraftCookie();
 
   return (
-    <div className="pb-28 md:pb-12">
+    <div className="min-h-screen bg-slate-50 pb-28 md:pb-12">
       <Link
         href="/dashboard/customer"
         className="inline-flex min-h-[44px] min-w-[44px] items-center text-sm font-medium text-blue-700 hover:text-blue-800"

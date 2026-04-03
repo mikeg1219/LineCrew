@@ -5,12 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-export type HomeHeaderNavClientProps = {
-  isLoggedIn: boolean;
-  customerHasBookingDraft: boolean;
-  dashboardHref: string;
-};
-
 function MenuIcon(props: { className?: string }) {
   return (
     <svg
@@ -43,11 +37,11 @@ function CloseIcon(props: { className?: string }) {
   );
 }
 
-export function HomeHeaderNavClient({
-  isLoggedIn,
-  customerHasBookingDraft,
-  dashboardHref,
-}: HomeHeaderNavClientProps) {
+/**
+ * Marketing homepage nav only: always guest links (How it works, Sign in, Get started).
+ * Logo + wordmark sit on the gradient without a white box.
+ */
+export function HomeHeaderNavClient() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -89,7 +83,9 @@ export function HomeHeaderNavClient({
   const ctaScrolled =
     "inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition hover:bg-blue-700";
 
-  const wordmarkColor = scrolled ? "text-slate-900" : "text-white";
+  const logoImgClass = scrolled
+    ? "h-10 w-auto shrink-0 md:h-12"
+    : "h-10 w-auto shrink-0 brightness-0 invert md:h-12";
 
   return (
     <>
@@ -99,14 +95,10 @@ export function HomeHeaderNavClient({
         }`}
         aria-label="Primary"
       >
-        <div
-          className={`mx-auto flex h-16 min-h-[64px] w-full max-w-7xl items-center justify-between px-6 md:px-12 lg:px-16 ${
-            scrolled ? "" : ""
-          }`}
-        >
+        <div className="mx-auto flex h-16 min-h-[64px] w-full max-w-7xl items-center justify-between px-6 md:px-12 lg:px-16">
           <Link
             href="/"
-            className="flex min-h-[44px] min-w-0 items-center gap-2 p-2 pr-3 transition hover:opacity-95 sm:gap-3"
+            className="flex min-h-[44px] min-w-0 items-center gap-2 transition hover:opacity-95"
             aria-label="LineCrew.ai home"
             onClick={closeMenu}
           >
@@ -115,52 +107,32 @@ export function HomeHeaderNavClient({
               alt=""
               width={180}
               height={48}
-              className="h-10 w-auto shrink-0 md:h-12"
+              className={logoImgClass}
               priority
               placeholder="blur"
               blurDataURL={TINY_BLUR_DATA_URL}
             />
             <span
-              className={`min-w-0 truncate text-lg font-bold tracking-tight transition-colors sm:whitespace-normal md:text-xl ${wordmarkColor}`}
+              className={`truncate text-xl font-bold tracking-tight sm:whitespace-normal ${
+                scrolled ? "text-slate-900" : "text-white"
+              }`}
             >
               LineCrew.ai
             </span>
           </Link>
 
-          {/* Desktop nav */}
           <div className="hidden items-center gap-6 md:flex md:gap-8">
-            {isLoggedIn && customerHasBookingDraft ? (
-              <Link
-                href="/dashboard/customer/booking-review"
-                className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 sm:text-sm"
-              >
-                Continue to review
-              </Link>
-            ) : null}
-
-            {isLoggedIn ? (
-              <Link href={dashboardHref} className={linkClass}>
-                Open app
-              </Link>
-            ) : (
-              <>
-                <Link href="/#how-it-works" className={linkClass}>
-                  How it works
-                </Link>
-                <Link href="/auth" className={linkClass}>
-                  Sign in
-                </Link>
-                <Link
-                  href="/onboarding"
-                  className={scrolled ? ctaScrolled : ctaTransparent}
-                >
-                  Get started
-                </Link>
-              </>
-            )}
+            <Link href="/#how-it-works" className={linkClass}>
+              How it works
+            </Link>
+            <Link href="/auth" className={linkClass}>
+              Sign in
+            </Link>
+            <Link href="/onboarding" className={scrolled ? ctaScrolled : ctaTransparent}>
+              Get started
+            </Link>
           </div>
 
-          {/* Mobile menu toggle */}
           <button
             type="button"
             className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg md:hidden ${
@@ -176,7 +148,6 @@ export function HomeHeaderNavClient({
         </div>
       </nav>
 
-      {/* Full-screen mobile menu */}
       {menuOpen ? (
         <div
           id="mobile-nav-overlay"
@@ -196,48 +167,27 @@ export function HomeHeaderNavClient({
             </button>
           </div>
           <div className="flex flex-1 flex-col items-center justify-center gap-8 px-8 pb-24">
-            {isLoggedIn && customerHasBookingDraft ? (
-              <Link
-                href="/dashboard/customer/booking-review"
-                className="text-center text-lg font-semibold text-white underline decoration-white/40 underline-offset-4"
-                onClick={closeMenu}
-              >
-                Continue to review
-              </Link>
-            ) : null}
-            {isLoggedIn ? (
-              <Link
-                href={dashboardHref}
-                className="text-center text-lg font-semibold text-white hover:text-white/90"
-                onClick={closeMenu}
-              >
-                Open app
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/#how-it-works"
-                  className="text-center text-lg font-semibold text-white/90 hover:text-white"
-                  onClick={closeMenu}
-                >
-                  How it works
-                </Link>
-                <Link
-                  href="/auth"
-                  className="text-center text-lg font-semibold text-white/90 hover:text-white"
-                  onClick={closeMenu}
-                >
-                  Sign in
-                </Link>
-                <Link
-                  href="/onboarding"
-                  className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-8 py-3 text-base font-semibold text-blue-600 shadow-lg hover:bg-blue-50"
-                  onClick={closeMenu}
-                >
-                  Get started
-                </Link>
-              </>
-            )}
+            <Link
+              href="/#how-it-works"
+              className="text-center text-lg font-semibold text-white/90 hover:text-white"
+              onClick={closeMenu}
+            >
+              How it works
+            </Link>
+            <Link
+              href="/auth"
+              className="text-center text-lg font-semibold text-white/90 hover:text-white"
+              onClick={closeMenu}
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/onboarding"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-xl bg-white px-8 py-3 text-base font-semibold text-blue-600 shadow-lg hover:bg-blue-50"
+              onClick={closeMenu}
+            >
+              Get started
+            </Link>
           </div>
         </div>
       ) : null}

@@ -146,6 +146,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
   const { exactLocation } = parseBookingDescription(job.description ?? "");
 
   return (
+    <div className="min-h-screen bg-slate-50">
     <div className="mx-auto w-full max-w-3xl space-y-7 pb-24 pt-8 sm:space-y-8 sm:pb-24 md:pb-14">
       <Link
         href="/dashboard/waiter"
@@ -380,6 +381,7 @@ export default async function WaiterJobDetailPage({ params }: PageProps) {
       </div>
 
       <MobileBookingStickyBar actions={getLineHolderStickyActions(status)} />
+    </div>
     </div>
   );
 }
