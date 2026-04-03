@@ -267,16 +267,16 @@ export async function customerVerifyHandoffAction(
   const workerLat = Number.isFinite(workerLatRaw) ? workerLatRaw : null;
   const workerLng = Number.isFinite(workerLngRaw) ? workerLngRaw : null;
 
-  if (lat == null || lng == null || workerLat == null || workerLng == null) {
-    return { error: "Location unavailable. Enable location to complete handoff." };
-  }
-  const distance = computeDistanceMeters(lat, lng, workerLat, workerLng);
-  if (distance > HANDOFF_PROXIMITY_METERS) {
-    return { error: "Too far apart to complete handoff. Move closer and retry." };
-  }
+  const locationAvailable =
+    lat != null && lng != null && workerLat != null && workerLng != null;
+  const distance = locationAvailable
+    ? computeDistanceMeters(lat!, lng!, workerLat!, workerLng!)
+    : null;
+  const proximityPassed =
+    locationAvailable && distance != null && distance <= HANDOFF_PROXIMITY_METERS;
   const confidenceScore = buildHandoffConfidenceScore({
     method: verifiedMethod ?? "code",
-    distanceMeters: distance,
+    distanceMeters: distance ?? 999,
     tokenFresh: Boolean(expiresAt && now <= expiresAt),
     hasBothReadySignals: Boolean(job.worker_ready_at && job.customer_arrived_at),
   });
@@ -290,8 +290,11 @@ export async function customerVerifyHandoffAction(
           : "awaiting_dual_confirmation",
       handoff_method: verifiedMethod,
       qr_scanned_at: new Date().toISOString(),
-      proximity_passed: true,
-      completion_location: `${lat.toFixed(5)},${lng.toFixed(5)}`,
+      proximity_passed: proximityPassed,
+      completion_location:
+        lat != null && lng != null
+          ? `${lat.toFixed(5)},${lng.toFixed(5)}`
+          : job.completion_location,
       handoff_qr_used_at: new Date().toISOString(),
       handoff_qr_token: null,
       handoff_qr_token_hash: null,

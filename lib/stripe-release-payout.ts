@@ -24,7 +24,7 @@ export async function finalizeJobPayout(
   const { data: job, error: jErr } = await supabase
     .from("jobs")
     .select(
-      "offered_price, payout_transfer_id, stripe_payment_intent_id, waiter_id, status, customer_id, airport, line_type"
+      "offered_price, payout_transfer_id, stripe_payment_intent_id, stripe_charge_id, waiter_id, status, customer_id, airport, line_type"
     )
     .eq("id", jobId)
     .maybeSingle();
@@ -70,11 +70,14 @@ export async function finalizeJobPayout(
   }
 
   try {
+    const stripeChargeId = (job as { stripe_charge_id?: string | null })
+      .stripe_charge_id ?? null;
     const transfer = await stripe.transfers.create(
       {
         amount: waiterShareCents,
         currency: "usd",
         destination: profile.stripe_account_id,
+        ...(stripeChargeId ? { source_transaction: stripeChargeId } : {}),
         metadata: { job_id: jobId },
         transfer_group: jobId,
       },

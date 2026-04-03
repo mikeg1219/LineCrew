@@ -10,6 +10,7 @@ import {
 import { FormSubmitButton } from "@/components/form-submit-button";
 import type { JobStatus } from "@/lib/types/job";
 import { useActionState, useState } from "react";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 
 const initial: HandoffActionState = null;
 
@@ -89,14 +90,52 @@ export function WaiterHandoffPanel({
         Use my location
       </button>
 
-      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Identity card</p>
-        <p className="mt-1 text-sm text-slate-700">
-          Badge: <span className="font-semibold">Your LineCrew line holder</span>
+      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          Handoff QR Code
         </p>
-        <p className="mt-1 text-sm text-slate-700">Token: <span className="font-mono">{handoffToken ?? "Generate QR to view token"}</span></p>
-        <p className="mt-1 text-sm text-slate-700">Fallback code: <span className="font-semibold">{handoffCode ?? "—"}</span></p>
-        <p className="mt-1 text-xs text-slate-500">QR expiry: {handoffQrExpiresAt ? new Date(handoffQrExpiresAt).toLocaleTimeString() : "—"}</p>
+        {handoffToken ? (
+          <div className="mt-3 flex flex-col items-center gap-3">
+            <div className="rounded-xl border-4 border-white bg-white p-2 shadow-md">
+              <QRCode
+                value={handoffToken}
+                size={220}
+                level="H"
+                includeMargin={false}
+              />
+            </div>
+            <p className="text-center text-xs text-slate-500">
+              Ask the customer to scan this QR code
+            </p>
+            <div className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-center">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Fallback code
+              </p>
+              <p className="mt-1 text-3xl font-bold tracking-widest text-slate-900">
+                {handoffCode ?? "—"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                If QR scan fails, read this code aloud
+              </p>
+            </div>
+            <p className="text-xs text-slate-400">
+              Expires: {handoffQrExpiresAt
+                ? new Date(handoffQrExpiresAt).toLocaleTimeString()
+                : "—"}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-3 flex flex-col items-center gap-2 py-6">
+            <p className="text-sm font-medium text-slate-500">
+              Tap "Show Handoff QR" to generate your QR code
+            </p>
+            {handoffCode && (
+              <p className="text-sm text-slate-600">
+                Fallback code: <span className="font-bold">{handoffCode}</span>
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <form action={confirmAction} className="mt-3">
