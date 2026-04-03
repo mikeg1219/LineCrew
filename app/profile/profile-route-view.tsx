@@ -101,7 +101,8 @@ export default async function ProfileRouteView({
         : "Manage how you show up across LineCrew.";
 
   return (
-    <div className="mx-auto w-full max-w-2xl pb-12">
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto w-full max-w-2xl px-4 pb-12 pt-8">
       {profileRequiredGate ? (
         <div
           className="mb-6 rounded-xl border border-amber-200 bg-amber-50/95 px-4 py-3 text-sm leading-relaxed text-amber-950 shadow-sm"
@@ -156,6 +157,7 @@ export default async function ProfileRouteView({
           />
         </ErrorBoundary>
       </Suspense>
+      </div>
     </div>
   );
 }

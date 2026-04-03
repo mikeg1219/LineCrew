@@ -23,7 +23,8 @@ export default async function WaiterServiceAreasPage() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-10">
+    <div className="min-h-screen bg-slate-50">
+      <div className="mx-auto max-w-2xl px-4 py-10">
       <Link
         href="/dashboard/waiter"
         className="text-sm font-medium text-blue-700 hover:text-blue-800"
@@ -39,6 +40,7 @@ export default async function WaiterServiceAreasPage() {
       </p>
 
       <ServiceAreasForm defaultSelected={selected} />
+      </div>
     </div>
   );
 }

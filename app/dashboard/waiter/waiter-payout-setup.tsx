@@ -344,7 +344,7 @@ export function WaiterPayoutSetup({
       className={profileTab ? "mt-0" : "mt-7 sm:mt-8"}
       aria-labelledby={profileTab ? undefined : "payout-heading"}
     >
-      {!profileTab ? (
+      {!profileTab && !stripePayoutReady ? (
         <>
           <h2
             id="payout-heading"
@@ -360,106 +360,136 @@ export function WaiterPayoutSetup({
         </>
       ) : null}
 
-      <div className={profileTab ? "grid gap-5 lg:grid-cols-2 lg:gap-6" : "mt-8 grid gap-5 lg:grid-cols-2 lg:gap-6"}>
+      <div
+        className={
+          profileTab
+            ? stripePayoutReady
+              ? "grid gap-5"
+              : "grid gap-5 lg:grid-cols-2 lg:gap-6"
+            : stripePayoutReady
+              ? "mt-8 grid gap-5"
+              : "mt-8 grid gap-5 lg:grid-cols-2 lg:gap-6"
+        }
+      >
         {/* Option A — Stripe */}
         <div className={stripeCardClass}>
           {stripePayoutReady ? (
-            <div className="mb-3">
-              <ConfiguredBadge
-                label={profileTab ? "Connected ✓" : "Stripe payouts active"}
-              />
-            </div>
-          ) : profileTab ? (
-            <p className="mb-3 text-sm font-medium text-slate-500">Not set up</p>
-          ) : null}
-          <h3 className="text-base font-semibold text-slate-900">
-            {profileTab
-              ? "Automatic bank transfer"
-              : "Automatic bank transfer via Stripe"}
-          </h3>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            {profileTab
-              ? "Get paid automatically after each booking"
-              : "Connect your bank account for automatic payouts after each completed booking."}
-          </p>
-          {!stripePayoutReady && stripeAccountId?.trim() ? (
-            <p className="mt-3 text-sm font-medium text-amber-900" role="status">
-              {hasSchema && stripeDetailsSubmitted !== true
-                ? "Finish identity and bank details in Stripe to enable payouts."
-                : hasSchema && stripePayoutsEnabled !== true
-                  ? "Stripe is still verifying your account — payouts aren’t enabled yet."
-                  : "Complete Stripe onboarding to enable bank payouts."}
-            </p>
-          ) : !stripePayoutReady && !stripeAccountId?.trim() ? (
-            <p className="mt-3 text-sm text-slate-600" role="status">
-              You haven’t started Stripe setup yet — use the button below.
-            </p>
-          ) : null}
-          <div className="mt-5 flex flex-col gap-3">
-            <WaiterPayoutConnectForm
-              returnTo={returnTo}
-              mode={stripeConnectMode}
-              label={stripePrimaryLabel}
-              pendingLabel={stripePendingLabel}
-              buttonClassName="min-h-[48px] w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
-            />
-            <p className="text-xs leading-relaxed text-slate-500">
-              Secure onboarding with Stripe Connect — add identity and bank
-              details in one flow.
-            </p>
-            <button
-              type="button"
-              onClick={async () => {
-                setRefreshError(null);
-                setRefreshSyncedAt(null);
-                setRefreshPending(true);
-                try {
-                  const result = await refreshStripeConnectStatusAction({
-                    force: true,
-                  });
-                  if (!result.ok) {
-                    setRefreshError(result.error);
-                    return;
-                  }
-                  onStripeRefreshSuccess?.();
-                  setRefreshSyncedAt(
-                    new Date().toLocaleString(undefined, {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })
-                  );
-                  router.refresh();
-                } catch (e) {
-                  setRefreshError(
-                    e instanceof Error
-                      ? e.message
-                      : "Could not refresh Stripe status."
-                  );
-                } finally {
-                  setRefreshPending(false);
-                }
-              }}
-              disabled={refreshPending || !stripeAccountId?.trim()}
-              className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
-            >
-              {refreshPending
-                ? "Refreshing Stripe status…"
-                : "Refresh Stripe status"}
-            </button>
-            {refreshError ? (
-              <p className="text-sm text-red-700" role="alert">
-                {refreshError}
+            <>
+              <div
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium leading-relaxed text-emerald-950"
+                role="status"
+              >
+                You&apos;re all set to earn! Payouts go to your connected bank
+                account via Stripe.
+              </div>
+              <div className="mt-4">
+                <WaiterPayoutConnectForm
+                  returnTo={returnTo}
+                  mode={stripeConnectMode}
+                  label="Manage payouts"
+                  pendingLabel={stripePendingLabel}
+                  buttonClassName="inline-flex min-h-[44px] items-center text-sm font-semibold text-blue-700 underline decoration-blue-700/30 underline-offset-2 transition hover:text-blue-800 hover:decoration-blue-800 disabled:opacity-50"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              {profileTab ? (
+                <p className="mb-3 text-sm font-medium text-slate-500">
+                  Not set up
+                </p>
+              ) : null}
+              <h3 className="text-base font-semibold text-slate-900">
+                {profileTab
+                  ? "Automatic bank transfer"
+                  : "Automatic bank transfer via Stripe"}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                {profileTab
+                  ? "Get paid automatically after each booking"
+                  : "Connect your bank account for automatic payouts after each completed booking."}
               </p>
-            ) : null}
-            {refreshSyncedAt && !refreshError ? (
-              <p className="text-sm text-emerald-800" role="status">
-                Stripe status synced ({refreshSyncedAt}).
-              </p>
-            ) : null}
-          </div>
+              {stripeAccountId?.trim() ? (
+                <p className="mt-3 text-sm font-medium text-amber-900" role="status">
+                  {hasSchema && stripeDetailsSubmitted !== true
+                    ? "Finish identity and bank details in Stripe to enable payouts."
+                    : hasSchema && stripePayoutsEnabled !== true
+                      ? "Stripe is still verifying your account — payouts aren’t enabled yet."
+                      : "Complete Stripe onboarding to enable bank payouts."}
+                </p>
+              ) : (
+                <p className="mt-3 text-sm text-slate-600" role="status">
+                  You haven’t started Stripe setup yet — use the button below.
+                </p>
+              )}
+              <div className="mt-5 flex flex-col gap-3">
+                <WaiterPayoutConnectForm
+                  returnTo={returnTo}
+                  mode={stripeConnectMode}
+                  label={stripePrimaryLabel}
+                  pendingLabel={stripePendingLabel}
+                  buttonClassName="min-h-[48px] w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-slate-900/15 transition hover:bg-slate-800 active:bg-slate-950 disabled:opacity-60"
+                />
+                <p className="text-xs leading-relaxed text-slate-500">
+                  Secure onboarding with Stripe Connect — add identity and bank
+                  details in one flow.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setRefreshError(null);
+                    setRefreshSyncedAt(null);
+                    setRefreshPending(true);
+                    try {
+                      const result = await refreshStripeConnectStatusAction({
+                        force: true,
+                      });
+                      if (!result.ok) {
+                        setRefreshError(result.error);
+                        return;
+                      }
+                      onStripeRefreshSuccess?.();
+                      setRefreshSyncedAt(
+                        new Date().toLocaleString(undefined, {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })
+                      );
+                      router.refresh();
+                    } catch (e) {
+                      setRefreshError(
+                        e instanceof Error
+                          ? e.message
+                          : "Could not refresh Stripe status."
+                      );
+                    } finally {
+                      setRefreshPending(false);
+                    }
+                  }}
+                  disabled={refreshPending || !stripeAccountId?.trim()}
+                  className="min-h-[44px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {refreshPending
+                    ? "Refreshing Stripe status…"
+                    : "Refresh Stripe status"}
+                </button>
+                {refreshError ? (
+                  <p className="text-sm text-red-700" role="alert">
+                    {refreshError}
+                  </p>
+                ) : null}
+                {refreshSyncedAt && !refreshError ? (
+                  <p className="text-sm text-emerald-800" role="status">
+                    Stripe status synced ({refreshSyncedAt}).
+                  </p>
+                ) : null}
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Option B — Manual */}
+        {/* Option B — Manual (hidden when Stripe payouts are active) */}
+        {!stripePayoutReady ? (
         <div className={manualCardClass}>
           {serverManualReady && !manualEditing ? (
             <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -620,6 +650,7 @@ export function WaiterPayoutSetup({
             </div>
           )}
         </div>
+        ) : null}
       </div>
     </section>
 

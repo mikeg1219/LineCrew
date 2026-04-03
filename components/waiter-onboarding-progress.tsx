@@ -123,7 +123,9 @@ export function WaiterOnboardingProgress({
         title: "Accept bookings",
         subtitle: "Gate 2",
         unlocked: gate2Unlocked,
-        unlockedMessage: "You can accept bookings",
+        unlockedMessage: gate3Unlocked
+          ? "You can accept bookings"
+          : "Profile complete — set up payouts to accept",
         needs: g2Needs,
         action: gate2Unlocked
           ? null

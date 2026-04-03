@@ -132,7 +132,7 @@ export default async function WaiterDashboardPage({
   const payoutBypass = isStripePayoutBypassEnabled();
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-16">
+    <div className="min-h-screen bg-slate-50 pb-16">
       <div className="mx-auto max-w-4xl px-4 py-12">
         <header className="border-b border-slate-200/80 pb-6">
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">

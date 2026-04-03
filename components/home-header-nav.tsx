@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -80,10 +79,6 @@ export function HomeHeaderNav() {
     scrolled ? linkMutedS : linkMutedT
   }`;
 
-  const logoImgClass = scrolled
-    ? "h-10 w-auto shrink-0"
-    : "h-10 w-auto shrink-0 brightness-0 invert";
-
   return (
     <>
       <nav
@@ -99,14 +94,34 @@ export function HomeHeaderNav() {
             aria-label="LineCrew.ai home"
             onClick={closeMenu}
           >
-            <Image
-              src="/linecrew-logo.png"
-              alt="LineCrew.ai"
-              width={140}
-              height={40}
-              className={logoImgClass}
-              priority
-            />
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 32 32"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="shrink-0"
+              aria-hidden
+            >
+              <circle cx="16" cy="16" r="16" fill="white" fillOpacity="0.15" />
+              <circle cx="11" cy="11" r="3" fill="white" />
+              <circle cx="21" cy="11" r="3" fill="white" />
+              <circle cx="16" cy="8" r="3" fill="white" />
+              <path
+                d="M6 20 Q16 28 26 20"
+                stroke="white"
+                strokeWidth="2.5"
+                fill="none"
+                strokeLinecap="round"
+              />
+              <path
+                d="M13 17 L16 20 L22 13"
+                stroke="#4ade80"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             <span
               className={`font-bold text-xl tracking-tight ${
                 scrolled ? "text-slate-900" : "text-white"

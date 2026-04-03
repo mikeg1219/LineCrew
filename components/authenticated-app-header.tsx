@@ -2,8 +2,6 @@
 
 import { signOut } from "@/app/dashboard/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
-import { TINY_BLUR_DATA_URL } from "@/lib/image-blur-placeholder";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -142,16 +140,34 @@ function AuthenticatedAppHeaderInner({
               className="flex min-w-0 max-w-[14rem] items-center gap-2 transition hover:opacity-90 sm:max-w-none"
               onClick={() => setMenuOpen(false)}
             >
-              <Image
-                src="/linecrew-logo.png"
-                alt=""
-                width={180}
-                height={48}
-                className="h-8 w-auto shrink-0"
-                priority
-                placeholder="blur"
-                blurDataURL={TINY_BLUR_DATA_URL}
-              />
+              <svg
+                width="32"
+                height="32"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="shrink-0"
+                aria-hidden
+              >
+                <circle cx="16" cy="16" r="16" fill="#1e40af" fillOpacity="0.15" />
+                <circle cx="11" cy="11" r="3" fill="#1e40af" />
+                <circle cx="21" cy="11" r="3" fill="#1e40af" />
+                <circle cx="16" cy="8" r="3" fill="#1e40af" />
+                <path
+                  d="M6 20 Q16 28 26 20"
+                  stroke="#1e40af"
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M13 17 L16 20 L22 13"
+                  stroke="#16a34a"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
               <span className="truncate text-lg font-bold text-slate-900">
                 LineCrew.ai
               </span>

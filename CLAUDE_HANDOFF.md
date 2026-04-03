@@ -121,3 +121,10 @@ Resume Block 3 testing:
 - Stripe (payments + Connect for payouts)
 - Twilio (SMS), Resend (email)
 - Vercel (deployment), Tailwind CSS
+
+## Pick up after shutdown (use this every session)
+
+1. **Repo (source of truth):** https://github.com/mikeg1219/LineCrew — branch `main`.
+2. **On this machine:** `cd C:\Users\mikeg\OneDrive\Desktop\linecrew` then `git pull origin main`.
+3. **In Cursor:** open the folder, start a chat, type `@CLAUDE_HANDOFF.md` and ask to continue from **Exact Next Step** / **Testing Status** above.
+4. **Bookmark:** https://github.com/mikeg1219/LineCrew/blob/main/CLAUDE_HANDOFF.md — same handoff, always matches `main` after you push.
