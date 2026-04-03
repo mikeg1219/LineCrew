@@ -96,8 +96,8 @@ function AuthenticatedAppHeaderInner({
 
   return (
     <>
-      <header className="sticky top-0 z-50 border-b border-slate-200/90 bg-white/95 shadow-sm backdrop-blur-md">
-        <div className="mx-auto flex min-h-14 max-w-5xl items-center gap-2 px-4 py-2 sm:gap-3 sm:px-5">
+      <header className="sticky top-0 z-50 h-16 min-h-[64px] border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
+        <div className="mx-auto flex h-full min-h-[64px] max-w-5xl items-center gap-2 px-4 sm:gap-3 sm:px-6">
           {role === "customer" || role === "waiter" ? (
             <button
               type="button"
@@ -139,19 +139,22 @@ function AuthenticatedAppHeaderInner({
           <div className="flex min-w-0 flex-1 items-center gap-2 md:flex-none">
             <Link
               href={logoHref}
-              className="inline-flex shrink-0 items-center transition hover:opacity-90"
+              className="inline-flex min-w-0 max-w-[14rem] items-center gap-3 p-2 transition hover:opacity-90 sm:max-w-none"
               onClick={() => setMenuOpen(false)}
             >
               <Image
                 src="/linecrew-logo.png"
-                alt="LineCrew.ai"
-                width={132}
-                height={40}
-                className="h-7 w-auto"
+                alt=""
+                width={180}
+                height={48}
+                className="h-10 w-auto shrink-0"
                 priority
                 placeholder="blur"
                 blurDataURL={TINY_BLUR_DATA_URL}
               />
+              <span className="truncate text-lg font-bold tracking-tight text-slate-900">
+                LineCrew.ai
+              </span>
             </Link>
             {breadcrumbCurrent ? (
               <>
@@ -232,7 +235,7 @@ function AuthenticatedAppHeaderInner({
                   setMenuOpen(false);
                   setAccountOpen((o) => !o);
                 }}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full ring-2 ring-slate-200/80 transition hover:ring-blue-300"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full ring-2 ring-slate-200 transition hover:ring-blue-300"
                 aria-expanded={accountOpen}
                 aria-haspopup="menu"
                 aria-label="Account menu"
@@ -475,10 +478,10 @@ function DesktopNavLink({
   return (
     <Link
       href={href}
-      className={`relative flex min-h-[44px] items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+      className={`flex min-h-[44px] items-center whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${
         active
-          ? "text-blue-700 after:absolute after:bottom-1 after:left-3 after:right-3 after:h-0.5 after:rounded-full after:bg-blue-600"
-          : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+          ? "border-blue-600 font-semibold text-blue-600"
+          : "border-transparent text-slate-600 hover:text-slate-900"
       }`}
       aria-current={active ? "page" : undefined}
     >

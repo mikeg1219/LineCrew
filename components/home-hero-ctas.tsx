@@ -27,30 +27,30 @@ export async function HomeHeroCTAs() {
   }
 
   return (
-    <>
-      <div className="flex w-full max-w-md flex-col gap-3 sm:mx-auto sm:max-w-none sm:flex-row sm:gap-4">
+    <div className="flex w-full flex-col items-center">
+      <div className="flex w-full flex-col justify-center gap-3 sm:flex-row sm:justify-center">
         <Link
           href={bookHref}
-          className="inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-2xl bg-white px-8 py-4 text-center text-base font-bold text-blue-600 shadow-lg shadow-blue-900/15 transition hover:bg-blue-50 sm:w-auto"
+          className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-2xl border-2 border-white bg-white px-8 py-4 text-center text-base font-bold text-blue-700 shadow-lg transition hover:bg-blue-50 sm:w-auto sm:min-w-[12rem]"
         >
           Book a Line Holder
         </Link>
         <Link
           href={becomeHref}
-          className="inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-2xl border-2 border-white bg-transparent px-8 py-4 text-center text-base font-semibold text-white transition hover:bg-white/10 sm:w-auto"
+          className="inline-flex min-h-[56px] w-full min-w-0 items-center justify-center rounded-2xl border-2 border-white bg-transparent px-8 py-4 text-center text-base font-bold text-white transition hover:bg-white/15 sm:w-auto sm:min-w-[12rem]"
         >
           Start earning
         </Link>
       </div>
-      <p className="mt-4 text-sm text-white/75">
+      <p className="mt-4 text-center text-sm text-white/80">
         Already have an account?{" "}
         <Link
           href="/auth"
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center font-medium text-white underline decoration-white/40 underline-offset-2 transition hover:text-white hover:decoration-white"
+          className="font-semibold text-white underline decoration-white underline-offset-2 transition hover:text-white"
         >
           Sign in
         </Link>
       </p>
-    </>
+    </div>
   );
 }

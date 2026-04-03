@@ -1,6 +1,6 @@
 import type { HTMLAttributes } from "react";
 
-const pulse = "animate-pulse bg-slate-200/90";
+const pulse = "animate-pulse bg-slate-200";
 
 type SkeletonTextProps = {
   className?: string;

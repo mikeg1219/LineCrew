@@ -143,14 +143,12 @@ type ProfileSaveFeedback =
       field?: ProfileSaveFieldError;
     };
 
-const inputClass =
-  "min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-900 shadow-sm outline-none ring-blue-600/15 transition focus:border-blue-600 focus:ring-[3px] sm:min-h-0";
+const inputClass = "linecrew-input shadow-sm sm:min-h-0";
 
 const labelClass =
   "mb-1.5 block text-sm font-medium leading-snug text-slate-700";
 
-const sectionShell =
-  "rounded-3xl border border-slate-200/90 bg-white p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-8";
+const sectionShell = "linecrew-card p-6 sm:p-8";
 
 const sectionTitle = "text-base font-semibold tracking-tight text-slate-900";
 
@@ -173,7 +171,7 @@ function ProfileHeroCard({
 }) {
   return (
     <section
-      className="relative mb-10 overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50/90 to-blue-50/40 p-6 shadow-sm ring-1 ring-slate-900/5 sm:p-10"
+      className="linecrew-card relative mb-10 overflow-hidden bg-gradient-to-br from-white via-slate-50/90 to-blue-50/40 p-6 sm:p-10"
       aria-busy={busy}
     >
       <div
@@ -1118,9 +1116,9 @@ export function ProfileSettingsForm({
             aria-selected={activeTab === t.id}
             tabIndex={activeTab === t.id ? 0 : -1}
             onClick={() => navigateToTab(t.id)}
-            className={`snap-start shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition sm:min-h-0 sm:px-4 sm:py-2.5 ${
+            className={`snap-start shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition sm:min-h-0 sm:px-4 sm:py-2.5 ${
               activeTab === t.id
-                ? "border-blue-600 text-blue-700"
+                ? "border-blue-600 font-semibold text-blue-600"
                 : "border-transparent text-slate-600 hover:text-slate-900"
             }`}
           >

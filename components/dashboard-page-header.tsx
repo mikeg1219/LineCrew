@@ -22,20 +22,20 @@ export function DashboardPageHeader({
   className = "",
 }: DashboardPageHeaderProps) {
   return (
-    <header className={`pt-8 pb-6 ${className}`.trim()}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+    <header className={`pb-6 ${className}`.trim()}>
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {eyebrow}
       </p>
-      <h1 className="mt-2 text-balance text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+      <h1 className="mt-2 text-balance text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
         {title}
       </h1>
       {subtitle ? (
-        <div className="mt-3 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+        <div className="mt-3 max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
           {subtitle}
         </div>
       ) : null}
       {meta ? (
-        <div className="mt-4 text-sm leading-snug text-slate-500">{meta}</div>
+        <div className="mt-4 text-sm leading-relaxed text-slate-500">{meta}</div>
       ) : null}
     </header>
   );

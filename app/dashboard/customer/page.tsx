@@ -97,8 +97,8 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
         }
       />
 
-      <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
-        <div className="w-full rounded-[14px] border border-[#D7E3F1] bg-white px-4 py-3 text-center text-sm font-medium leading-snug text-[#1E4FAF] shadow-[0_10px_30px_rgba(15,23,42,0.08)] sm:w-auto sm:max-w-md sm:text-left">
+        <div className="mt-7 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-6 sm:gap-y-2">
+        <div className="w-full rounded-2xl border border-blue-200 bg-white px-4 py-3 text-center text-sm font-medium leading-snug text-blue-700 shadow-sm sm:w-auto sm:max-w-md sm:text-left">
           Most bookings are accepted in 3–10 minutes
         </div>
         <p className="text-center text-sm leading-relaxed text-slate-600 sm:text-left">
@@ -109,7 +109,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
       <div className="mt-8 sm:mt-9">
         <Link
           href="/dashboard/customer/post-job"
-          className="inline-flex w-full min-h-[48px] items-center justify-center rounded-[14px] bg-[#1E4FAF] px-6 py-3 text-base font-semibold text-white shadow-[0_10px_30px_rgba(15,23,42,0.08)] transition hover:bg-[#173f8c] sm:w-auto sm:min-h-0"
+          className="linecrew-btn-primary flex w-full justify-center px-6 py-3 text-base sm:w-auto"
         >
           Book Now
         </Link>
@@ -185,7 +185,7 @@ export default async function CustomerDashboardPage({ searchParams }: PageProps)
             </p>
             <Link
               href="/dashboard/customer/post-job"
-              className="mt-8 inline-flex w-full max-w-xs items-center justify-center rounded-xl bg-blue-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 sm:mt-8 sm:w-auto sm:py-3"
+              className="linecrew-btn-primary mt-8 flex w-full max-w-xs justify-center px-6 py-3.5 text-base sm:mt-8"
             >
               Book Now
             </Link>

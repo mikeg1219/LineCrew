@@ -41,9 +41,12 @@ export default async function CustomerDashboardPage() {
   const jobs = (jobRows ?? []) as Pick<Job, "id" | "status" | "airport" | "line_type" | "offered_price" | "created_at">[];
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-16">
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+    <div className="pb-12">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+          Customer
+        </p>
+        <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Welcome back,{" "}
           {profileWelcomeFirstName(
             profile,
@@ -52,43 +55,42 @@ export default async function CustomerDashboardPage() {
           )}
           !
         </h1>
-        <p className="mt-2 text-lg text-slate-600">
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
           Signed in as <span className="font-medium text-slate-900">{user.email}</span>
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            href="/dashboard/customer/post-job"
-            className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
-          >
+          <Link href="/dashboard/customer/post-job" className="linecrew-btn-primary px-6 py-3 text-base">
             Book Now
           </Link>
-          <Link
-            href="/profile"
-            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-800 shadow-sm transition hover:bg-slate-50"
-          >
+          <Link href="/profile" className="linecrew-btn-secondary px-6 py-3 text-base">
             Edit profile
           </Link>
         </div>
 
         <section className="mt-12">
-          <h2 className="text-lg font-semibold text-slate-900">Your bookings</h2>
+          <h2 className="text-lg font-bold text-slate-900">Your bookings</h2>
           {jobs.length === 0 ? (
-            <p className="mt-3 text-slate-600">You haven&apos;t created a booking yet. Book one to get matched with a Line Holder.</p>
+            <div className="mt-6 linecrew-card border-dashed p-10 text-center">
+              <p className="text-slate-600">You haven&apos;t created a booking yet.</p>
+            </div>
           ) : (
-            <ul className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-4">
               {jobs.map((job) => {
                 const st = job.status as JobStatus;
                 return (
-                  <li key={job.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
+                  <li key={job.id} className="linecrew-card flex flex-wrap items-center justify-between gap-4 p-5">
                     <div>
                       <p className="font-medium text-slate-900">{job.airport} · {job.line_type}</p>
                       <p className="text-sm text-slate-600">${Number(job.offered_price).toFixed(2)} · {new Date(job.created_at).toLocaleString()}</p>
-                      <span className={`mt-2 inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${statusBadgeClass(st)}`}>
+                      <span className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ${statusBadgeClass(st)}`}>
                         {JOB_STATUS_LABELS[st]}
                       </span>
                     </div>
-                    <Link href={`/dashboard/customer/jobs/${job.id}`} className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">
+                    <Link
+                      href={`/dashboard/customer/jobs/${job.id}`}
+                      className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 transition hover:bg-blue-100"
+                    >
                       Track booking
                     </Link>
                   </li>

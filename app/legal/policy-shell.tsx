@@ -18,18 +18,26 @@ export function PolicyShell({
   const resolved = updated ?? POLICY_VERSIONS[versionKey];
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Legal</p>
-      <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">{title}</h1>
-      <p className="mt-2 text-xs text-slate-500">Version {resolved}</p>
-      <article className="linecrew-card-marketing prose prose-slate mt-6 max-w-none p-6 text-sm leading-relaxed">
-        {children}
-      </article>
-      <p className="mt-5 text-sm">
-        <Link href="/legal" className="text-blue-700 hover:text-blue-800">
-          ← Back to Legal Center
-        </Link>
-      </p>
-    </main>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-500 to-teal-500 py-10 sm:py-12">
+      <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+        <div className="linecrew-card-marketing p-6 text-slate-900 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Legal
+          </p>
+          <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            {title}
+          </h1>
+          <p className="mt-2 text-xs text-slate-500">Version {resolved}</p>
+          <article className="prose prose-slate mt-6 max-w-none text-sm leading-relaxed">
+            {children}
+          </article>
+          <p className="mt-5 text-sm">
+            <Link href="/legal" className="font-medium text-blue-600 hover:text-blue-700">
+              ← Back to Legal Center
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   }
 
   return (
-    <div className="linecrew-zone-admin relative min-h-screen">
+    <div className="linecrew-zone-admin relative min-h-screen bg-slate-900">
       <div
         className="pointer-events-none absolute right-4 top-4 z-[100] sm:right-6 sm:top-5"
         aria-hidden

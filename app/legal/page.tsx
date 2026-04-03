@@ -12,24 +12,30 @@ const pages = [
 
 export default function LegalIndexPage() {
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Legal Center</h1>
-      <p className="mt-3 text-sm leading-relaxed text-slate-600">
-        LineCrew.ai is a marketplace platform connecting customers with independent line holders.
-        Review current policy pages below.
-      </p>
-      <ul className="mt-6 space-y-3">
-        {pages.map((page) => (
-          <li key={page.href}>
-            <Link
-              href={page.href}
-              className="block rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-            >
-              {page.title}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </main>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-blue-500 to-teal-500 py-10 sm:py-12">
+      <main className="mx-auto w-full max-w-3xl px-4 sm:px-6">
+        <div className="linecrew-card-marketing p-6 text-slate-900 sm:p-8">
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Legal Center
+          </h1>
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            LineCrew.ai is a marketplace platform connecting customers with independent line holders.
+            Review current policy pages below.
+          </p>
+          <ul className="mt-6 space-y-3">
+            {pages.map((page) => (
+              <li key={page.href}>
+                <Link
+                  href={page.href}
+                  className="block rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-sm transition hover:bg-slate-50"
+                >
+                  {page.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </main>
+    </div>
   );
 }

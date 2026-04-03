@@ -29,9 +29,9 @@ const SHOW_PAYMENT_METHOD_SELECTOR =
   process.env.NODE_ENV !== "production";
 
 const inputClass =
-  "min-h-[44px] w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-base text-slate-900 shadow-sm outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20";
+  "linecrew-input shadow-sm";
 
-const labelClass = "mb-2 block text-sm font-medium text-slate-800";
+const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 const hintClass = "mt-1.5 text-xs leading-relaxed text-slate-500";
 
 const sectionClass =
@@ -571,13 +571,13 @@ export function PostJobForm({ initialDraft }: PostJobFormProps) {
             <FormSubmitButton
               pending={isPending}
               loadingLabel="Saving…"
-              className="order-1 w-full rounded-lg bg-blue-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:opacity-60 md:order-none md:w-auto"
+              className="linecrew-btn-primary order-1 w-full justify-center px-5 py-3 text-base md:order-none md:w-auto"
             >
               Review booking →
             </FormSubmitButton>
             <Link
               href="/dashboard/customer"
-              className="order-2 flex w-full min-h-[44px] items-center justify-center rounded-lg border border-slate-200 px-5 py-3 text-center text-base font-medium text-slate-700 transition hover:bg-slate-50 md:order-none md:w-auto"
+              className="linecrew-btn-secondary order-2 w-full justify-center px-5 py-3 text-base md:order-none md:w-auto"
             >
               Cancel
             </Link>
@@ -597,7 +597,7 @@ export function PostJobForm({ initialDraft }: PostJobFormProps) {
           </FormSubmitButton>
           <Link
             href="/dashboard/customer"
-            className="flex min-h-[44px] w-full items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-center text-base font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            className="linecrew-btn-secondary flex w-full justify-center shadow-sm"
           >
             Cancel
           </Link>

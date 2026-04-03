@@ -578,8 +578,8 @@ export default async function AdminPage() {
   return (
     <div className="px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="linecrew-card-admin pt-8 pb-6">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+        <header className="linecrew-card-admin p-6 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
             ADMIN
           </p>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">

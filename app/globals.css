@@ -51,38 +51,57 @@ body {
 }
 
 @layer components {
-  /** Zone 2 — dashboard cards */
+  /** Zone 2 — dashboard cards (rounded-2xl, border slate-200, shadow-sm) */
   .linecrew-card {
-    border-radius: 1rem;
-    border: 1px solid rgb(226 232 240 / 0.9);
-    background-color: var(--color-surface);
+    border-radius: 1rem; /* rounded-2xl */
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
     box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
   }
 
   /** Zone 1 — marketing / auth cards on gradient */
   .linecrew-card-marketing {
     border-radius: 1rem;
-    border: 1px solid rgb(226 232 240);
-    background-color: var(--color-surface);
-    box-shadow: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    box-shadow: 0 20px 25px -5px rgb(15 23 42 / 0.08),
+      0 8px 10px -6px rgb(15 23 42 / 0.06);
   }
 
   /** Zone 3 — admin surfaces */
   .linecrew-card-admin {
     border-radius: 1rem;
     border: 1px solid rgb(51 65 85);
-    background-color: rgb(30 41 59);
+    background-color: rgb(30 41 55);
+  }
+
+  /** Standard form controls — Zone 2 */
+  .linecrew-input {
+    @apply min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20;
+  }
+
+  .linecrew-btn-primary {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700;
+  }
+
+  .linecrew-btn-secondary {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-800 transition hover:bg-slate-50;
+  }
+
+  .linecrew-btn-danger {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700;
   }
 }
 
 /* Zone shells — layout wrappers */
 @layer utilities {
-  /** Marketing: blue → teal page wash */
+  /** Marketing: brand gradient (Zone 1 full page) */
   .linecrew-zone-marketing-page {
     min-height: 100%;
     background-image: linear-gradient(
-      to bottom,
+      to bottom right,
       rgb(37 99 235),
+      rgb(59 130 246),
       rgb(20 184 166)
     );
   }
@@ -93,11 +112,11 @@ body {
     background-color: var(--color-background);
   }
 
-  /** Admin */
+  /** Admin — Zone 3 */
   .linecrew-zone-admin {
     min-height: 100%;
     background-color: rgb(15 23 42);
-    color: #fff;
+    color: rgb(203 213 225);
   }
 
   /** Legacy: dashboard shell (now maps to zone 2) */

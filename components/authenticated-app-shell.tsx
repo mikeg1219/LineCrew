@@ -102,7 +102,7 @@ export async function AuthenticatedAppShell({
         waiterAssignmentsBadge={waiterAssignments}
       />
       <main className="flex-1 pb-[calc(3.75rem+env(safe-area-inset-bottom))] md:pb-0">
-        <div className="mx-auto w-full max-w-5xl px-4">{children}</div>
+        <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">{children}</div>
       </main>
       <MobileBottomNav
         role={role}

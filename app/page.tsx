@@ -98,65 +98,63 @@ export default function Home() {
     <div className="flex min-h-0 flex-col bg-white">
       {/* Hero — full viewport on desktop; natural height on mobile */}
       <section
-        className="relative flex min-h-0 flex-col overflow-hidden bg-gradient-to-b from-blue-600 via-blue-500 to-teal-500 md:min-h-screen"
+        className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-blue-600 via-blue-500 to-teal-500"
         aria-label="Hero"
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.18),transparent_55%)]" />
         <div className="pointer-events-none absolute -left-24 top-24 h-80 w-80 rounded-full bg-white/15 blur-3xl" />
         <div className="pointer-events-none absolute -right-16 bottom-0 h-80 w-80 rounded-full bg-teal-400/20 blur-3xl" />
-        <header className="relative z-10 border-b border-white/20 bg-gradient-to-b from-black/10 to-transparent backdrop-blur-md">
-          <div className="mx-auto flex min-h-16 max-w-6xl items-center px-4 py-3 sm:px-6">
-            <Suspense
-              fallback={
-                <div
-                  className="flex h-10 w-full animate-pulse items-center justify-between rounded-lg bg-white/10"
-                  aria-hidden
-                />
-              }
+        <Suspense
+          fallback={
+            <div
+              className="fixed inset-x-0 top-0 z-[100] h-16 bg-white/10 backdrop-blur-sm"
+              aria-hidden
+            />
+          }
+        >
+          <HomeHeaderNav />
+        </Suspense>
+
+        <div className="relative z-10 flex min-h-0 w-full flex-1 flex-col items-center justify-center px-6 pb-12 pt-20 text-center md:pt-24">
+          <div className="mx-auto flex w-full max-w-2xl flex-col items-center text-center">
+            <p className="mb-4 inline-flex items-center justify-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:mb-5 sm:text-sm">
+              Now available at major US airports
+            </p>
+            <h1 className="text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-white md:text-6xl">
+              Save your spot. Keep your day moving.
+            </h1>
+            <p className="mx-auto mt-5 max-w-lg text-pretty text-lg leading-relaxed text-white/85 md:mt-6 md:text-xl">
+              Book a trusted Line Holder for airport security, concerts, theme parks, and more. We
+              hold your place so you don&apos;t have to.
+            </p>
+
+            <div className="mt-8 w-full sm:mt-10">
+              <Suspense
+                fallback={
+                  <div className="flex flex-col justify-center gap-3 sm:flex-row">
+                    <div className="h-14 w-full animate-pulse rounded-2xl bg-white/20 sm:w-44" />
+                    <div className="h-14 w-full animate-pulse rounded-2xl bg-white/10 sm:w-44" />
+                  </div>
+                }
+              >
+                <HomeHeroCTAs />
+              </Suspense>
+            </div>
+
+            <ul
+              className="mt-8 flex w-full flex-wrap justify-center gap-3 text-sm text-white/90 sm:mt-10 sm:gap-4 sm:text-base"
+              aria-label="Trust highlights"
             >
-              <HomeHeaderNav />
-            </Suspense>
+              {TRUST_ITEMS.map((label) => (
+                <li key={label} className="flex min-h-[44px] items-center gap-2">
+                  <span className="shrink-0 text-emerald-300" aria-hidden>
+                    ✓
+                  </span>
+                  <span>{label}</span>
+                </li>
+              ))}
+            </ul>
           </div>
-        </header>
-
-        <div className="relative z-10 mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-4 py-12 text-center sm:px-6 sm:py-16 md:py-20">
-          <p className="mb-5 inline-flex items-center justify-center self-center rounded-full border border-white/25 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-white/95 backdrop-blur-sm sm:text-sm">
-            Now available at major US airports
-          </p>
-          <h1 className="text-balance text-3xl font-bold leading-[1.1] tracking-tight text-white sm:text-4xl lg:text-5xl xl:text-6xl">
-            Save your spot. Keep your day moving.
-          </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-white/90 sm:text-lg md:text-xl">
-            Book a trusted Line Holder for airport security, concerts, theme parks, and more. We
-            hold your place so you don&apos;t have to.
-          </p>
-
-          <div className="mt-10 flex justify-center">
-            <Suspense
-              fallback={
-                <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
-                  <div className="h-[52px] w-full max-w-xs animate-pulse rounded-2xl bg-white/20 sm:max-w-none" />
-                  <div className="h-[52px] w-full max-w-xs animate-pulse rounded-2xl bg-white/10 sm:max-w-none" />
-                </div>
-              }
-            >
-              <HomeHeroCTAs />
-            </Suspense>
-          </div>
-
-          <ul
-            className="mx-auto mt-12 grid max-w-lg grid-cols-2 gap-x-4 gap-y-3 text-left text-sm text-white/90 sm:mt-14 sm:flex sm:max-w-4xl sm:flex-wrap sm:justify-center sm:text-base"
-            aria-label="Trust highlights"
-          >
-            {TRUST_ITEMS.map((label) => (
-              <li key={label} className="flex min-h-[44px] items-center gap-2">
-                <span className="shrink-0 text-emerald-300" aria-hidden>
-                  ✓
-                </span>
-                <span>{label}</span>
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 
